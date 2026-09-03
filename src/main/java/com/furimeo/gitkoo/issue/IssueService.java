@@ -6,6 +6,9 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.furimeo.gitkoo.activity.ActivityService;
+import com.furimeo.gitkoo.activity.AuditService;
+
 /**
  * Creates issues, adds comments, and closes issues (DESIGN.md §18, §20).
  *
@@ -16,10 +19,13 @@ public class IssueService {
 
     private final IssueRepository issueRepository;
     private final IssueCommentRepository commentRepository;
+    private final ActivityService activityService;
 
-    public IssueService(IssueRepository issueRepository, IssueCommentRepository commentRepository) {
+    public IssueService(IssueRepository issueRepository, IssueCommentRepository commentRepository,
+                       ActivityService activityService) {
         this.issueRepository = issueRepository;
         this.commentRepository = commentRepository;
+        this.activityService = activityService;
     }
 
     /** Creates a new issue with a per-repository sequence number (DESIGN.md §116). */
@@ -36,7 +42,10 @@ public class IssueService {
         issue.setStatus(Issue.Status.OPEN.name());
         issue.setCreatedAt(now);
         issue.setUpdatedAt(now);
-        return issueRepository.save(issue);
+        issue = issueRepository.save(issue);
+        activityService.record(repositoryId, authorId, "ISSUE_OPENED",
+                "opened issue #" + issue.getNumber() + ": " + title);
+        return issue;
     }
 
     /** Adds a comment to an issue. */
@@ -65,9 +74,10 @@ public class IssueService {
         issue.setUpdatedAt(OffsetDateTime.now());
         issue.setClosedAt(OffsetDateTime.now());
         issueRepository.save(issue);
+        activityService.record(issue.getRepositoryId(), issue.getAuthorId(), "ISSUE_CLOSED",
+                "closed issue #" + issue.getNumber());
     }
 
-    /** Reopens a closed issue. */
     @Transactional
     public void reopen(Long issueId) {
         Issue issue = issueRepository.findById(issueId).orElseThrow();
@@ -75,6 +85,8 @@ public class IssueService {
         issue.setUpdatedAt(OffsetDateTime.now());
         issue.setClosedAt(null);
         issueRepository.save(issue);
+        activityService.record(issue.getRepositoryId(), issue.getAuthorId(), "ISSUE_REOPENED",
+                "reopened issue #" + issue.getNumber());
     }
 
     public List<Issue> listByRepository(Long repositoryId) {

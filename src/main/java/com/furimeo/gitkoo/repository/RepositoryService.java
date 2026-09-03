@@ -10,6 +10,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
+import com.furimeo.gitkoo.activity.ActivityService;
+import com.furimeo.gitkoo.activity.AuditService;
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.config.GitKooProperties;
 import com.furimeo.gitkoo.git.GitService;
@@ -35,13 +37,18 @@ public class RepositoryService {
     private final GitService gitService;
     private final GitKooProperties properties;
     private final UserService userService;
+    private final ActivityService activityService;
+    private final AuditService auditService;
 
     public RepositoryService(RepositoryRepository repositoryRepository, GitService gitService,
-                             GitKooProperties properties, UserService userService) {
+                             GitKooProperties properties, UserService userService,
+                             ActivityService activityService, AuditService auditService) {
         this.repositoryRepository = repositoryRepository;
         this.gitService = gitService;
         this.properties = properties;
         this.userService = userService;
+        this.activityService = activityService;
+        this.auditService = auditService;
     }
 
     public Optional<Repository> findById(Long id) {
@@ -108,6 +115,10 @@ public class RepositoryService {
             throw new IllegalStateException("Failed to create repository directory " + storagePath.getParent(), e);
         }
         gitService.initBare(storagePath, repo.getDefaultBranch());
+
+        activityService.record(repo.getId(), ownerId, "REPOSITORY_CREATED",
+                "created repository " + ownerType.toLowerCase() + ":" + name);
+        auditService.record(ownerId, "REPOSITORY_CREATED", "repository", repo.getId(), null);
 
         return repo;
     }

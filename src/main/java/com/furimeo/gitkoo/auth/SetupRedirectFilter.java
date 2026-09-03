@@ -44,12 +44,10 @@ public class SetupRedirectFilter extends OncePerRequestFilter {
 
     private boolean shouldRedirect(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Don't redirect away from the setup/login/static/health paths themselves.
+        // Don't redirect away from the setup/login/health/assets paths themselves.
         return !path.equals(SETUP_URL)
                 && !path.equals(LOGIN_URL)
-                && !path.startsWith("/css/")
-                && !path.startsWith("/js/")
-                && !path.startsWith("/vendor/")
+                && !path.startsWith("/assets/")
                 && !path.equals("/health");
     }
 }

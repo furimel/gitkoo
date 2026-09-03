@@ -240,17 +240,17 @@ CREATE TABLE workflow_secrets (
 -- ── activity & audit ───────────────────────────────────────────────────
 CREATE TABLE activities (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  repository_id INTEGER,
-  actor_id      INTEGER REFERENCES users(id),
+  repository_id INTEGER,                -- nullable (user/team activity); no FK — historical log
+  actor_id      INTEGER,                -- no FK — activities persist after user deletion
   type          TEXT NOT NULL,
   message       TEXT NOT NULL,
-  payload       TEXT,
+  payload       TEXT,                   -- JSON
   created_at    TEXT NOT NULL
 );
 
 CREATE TABLE audit_events (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  actor_id    INTEGER REFERENCES users(id),
+  actor_id    INTEGER,                -- no FK — audit persists after user deletion
   action      TEXT NOT NULL,
   target_type TEXT,
   target_id   INTEGER,

@@ -47,9 +47,7 @@ public class SecurityConfig {
                         "/health",
                         "/setup",
                         "/login",
-                        "/css/**",
-                        "/js/**",
-                        "/vendor/**"
+                        "/assets/**"
                 ).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

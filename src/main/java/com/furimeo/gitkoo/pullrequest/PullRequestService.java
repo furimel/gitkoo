@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.furimeo.gitkoo.activity.ActivityService;
 import com.furimeo.gitkoo.git.GitService;
 
 /**
@@ -20,13 +21,16 @@ public class PullRequestService {
     private final PullRequestRepository prRepository;
     private final PullRequestReviewRepository reviewRepository;
     private final GitService gitService;
+    private final ActivityService activityService;
 
     public PullRequestService(PullRequestRepository prRepository,
                              PullRequestReviewRepository reviewRepository,
-                             GitService gitService) {
+                             GitService gitService,
+                             ActivityService activityService) {
         this.prRepository = prRepository;
         this.reviewRepository = reviewRepository;
         this.gitService = gitService;
+        this.activityService = activityService;
     }
 
     @Transactional
@@ -45,7 +49,10 @@ public class PullRequestService {
         pr.setStatus(PullRequest.Status.OPEN.name());
         pr.setCreatedAt(now);
         pr.setUpdatedAt(now);
-        return prRepository.save(pr);
+        pr = prRepository.save(pr);
+        activityService.record(repositoryId, authorId, "PR_OPENED",
+                "opened PR #" + pr.getNumber() + ": " + title);
+        return pr;
     }
 
     @Transactional
@@ -93,6 +100,8 @@ public class PullRequestService {
         pr.setMergedAt(now);
         pr.setUpdatedAt(now);
         prRepository.save(pr);
+        activityService.record(pr.getRepositoryId(), pr.getAuthorId(), "PR_MERGED",
+                "merged PR #" + pr.getNumber());
         return sha;
     }
 
@@ -103,6 +112,8 @@ public class PullRequestService {
         pr.setUpdatedAt(OffsetDateTime.now());
         pr.setClosedAt(OffsetDateTime.now());
         prRepository.save(pr);
+        activityService.record(pr.getRepositoryId(), pr.getAuthorId(), "PR_CLOSED",
+                "closed PR #" + pr.getNumber());
     }
 
     public List<PullRequest> listByRepository(Long repositoryId) {
