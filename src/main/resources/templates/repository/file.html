@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}">repo</strong>
+      </div>
+    </div>
+
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" class="active">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+    </nav>
+
+    <!-- Breadcrumb: ref / path/to/file -->
+    <div class="flex items-center gap-1 mb-3 text-sm text-muted">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" th:text="${ref}">ref</a>
+      <th:block th:each="part,iter : ${#strings.arraySplit(filePath, '/')}">
+        <span>/</span>
+        <span th:text="${part}" th:classappend="${iter.last ? ' font-semibold text-muted' : ''}">part</span>
+      </th:block>
+    </div>
+
+    <pre class="code-view" th:text="${content}">file content</pre>
+  </div>
+</body>
+</html>

@@ -3,18 +3,21 @@
 <head th:fragment="head(title)">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${title} + ' — GitKoo'">GitKoo</title>
+  <title th:text="${title} + ' \u00b7 GitKoo'">GitKoo</title>
   <link rel="stylesheet" th:href="@{/css/gitkoo.css}">
+  <script th:src="@{/js/gitkoo.js}" defer></script>
 </head>
 <body>
-  <nav class="navbar" th:fragment="navbar">
+  <header class="app-header" th:fragment="header">
     <a th:href="@{/}" class="brand">GitKoo</a>
-    <div class="nav-links" sec:authorize="isAuthenticated()">
-      <a th:href="@{/}">Dashboard</a>
-      <form th:action="@{/logout}" method="post" style="display:inline">
-        <button type="submit" class="btn" style="padding:0.25rem 0.5rem;font-size:0.85rem">Sign out</button>
+    <div class="nav-spacer"></div>
+    <button class="theme-toggle" type="button" aria-label="Toggle theme"></button>
+    <nav class="flex items-center gap-3" sec:authorize="isAuthenticated()">
+      <a th:href="@{/new}" class="btn btn-sm">New repository</a>
+      <form th:action="@{/logout}" method="post" class="inline-flex">
+        <button type="submit" class="btn btn-sm">Sign out</button>
       </form>
-    </div>
-  </nav>
+    </nav>
+  </header>
 </body>
 </html>

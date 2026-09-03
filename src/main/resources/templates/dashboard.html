@@ -2,11 +2,15 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Dashboard')}"></head>
 <body>
-  <nav th:replace="~{fragments/common :: navbar}"></nav>
-  <div class="container">
-    <div class="dashboard-empty">
-      <h2>Welcome to GitKoo</h2>
-      <p>You are signed in. Repository management comes next.</p>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="flex items-center justify-between mb-4">
+      <h1>Dashboard</h1>
+      <a th:href="@{/new}" class="btn btn-primary">New repository</a>
+    </div>
+    <div class="empty-state">
+      <h2>No repositories yet</h2>
+      <p>Create your first repository to get started.</p>
     </div>
   </div>
 </body>

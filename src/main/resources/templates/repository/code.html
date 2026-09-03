@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <!-- Repository header: owner / name + description (DESIGN.md §12) -->
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}">repo</strong>
+        <span class="ml-2 text-sm px-2 py-0 rounded-full border"
+              th:text="${repo.visibility}"
+              th:classappend="${repo.visibility == 'PRIVATE' ? ' text-muted' : ''}">PUBLIC</span>
+      </div>
+      <p class="repo-desc" th:if="${repo.description}" th:text="${repo.description}"></p>
+    </div>
+
+    <!-- Tabs: Code / Issues / Pull Requests / Actions / Settings -->
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" class="active">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}">Settings</a>
+    </nav>
+
+    <!-- Clone box: HTTPS URL + copy button -->
+    <div class="clone-box mb-3">
+      <code th:text="'https://localhost/' + ${owner} + '/' + ${repo.name} + '.git'">url</code>
+      <button class="btn btn-sm" data-copy="https://localhost/gitkoo.git" type="button">Copy</button>
+    </div>
+
+    <!-- Empty state: no commits yet -->
+    <div th:if="${empty}" class="empty-state">
+      <h2>This repository is empty</h2>
+      <p>Clone it and push your first commit to get started.</p>
+    </div>
+
+    <!-- File tree + recent commits -->
+    <th:block th:unless="${empty}">
+      <div class="tree mb-3">
+        <div class="tree-row" th:each="entry : ${entries}"
+             th:classappend="${entry.directory ? ' is-dir' : ''}">
+          <span class="icon" th:text="${entry.directory ? '\u{1f4c1}' : '\u{1f4c4}'}"></span>
+          <a class="name flex-1" th:text="${entry.name}"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/blob/' + ${ref} + '/' + ${entry.name}}"></a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="text-sm text-muted mb-2">Recent commits</h2>
+        <div class="commit-item" th:each="c : ${commits}">
+          <span class="title font-medium" th:text="${c.subject}">subject</span>
+          <span class="text-muted text-sm" th:text="${c.authorName}">author</span>
+          <span class="sha" th:text="${#strings.substring(c.sha, 0, 7)}">sha</span>
+        </div>
+      </div>
+    </th:block>
+  </div>
+</body>
+</html>
