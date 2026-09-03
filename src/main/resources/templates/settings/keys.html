@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('SSH keys')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app max-w-xl">
+    <h1 class="mb-4">SSH keys</h1>
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+    <!-- Existing keys -->
+    <div th:if="${keys != null and !keys.isEmpty()}" class="card p-0 mb-4">
+      <div class="commit-item" th:each="key : ${keys}">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="title font-medium" th:text="${key.title ?: '(untitled)'}">title</span>
+            <div class="text-muted text-sm" th:text="'fingerprint: ' + ${key.fingerprint}">fingerprint</div>
+            <div class="text-muted text-sm" th:if="${key.keyType}" th:text="'type: ' + ${key.keyType}">type</div>
+            <div class="text-muted text-sm" th:text="'added ' + ${key.createdAt}">added</div>
+          </div>
+          <form th:action="@{'/settings/keys/' + ${key.id} + '/delete'}" method="post"
+                class="inline-flex"
+                onsubmit="return confirm('Delete this SSH key?');">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div th:if="${keys == null or keys.isEmpty()}" class="empty-state">
+      <h2>No SSH keys yet</h2>
+      <p>Add a public key below to push and pull repositories over SSH.</p>
+    </div>
+
+    <!-- Add key form -->
+    <h2 class="text-md font-semibold mb-2">Add a new SSH key</h2>
+    <form th:action="@{/settings/keys}" method="post">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" class="input" th:value="${title}"
+               placeholder="My laptop" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="publicKey">Public key</label>
+        <textarea id="publicKey" name="publicKey" class="input" rows="5"
+                  placeholder="ssh-ed25519 AAAA..." autocomplete="off"
+                  th:text="${publicKey}"></textarea>
+        <div class="hint">Paste the contents of your <code>~/.ssh/id_*.pub</code> file.</div>
+      </div>
+      <button type="submit" class="btn btn-primary">Add key</button>
+    </form>
+  </div>
+</body>
+</html>
