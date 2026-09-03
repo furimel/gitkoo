@@ -118,6 +118,33 @@ assembled from raw user input without sanitizing/validating. Command execution u
 `ProcessBuilder` with an argument list, never concatenated shell strings (unless the
 workflow DSL explicitly requests `run shell`).
 
+## §116 Schema & migration
+
+The database stores metadata only (Git state lives on the filesystem). The full schema
+has 23 tables across these groups:
+
+```text
+users, ssh_keys, access_tokens
+teams, team_members
+repositories, repository_members
+milestones, issues, issue_comments, labels, issue_labels
+pull_requests, pull_request_reviewers, pull_request_reviews, pull_request_comments
+workflows, workflow_runs, workflow_jobs, workflow_artifacts, workflow_secrets
+activities, audit_events
+```
+
+Key decisions:
+- Repository owner is polymorphic (`owner_type` ∈ USER|TEAM, `owner_id` with no FK —
+  app-enforced) so a repository can belong to a user or a team.
+- Issue and PR numbers are per-repository sequences (`UNIQUE (repository_id, number)`).
+- Workflow secrets are encrypted at rest (AES-GCM); the key lives outside the repo.
+- No Flyway/Liquibase for now. A small `DatabaseMigrationRunner` applies
+  `classpath:gitkoo/migrations/V{n}__name.sql` files at startup, each in its own
+  transaction, tracking applied versions in a `schema_version` table.
+
+SQLite `PRAGMA foreign_keys = ON` is set via the HikariCP connection-init-sql so
+`ON DELETE CASCADE` works.
+
 ## §109 MVP scope
 
 ```text
