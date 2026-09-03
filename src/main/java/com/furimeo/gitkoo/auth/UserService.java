@@ -52,6 +52,18 @@ public class UserService {
         if (!needsSetup()) {
             throw new IllegalStateException("Setup already completed");
         }
+        return doCreateUser(username, email, password, true);
+    }
+
+    /**
+     * Creates a regular (non-admin) user. Used by admin UI and tests.
+     * Does not require setup to be in progress.
+     */
+    public User createUser(String username, String email, String password) {
+        return doCreateUser(username, email, password, false);
+    }
+
+    private User doCreateUser(String username, String email, String password, boolean admin) {
         validateUsername(username);
         validateEmail(email);
         validatePassword(password);
@@ -62,7 +74,7 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setDisplayName(username);
         user.setStatus("ACTIVE");
-        user.setAdmin(true);
+        user.setAdmin(admin);
         OffsetDateTime now = OffsetDateTime.now();
         user.setCreatedAt(now);
         user.setUpdatedAt(now);

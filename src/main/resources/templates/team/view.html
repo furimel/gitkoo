@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Team')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <h1 th:text="${team.displayName ?: team.name}">Team</h1>
+    <p class="text-muted mb-4" th:if="${team.description}" th:text="${team.description}"></p>
+
+    <div class="card mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg">Members</h2>
+      </div>
+      <div th:each="m,iter : ${members}" class="flex items-center justify-between py-2 border-t">
+        <a th:href="@{'/@/' + ${users[iter.index]?.username}}" th:text="${users[iter.index]?.displayName ?: users[iter.index]?.username ?: 'Unknown'}">user</a>
+        <span class="text-sm px-3 py-1 rounded-full" th:text="${m.role}"
+              th:style="${m.role == 'OWNER' ? 'background:var(--accent-subtle);color:var(--accent-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)'}">role</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="text-lg mb-2">Add member</h2>
+      <form th:action="@{'/teams/' + ${team.name} + '/members'}" method="post" class="flex gap-2 items-end">
+        <div class="field flex-1 mb-0">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" class="input" required placeholder="username">
+        </div>
+        <div class="field mb-0">
+          <label for="role">Role</label>
+          <select id="role" name="role" class="select">
+            <option value="MEMBER">Member</option>
+            <option value="MAINTAINER">Maintainer</option>
+            <option value="OWNER">Owner</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
