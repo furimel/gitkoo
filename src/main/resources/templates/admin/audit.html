@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Audit log')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <h1 class="mb-4">Audit log</h1>
+    <div th:if="${events.isEmpty()}" class="empty-state">
+      <h2>No audit events</h2>
+      <p>Audit events are recorded when security-relevant actions occur.</p>
+    </div>
+    <div th:unless="${events.isEmpty()}" class="card p-0">
+      <div class="commit-item" th:each="e : ${events}">
+        <span class="text-muted text-sm" th:text="${e.createdAt}">time</span>
+        <span class="title font-medium" th:text="${e.action}">action</span>
+        <span class="text-muted text-sm" th:if="${e.targetType}" th:text="${e.targetType + ' #' + e.targetId}">target</span>
+        <span class="text-muted text-sm" th:if="${e.ip}" th:text="${e.ip}">ip</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('System')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <h1 class="mb-4">System</h1>
+    <div class="card">
+      <table class="w-full text-sm">
+        <tr class="border-b"><td class="py-2 font-medium">GitKoo version</td><td th:text="${gitkooVersion}">0.0.1</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">Java version</td><td th:text="${javaVersion}">21</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">Git binary</td><td th:text="${gitBinary}">git</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">Data path</td><td th:text="${dataPath}">./data</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">CI enabled</td><td th:text="${ciEnabled} ? 'yes' : 'no'">yes</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">CI workers</td><td th:text="${ciWorkers}">2</td></tr>
+        <tr class="border-b"><td class="py-2 font-medium">SSH enabled</td><td th:text="${sshEnabled} ? 'yes' : 'no'">yes</td></tr>
+        <tr><td class="py-2 font-medium">SSH port</td><td th:text="${sshPort}">2222</td></tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

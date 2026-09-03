@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Activity')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}" class="active">Activity</a>
+    </nav>
+    <div th:if="${activities.isEmpty()}" class="empty-state">
+      <h2>No activity yet</h2>
+      <p>Activity appears when someone pushes, opens issues, or merges PRs.</p>
+    </div>
+    <div th:unless="${activities.isEmpty()}" class="card p-0">
+      <div class="commit-item" th:each="a : ${activities}">
+        <span class="text-muted text-sm" th:text="${a.createdAt}">time</span>
+        <span class="title" th:text="${a.message}">message</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

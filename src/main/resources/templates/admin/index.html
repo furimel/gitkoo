@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Admin')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <h1 class="mb-4">Admin</h1>
+    <div class="card mb-3">
+      <h2 class="text-lg mb-2">Overview</h2>
+      <p class="text-muted"><span th:text="${userCount}">0</span> registered users</p>
+    </div>
+    <div class="flex gap-2">
+      <a th:href="@{/admin/users}" class="btn">Users</a>
+      <a th:href="@{/admin/system}" class="btn">System</a>
+      <a th:href="@{/admin/audit}" class="btn">Audit log</a>
+    </div>
+  </div>
+</body>
+</html>

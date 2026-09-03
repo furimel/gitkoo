@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Users')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <h1 class="mb-4">Users</h1>
+    <div class="card p-0">
+      <div class="commit-item" th:each="u : ${users}">
+        <a th:href="@{'/@/' + ${u.username}}" th:text="${u.displayName ?: u.username}">user</a>
+        <span class="text-muted text-sm" th:text="${u.email}">email</span>
+        <span th:if="${u.admin}" class="text-sm px-2 rounded-full"
+              style="background:var(--accent-subtle);color:var(--accent-fg)">admin</span>
+        <span class="text-sm px-2 rounded-full" th:text="${u.status}"
+              th:style="${u.status == 'ACTIVE' ? 'background:var(--success-subtle);color:var(--success-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)'}">status</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

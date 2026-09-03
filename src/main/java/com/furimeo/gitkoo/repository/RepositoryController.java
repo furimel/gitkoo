@@ -97,6 +97,18 @@ public class RepositoryController {
         return "repository/code";
     }
 
+    @GetMapping("/{username}/{name}/activity")
+    public String repositoryActivity(@PathVariable String username, @PathVariable String name,
+                                     Model model,
+                                     com.furimeo.gitkoo.activity.ActivityService activityService) {
+        Repository repo = resolve(username, name);
+        model.addAttribute("title", "Activity \u00b7 " + username + "/" + name);
+        model.addAttribute("owner", username);
+        model.addAttribute("repo", repo);
+        model.addAttribute("activities", activityService.listByRepository(repo.getId()));
+        return "repository/activity";
+    }
+
     @GetMapping("/{username}/{name}/blob/{ref}/**")
     public String fileViewer(@PathVariable String username, @PathVariable String name,
                             @PathVariable String ref,
