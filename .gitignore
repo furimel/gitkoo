@@ -37,6 +37,8 @@ out/
 .vscode/
 
 ### GitKoo ###
-# Local design doc is private — never commit
+# Runtime data directory (design \u00a72.2)
+/data/
+# Local design doc is private \u2014 never commit
 design (DO NOT COMMIT) .txt
 .zcode/
