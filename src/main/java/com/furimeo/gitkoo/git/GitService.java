@@ -164,7 +164,7 @@ public class GitService {
     /**
      * Runs a Git command with the given arguments, inside the repository directory.
      */
-    GitResult run(Path storagePath, String... args) {
+    public GitResult run(Path storagePath, String... args) {
         List<String> command = new ArrayList<>();
         command.add(gitBinary);
         command.addAll(Arrays.asList(args));

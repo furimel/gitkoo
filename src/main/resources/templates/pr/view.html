@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('PR #' + ${pr.number})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app max-w-xl">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <h1><span th:text="${pr.title}"></span> <span class="text-muted">#<span th:text="${pr.number}"></span></span></h1>
+      <span class="text-sm px-3 py-1 rounded-full" th:if="${pr.status == 'OPEN'}"
+            style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
+      <span class="text-sm px-3 py-1 rounded-full" th:if="${pr.status == 'MERGED'}"
+            style="background:var(--accent-subtle);color:var(--accent-fg)">Merged</span>
+      <span class="text-sm px-3 py-1 rounded-full" th:if="${pr.status == 'CLOSED'}"
+            style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
+    </div>
+
+    <div class="text-sm text-muted mb-4">
+      <strong th:text="${pr.sourceBranch}">src</strong> \u2192 <strong th:text="${pr.targetBranch}">target</strong>
+      <span class="ml-3" th:text="${author?.displayName ?: author?.username ?: 'Unknown'}"></span> wants to merge
+    </div>
+
+    <div class="card mb-4">
+      <div th:utext="${prBodyHtml}"></div>
+    </div>
+
+    <h3 class="text-sm font-semibold text-muted mb-2">Reviews</h3>
+    <div th:each="r,iter : ${reviews}" class="card mb-3">
+      <div class="flex items-center gap-2 mb-2 text-sm">
+        <strong th:text="${reviewers[iter.index]?.displayName ?: reviewers[iter.index]?.username ?: 'Unknown'}"></strong>
+        <span class="text-sm px-2 rounded-full" th:text="${r.state}"
+              th:style="${r.state == 'APPROVE' ? 'background:var(--success-subtle);color:var(--success-fg)' : (r.state == 'REQUEST_CHANGES' ? 'background:var(--danger-subtle);color:var(--danger-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)')}">state</span>
+      </div>
+      <div th:if="${r.body}" th:utext="${markdown.render(r.body)}"></div>
+    </div>
+
+    <th:block th:if="${pr.status == 'OPEN'}">
+      <div class="card mb-3">
+        <h3 class="text-sm font-semibold mb-2">Submit review</h3>
+        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/review'}" method="post">
+          <div class="field">
+            <label for="state">Review</label>
+            <select id="state" name="state" class="select">
+              <option value="COMMENT">Comment</option>
+              <option value="APPROVE">Approve</option>
+              <option value="REQUEST_CHANGES">Request changes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="body">Comment (optional)</label>
+            <textarea id="body" name="body" class="input" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit review</button>
+        </form>
+      </div>
+      <div class="flex gap-2">
+        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/merge'}" method="post">
+          <button type="submit" class="btn btn-primary">Merge pull request</button>
+        </form>
+        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/close'}" method="post">
+          <button type="submit" class="btn btn-danger">Close</button>
+        </form>
+      </div>
+    </th:block>
+  </div>
+</body>
+</html>

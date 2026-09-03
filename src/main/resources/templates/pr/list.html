@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Pull Requests')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}" class="active">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+    </nav>
+    <div class="flex items-center justify-between mb-3">
+      <h2>Pull Requests</h2>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
+    </div>
+    <div th:if="${pulls.isEmpty()}" class="empty-state">
+      <h2>No pull requests</h2>
+      <p>Create a branch, push, then open a pull request to propose changes.</p>
+    </div>
+    <div th:unless="${pulls.isEmpty()}" class="card p-0">
+      <div class="commit-item" th:each="p : ${pulls}">
+        <span class="sha">#<span th:text="${p.number}"></span></span>
+        <span class="title font-medium" th:text="${p.title}"></span>
+        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'OPEN'}"
+              style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
+        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'MERGED'}"
+              style="background:var(--accent-subtle);color:var(--accent-fg)">Merged</span>
+        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'CLOSED'}"
+              style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

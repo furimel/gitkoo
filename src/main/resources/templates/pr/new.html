@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('New pull request')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app max-w-lg">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+    <h1 class="mb-4">New pull request</h1>
+    <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" method="post">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" class="input" required placeholder="Summarize the changes">
+      </div>
+      <div class="field">
+        <label for="sourceBranch">Source branch</label>
+        <input type="text" id="sourceBranch" name="sourceBranch" class="input" required placeholder="feature/my-branch">
+      </div>
+      <div class="field">
+        <label for="targetBranch">Target branch</label>
+        <input type="text" id="targetBranch" name="targetBranch" class="input" value="main">
+      </div>
+      <div class="field">
+        <label for="body">Description</label>
+        <textarea id="body" name="body" class="input" rows="8" placeholder="Describe the changes (Markdown supported)"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Create pull request</button>
+    </form>
+  </div>
+</body>
+</html>
