@@ -2,10 +2,13 @@ package com.furimeo.gitkoo.workflow;
 
 import java.util.List;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.repository.Repository;
@@ -35,6 +38,23 @@ public class WorkflowController {
         model.addAttribute("repo", repo);
         model.addAttribute("runs", runs);
         return "repository/actions";
+    }
+
+    /**
+     * Streams the persisted log output for a single workflow run as plain text
+     * (DESIGN.md §109 "workflow logs"). The run must belong to the resolved
+     * repository, otherwise a 404 is returned.
+     */
+    @GetMapping(value = "/{username}/{name}/actions/{runId}/logs", produces = MediaType.TEXT_PLAIN_VALUE)
+    @ResponseBody
+    public ResponseEntity<String> logs(@PathVariable String username, @PathVariable String name,
+                                       @PathVariable Long runId) {
+        Repository repo = resolveRepo(username, name);
+        return workflowService.findRun(runId)
+                .filter(run -> run.getRepositoryId().equals(repo.getId()))
+                .map(run -> ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN)
+                        .body(workflowService.readLog(runId)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private Repository resolveRepo(String username, String name) {

@@ -1,8 +1,11 @@
 package com.furimeo.gitkoo.workflow;
 
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,25 +52,52 @@ public class WorkflowExecutor {
     /**
      * Executes the workflow body in the given workspace directory, with the given context.
      *
+     * <p>Process output is streamed to a per-run log file at
+     * {@code {data}/logs/{runId}.log} (DESIGN.md §109 "workflow logs").
+     *
+     * @param runId      the workflow run id (names the log file)
      * @param workflow   the parsed workflow
      * @param workspace  the checkout directory (where commands run)
      * @param context    runtime context (GITKOO_BRANCH, GITKOO_EVENT, etc.)
      * @param secrets    resolved secret values (name → value), to be injected as env vars
      * @return true if all statements succeeded, false if any failed
      */
-    public boolean execute(Workflow workflow, Path workspace, Map<String, String> context,
+    public boolean execute(long runId, Workflow workflow, Path workspace, Map<String, String> context,
                            Map<String, String> secrets) {
         // Build the base environment: whitelist GITKOO_* plus declared env/secret.
         Map<String, String> env = buildEnv(workflow, context, secrets);
         List<Stmt> body = filterByIf(workflow.body(), context);
 
-        for (Stmt stmt : body) {
-            boolean ok = executeStmt(stmt, workspace, env, context);
-            if (!ok) {
-                return false;
+        RunLog runLog = openLog(runId);
+        runLog.appendLine("Workflow '" + workflow.name() + "' run #" + runId + " started");
+        try {
+            for (Stmt stmt : body) {
+                if (!executeStmt(stmt, workspace, env, context, runLog)) {
+                    runLog.appendLine("Workflow run #" + runId + " failed");
+                    return false;
+                }
             }
+            runLog.appendLine("Workflow run #" + runId + " succeeded");
+            return true;
+        } finally {
+            runLog.close();
         }
-        return true;
+    }
+
+    /**
+     * Reads the persisted log for a run, or an empty string if no log was written.
+     */
+    public String readLog(long runId) {
+        Path logFile = logPath(runId);
+        if (!Files.exists(logFile)) {
+            return "";
+        }
+        try {
+            return Files.readString(logFile, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warn("Failed to read workflow log file {}", logFile, e);
+            return "";
+        }
     }
 
     /** Shuts down the thread pool. */
@@ -78,20 +108,20 @@ public class WorkflowExecutor {
     // ── statement execution ───────────────────────────────────────────────
 
     private boolean executeStmt(Stmt stmt, Path workspace, Map<String, String> env,
-                                Map<String, String> context) {
+                                Map<String, String> context, RunLog runLog) {
         return switch (stmt) {
-            case Stmt.Run run -> executeRun(run, workspace, env);
-            case Stmt.Parallel parallel -> executeParallel(parallel, workspace, env, context);
+            case Stmt.Run run -> executeRun(run, workspace, env, runLog);
+            case Stmt.Parallel parallel -> executeParallel(parallel, workspace, env, context, runLog);
             case Stmt.If ifStmt -> {
                 if (evalExpr(ifStmt.expr(), context)) {
-                    yield executeList(ifStmt.thenBody(), workspace, env, context);
+                    yield executeList(ifStmt.thenBody(), workspace, env, context, runLog);
                 } else {
-                    yield executeList(ifStmt.elseBody(), workspace, env, context);
+                    yield executeList(ifStmt.elseBody(), workspace, env, context, runLog);
                 }
             }
             case Stmt.Timeout timeout -> {
                 // MVP: timeout applies to the next statement; we don't enforce it yet.
-                log.debug("timeout {} (not enforced in MVP)", timeout.duration());
+                runLog.appendLine("timeout " + timeout.duration() + " (not enforced in MVP)");
                 yield true;
             }
             case Stmt.Artifact artifact -> collectArtifact(artifact, workspace);
@@ -101,14 +131,14 @@ public class WorkflowExecutor {
     }
 
     private boolean executeList(List<Stmt> stmts, Path workspace, Map<String, String> env,
-                               Map<String, String> context) {
+                               Map<String, String> context, RunLog runLog) {
         for (Stmt s : stmts) {
-            if (!executeStmt(s, workspace, env, context)) return false;
+            if (!executeStmt(s, workspace, env, context, runLog)) return false;
         }
         return true;
     }
 
-    private boolean executeRun(Stmt.Run run, Path workspace, Map<String, String> env) {
+    private boolean executeRun(Stmt.Run run, Path workspace, Map<String, String> env, RunLog runLog) {
         List<String> command;
         if (run.shell()) {
             command = List.of("/bin/sh", "-c", run.command());
@@ -116,9 +146,10 @@ public class WorkflowExecutor {
             command = shlexSplit(run.command());
         }
         if (command.isEmpty()) {
-            log.warn("Empty run command");
+            runLog.appendLine("Empty run command");
             return false;
         }
+        runLog.appendLine("$ " + run.command());
 
         ProcessBuilder pb = new ProcessBuilder(command)
                 .directory(workspace.toFile())
@@ -128,26 +159,28 @@ public class WorkflowExecutor {
 
         try {
             Process process = pb.start();
-            // Log output (MVP: write to stdout; later stream to filesystem log).
-            String output = new String(process.getInputStream().readAllBytes());
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int code = process.waitFor();
+            // Stream the process output to the per-run log, line by line.
+            output.lines().forEach(runLog::appendLine);
             if (code != 0) {
-                log.warn("Command '{}' exited with {}:\n{}", run.command(), code, output);
+                runLog.appendLine("Command exited with " + code);
+                log.warn("Command '{}' exited with {}", run.command(), code);
                 return false;
             }
-            log.debug("Command '{}' succeeded:\n{}", run.command(), output);
             return true;
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
+            runLog.appendLine("Failed to run command: " + e.getMessage());
             log.error("Failed to run command '{}'", run.command(), e);
             return false;
         }
     }
 
     private boolean executeParallel(Stmt.Parallel parallel, Path workspace,
-                                    Map<String, String> env, Map<String, String> context) {
+                                    Map<String, String> env, Map<String, String> context, RunLog runLog) {
         var futures = parallel.body().stream()
-                .map(stmt -> pool.submit(() -> executeStmt(stmt, workspace, new HashMap<>(env), context)))
+                .map(stmt -> pool.submit(() -> executeStmt(stmt, workspace, new HashMap<>(env), context, runLog)))
                 .toList();
         boolean allOk = true;
         for (var f : futures) {
@@ -166,6 +199,58 @@ public class WorkflowExecutor {
         log.info("Collecting artifacts matching '{}' from {}", artifact.glob(), workspace);
         // Full glob + storage implementation deferred.
         return true;
+    }
+
+    // ── logging ────────────────────────────────────────────────────────────
+
+    /** Resolves the per-run log file path under the data directory. */
+    private Path logPath(long runId) {
+        return Path.of(properties.getData(), "logs", runId + ".log");
+    }
+
+    /** Opens (creating parent dirs) the per-run log file, or a no-op sink on failure. */
+    private RunLog openLog(long runId) {
+        Path logFile = logPath(runId);
+        try {
+            Files.createDirectories(logFile.getParent());
+            Writer writer = Files.newBufferedWriter(logFile, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            return new RunLog(writer);
+        } catch (IOException e) {
+            log.warn("Failed to open workflow log file {}; logging will be dropped", logFile, e);
+            return new RunLog(Writer.nullWriter());
+        }
+    }
+
+    /**
+     * Appends lines to the per-run log file. Writes are synchronized so that
+     * parallel-block tasks running on the worker pool can share one writer safely.
+     */
+    private static final class RunLog implements AutoCloseable {
+        private final Writer writer;
+
+        RunLog(Writer writer) {
+            this.writer = writer;
+        }
+
+        synchronized void appendLine(String line) {
+            try {
+                writer.write(line);
+                writer.write("\n");
+                writer.flush();
+            } catch (IOException e) {
+                log.warn("Failed to write workflow log line", e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                log.warn("Failed to close workflow log", e);
+            }
+        }
     }
 
     // ── env + context ─────────────────────────────────────────────────────

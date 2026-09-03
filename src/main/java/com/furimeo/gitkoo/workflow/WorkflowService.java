@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +84,7 @@ public class WorkflowService {
         try {
             // For MVP, use the repo storage path as workspace (no separate checkout).
             Path workspace = Path.of(repo.getStoragePath()).getParent();
-            success = executor.execute(workflow, workspace, context, Map.of());
+            success = executor.execute(run.getId(), workflow, workspace, context, Map.of());
         } catch (Exception e) {
             log.error("Workflow execution failed", e);
         } finally {
@@ -97,6 +98,16 @@ public class WorkflowService {
     /** Lists recent workflow runs for a repository. */
     public List<WorkflowRun> listRuns(Long repositoryId) {
         return runRepository.findByRepositoryIdOrderByIdDesc(repositoryId);
+    }
+
+    /** Loads a single workflow run by id. */
+    public Optional<WorkflowRun> findRun(Long runId) {
+        return runRepository.findById(runId);
+    }
+
+    /** Reads the persisted log output for a run (empty if none). */
+    public String readLog(Long runId) {
+        return executor.readLog(runId);
     }
 
     /** Parses a .koo source file into a Workflow AST. */
