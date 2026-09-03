@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('Dashboard')}"></head>
+<body>
+  <nav th:replace="~{fragments/common :: navbar}"></nav>
+  <div class="container">
+    <div class="dashboard-empty">
+      <h2>Welcome to GitKoo</h2>
+      <p>You are signed in. Repository management comes next.</p>
+    </div>
+  </div>
+</body>
+</html>
