@@ -1,6 +1,7 @@
 package com.furimeo.gitkoo.repository;
 
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,11 +32,14 @@ import com.furimeo.gitkoo.git.GitService.TreeEntry;
 public class RepositoryController {
 
     private final RepositoryService repositoryService;
+    private final RepositoryRepository repositoryRepository;
     private final UserService userService;
     private final GitService gitService;
 
-    public RepositoryController(RepositoryService repositoryService, UserService userService, GitService gitService) {
+    public RepositoryController(RepositoryService repositoryService, RepositoryRepository repositoryRepository,
+                                UserService userService, GitService gitService) {
         this.repositoryService = repositoryService;
+        this.repositoryRepository = repositoryRepository;
         this.userService = userService;
         this.gitService = gitService;
     }
@@ -132,6 +136,34 @@ public class RepositoryController {
         model.addAttribute("filePath", filePath);
         model.addAttribute("content", content);
         return "repository/file";
+    }
+
+    // ── settings ────────────────────────────────────────────────────────
+
+    @GetMapping("/{username}/{name}/settings")
+    public String repositorySettings(@PathVariable String username, @PathVariable String name,
+                                     Model model) {
+        Repository repo = resolve(username, name);
+        addRepoHeader(model, username, repo);
+        return "repository/settings";
+    }
+
+    @PostMapping("/{username}/{name}/settings")
+    public String updateRepositorySettings(@PathVariable String username, @PathVariable String name,
+                                           @RequestParam(required = false) String description,
+                                           @RequestParam String visibility,
+                                           @RequestParam String defaultBranch,
+                                           RedirectAttributes redirectAttributes) {
+        Repository repo = resolve(username, name);
+        // Name is read-only and intentionally not updated (storage path is id-based,
+        // but renaming is out of scope for the MVP settings page).
+        repo.setDescription(description);
+        repo.setVisibility(visibility);
+        repo.setDefaultBranch(defaultBranch);
+        repo.setUpdatedAt(OffsetDateTime.now());
+        repositoryRepository.save(repo);
+        redirectAttributes.addFlashAttribute("success", "Settings saved.");
+        return "redirect:/" + username + "/" + name + "/settings";
     }
 
     private Repository resolve(String username, String name) {

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <!-- Repository header: owner / name + description (DESIGN.md §12) -->
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}">repo</strong>
+        <span class="ml-2 text-sm px-2 py-0 rounded-full border"
+              th:text="${repo.visibility}"
+              th:classappend="${repo.visibility == 'PRIVATE' ? ' text-muted' : ''}">PUBLIC</span>
+      </div>
+      <p class="repo-desc" th:if="${repo.description}" th:text="${repo.description}"></p>
+    </div>
+
+    <!-- Tabs: Code / Issues / Pull Requests / Actions / Settings -->
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}" class="active">Settings</a>
+    </nav>
+
+    <div th:if="${success}" class="alert alert-success mb-3" th:text="${success}"></div>
+
+    <h1 class="mb-3">Repository settings</h1>
+
+    <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}" method="post" class="max-w-lg">
+      <div class="field">
+        <label for="name">Repository name</label>
+        <input type="text" id="name" name="name" class="input" th:value="${repo.name}"
+               disabled>
+        <div class="hint">The repository name cannot be changed.</div>
+      </div>
+
+      <div class="field">
+        <label for="description">Description <span class="text-subtle">(optional)</span></label>
+        <input type="text" id="description" name="description" class="input"
+               th:value="${repo.description}" placeholder="A short description">
+      </div>
+
+      <fieldset class="field" style="border:0;padding:0">
+        <legend class="font-semibold text-sm mb-2">Visibility</legend>
+        <label class="flex items-center gap-2 mb-2 cursor-pointer">
+          <input type="radio" name="visibility" value="PUBLIC"
+                 th:checked="${repo.visibility == 'PUBLIC'}">
+          <span><strong>Public</strong> \u2014 anyone can see this repository</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="visibility" value="PRIVATE"
+                 th:checked="${repo.visibility == 'PRIVATE'}">
+          <span><strong>Private</strong> \u2014 only you and collaborators can see it</span>
+        </label>
+      </fieldset>
+
+      <div class="field">
+        <label for="defaultBranch">Default branch</label>
+        <input type="text" id="defaultBranch" name="defaultBranch" class="input"
+               th:value="${repo.defaultBranch}">
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </form>
+  </div>
+</body>
+</html>
