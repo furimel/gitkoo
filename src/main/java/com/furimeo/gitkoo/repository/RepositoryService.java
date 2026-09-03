@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
+import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.config.GitKooProperties;
 import com.furimeo.gitkoo.git.GitService;
 
@@ -33,12 +34,14 @@ public class RepositoryService {
     private final RepositoryRepository repositoryRepository;
     private final GitService gitService;
     private final GitKooProperties properties;
+    private final UserService userService;
 
     public RepositoryService(RepositoryRepository repositoryRepository, GitService gitService,
-                             GitKooProperties properties) {
+                             GitKooProperties properties, UserService userService) {
         this.repositoryRepository = repositoryRepository;
         this.gitService = gitService;
         this.properties = properties;
+        this.userService = userService;
     }
 
     public Optional<Repository> findById(Long id) {
@@ -52,6 +55,17 @@ public class RepositoryService {
      */
     public Optional<Repository> findByOwnerAndName(String ownerType, Long ownerId, String name) {
         return repositoryRepository.findByOwnerTypeAndOwnerIdAndName(ownerType, ownerId, name);
+    }
+
+    /**
+     * Finds a USER-owned repository by owner username and repo name, for SSH/git
+     * transport where we only have the username string (DESIGN.md §8).
+     */
+    public Optional<Repository> findByOwnerUsernameAndName(String username, String name) {
+        var user = userService.findByUsername(username);
+        if (user.isEmpty()) return Optional.empty();
+        return repositoryRepository.findByOwnerTypeAndOwnerIdAndName(
+                Repository.OwnerType.USER.name(), user.get().getId(), name);
     }
 
     public List<Repository> findByOwner(String ownerType, Long ownerId) {
