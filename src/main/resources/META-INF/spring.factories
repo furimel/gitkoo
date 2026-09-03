@@ -1,0 +1,5 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.furimeo.gitkoo.config.DataDirectoryEnvironmentPostProcessor
+
+org.springframework.data.jdbc.core.dialect.DialectResolver$JdbcDialectProvider=\
+com.furimeo.gitkoo.config.SqliteDialectProvider

@@ -1,3 +1,28 @@
 spring:
   application:
     name: gitkoo
+  datasource:
+    url: jdbc:sqlite:${gitkoo.data:./data}/gitkoo.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite is single-writer; keep the pool small to avoid "database is locked".
+      maximum-pool-size: 1
+
+server:
+  port: 3000
+
+gitkoo:
+  # Root data directory. Everything GitKoo writes lives under here (design \u00a72.2).
+  data: ./data
+  git:
+    binary: git
+  ssh:
+    enabled: true
+    port: 2222
+  ci:
+    enabled: true
+    workers: 2
+
+logging:
+  level:
+    com.furimeo.gitkoo: INFO
