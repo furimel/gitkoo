@@ -9,12 +9,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Minimal Spring Security wiring for the foundation phase.
+ * Spring Security wiring: session-based authentication with a custom login page.
  *
- * <p>Foundation phase only needs {@code /health} to work, so everything is permitted
- * and CSRF is off for now. Full authentication (form login, sessions, CSRF policy,
- * access tokens, protected routes) lands in the auth phase. BCrypt is wired early so
- * user creation can use it from the start.
+ * <p>Permits the first-run setup page, login, static assets, and the health endpoint
+ * anonymously. Everything else requires authentication. CSRF is enabled (default) to
+ * protect form POSTs. Git smart-HTTP endpoints are handled separately and disable CSRF
+ * for those paths since Git clients are not browser sessions.
  *
  * @see DESIGN.md §43, §78
  */
@@ -29,14 +29,33 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Foundation phase: only the health endpoint needs to work. Full authentication
-        // (form login, sessions, CSRF policy, access tokens) lands in the auth phase.
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health").permitAll()
-                .anyRequest().permitAll()
+                .requestMatchers(
+                        "/health",
+                        "/setup",
+                        "/login",
+                        "/css/**",
+                        "/js/**",
+                        "/vendor/**"
+                ).permitAll()
+                .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.disable());
+            .formLogin(form -> form
+                .loginPage("/login")
+                .loginProcessingUrl("/login")
+                .defaultSuccessUrl("/")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout")
+                .permitAll()
+            )
+            .csrf(csrf -> csrf
+                // Git smart-HTTP endpoints use HTTP auth / tokens, not browser forms.
+                .ignoringRequestMatchers("/api/**", "/git/**", "/**.git/**")
+            );
         return http.build();
     }
 }
