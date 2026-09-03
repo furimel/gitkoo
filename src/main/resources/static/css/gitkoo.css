@@ -1,133 +1,462 @@
+/*
+ * GitKoo stylesheet — GitHub Primer-inspired design system.
+ *
+ * Organized in 4 layers, each with a single responsibility:
+ *   1. Design tokens — colors, spacing, radius, typography (light + dark).
+ *   2. Base reset & element defaults.
+ *   3. Utility classes — single-purpose, composable (Tailwind-like syntax, hand-written).
+ *   4. Component classes — cohesive UI patterns (.btn, .card, .nav, .tree, .alert).
+ *
+ * No build step. Dark mode via [data-theme="dark"] on <html>.
+ * Colors mirror GitHub Primer light/dark palettes so the UI reads as familiar.
+ */
+
+/* ── 1. Design tokens ─────────────────────────────────────────────────── */
+
 :root {
-  --bg: #f6f8fa;
-  --surface: #ffffff;
-  --border: #d0d7de;
-  --text: #1f2328;
-  --text-muted: #656d76;
-  --accent: #0969da;
-  --accent-hover: #0550ae;
-  --danger: #cf222e;
-  --success: #1a7f37;
-  --radius: 6px;
+  /* Canvas (backgrounds) */
+  --canvas-default: #ffffff;
+  --canvas-subtle:  #f6f8fa;
+  --canvas-inset:   #eaeef2;
+
+  /* Borders */
+  --border-default: #d0d7de;
+  --border-muted:   #d8dee4;
+
+  /* Foreground (text) */
+  --fg-default:     #1f2328;
+  --fg-muted:       #656d76;
+  --fg-subtle:      #6e7781;
+
+  /* Accent (links, primary actions) */
+  --accent-fg:      #0969da;
+  --accent-emphasis: #0550ae;
+  --accent-subtle:  #ddf4ff;
+
+  /* Status */
+  --success-fg:     #1a7f37;
+  --success-subtle: #dafbe1;
+  --danger-fg:      #d1242f;
+  --danger-subtle:  #ffebe9;
+  --attention-fg:   #9a6700;
+  --attention-subtle: #fff8c5;
+
+  /* Neutral control surface */
+  --button-default-bg:     #f6f8fa;
+  --button-default-border: rgba(31,35,40,0.15);
+
+  /* Typography */
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  /* Spacing scale (px → rem): 0 4 8 16 24 32 40 48 */
+  --sp-0: 0; --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 1rem;
+  --sp-4: 1.5rem; --sp-5: 2rem; --sp-6: 2.5rem; --sp-7: 3rem;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+[data-theme="dark"] {
+  --canvas-default: #0d1117;
+  --canvas-subtle:  #161b22;
+  --canvas-inset:   #010409;
+
+  --border-default: #30363d;
+  --border-muted:   #21262d;
+
+  --fg-default:     #e6edf3;
+  --fg-muted:       #7d8590;
+  --fg-subtle:      #6e7681;
+
+  --accent-fg:      #2f81f7;
+  --accent-emphasis: #1f6feb;
+  --accent-subtle:  rgba(56,139,253,0.15);
+
+  --success-fg:     #3fb950;
+  --success-subtle: rgba(46,160,67,0.15);
+  --danger-fg:      #f85149;
+  --danger-subtle:  rgba(248,81,73,0.15);
+  --attention-fg:   #d29922;
+  --attention-subtle: rgba(187,128,9,0.15);
+
+  --button-default-bg:     #21262d;
+  --button-default-border: rgba(240,246,252,0.1);
+}
+
+/* ── 2. Base reset & element defaults ─────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { color-scheme: light dark; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--font-size-md);
   line-height: 1.5;
+  color: var(--fg-default);
+  background: var(--canvas-default);
+  -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--accent); text-decoration: none; }
+a { color: var(--accent-fg); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ── top nav ─────────────────────────────────────────────── */
-.navbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0.5rem 1rem;
+code, pre, kbd, samp { font-family: var(--font-mono); }
+
+h1, h2, h3 { font-weight: 600; line-height: 1.25; }
+h1 { font-size: var(--font-size-xl); }
+h2 { font-size: var(--font-size-lg); }
+
+/* ── 3. Utility classes ───────────────────────────────────────────────── */
+/* Hand-written, Tailwind-like. Only classes actually used are included. */
+
+/* Display */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.block { display: block; }
+.inline-block { display: inline-block; }
+.none { display: none; }
+
+/* Flex direction & wrap */
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+
+/* Align items / justify */
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+
+/* Flex grow/shrink */
+.flex-1 { flex: 1 1 0%; }
+.flex-auto { flex: 1 1 auto; }
+.flex-none { flex: none; }
+
+/* Gap */
+.gap-1 { gap: var(--sp-1); }
+.gap-2 { gap: var(--sp-2); }
+.gap-3 { gap: var(--sp-3); }
+.gap-4 { gap: var(--sp-4); }
+
+/* Margin */
+.m-0 { margin: 0; }
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--sp-1); }
+.mt-2 { margin-top: var(--sp-2); }
+.mt-3 { margin-top: var(--sp-3); }
+.mt-4 { margin-top: var(--sp-4); }
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--sp-1); }
+.mb-2 { margin-bottom: var(--sp-2); }
+.mb-3 { margin-bottom: var(--sp-3); }
+.mb-4 { margin-bottom: var(--sp-4); }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+/* Padding */
+.p-0 { padding: 0; }
+.p-1 { padding: var(--sp-1); }
+.p-2 { padding: var(--sp-2); }
+.p-3 { padding: var(--sp-3); }
+.p-4 { padding: var(--sp-4); }
+.px-2 { padding-left: var(--sp-2); padding-right: var(--sp-2); }
+.px-3 { padding-left: var(--sp-3); padding-right: var(--sp-3); }
+.px-4 { padding-left: var(--sp-4); padding-right: var(--sp-4); }
+.py-1 { padding-top: var(--sp-1); padding-bottom: var(--sp-1); }
+.py-2 { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
+.py-3 { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
+.py-4 { padding-top: var(--sp-4); padding-bottom: var(--sp-4); }
+
+/* Width */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.max-w-sm { max-width: 480px; }
+.max-w-md { max-width: 640px; }
+.max-w-lg { max-width: 768px; }
+.max-w-xl { max-width: 1024px; }
+
+/* Text */
+.text-sm { font-size: var(--font-size-sm); }
+.text-md { font-size: var(--font-size-md); }
+.text-lg { font-size: var(--font-size-lg); }
+.text-muted { color: var(--fg-muted); }
+.text-subtle { color: var(--fg-subtle); }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.no-underline { text-decoration: none; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Border & radius */
+.rounded { border-radius: var(--radius-md); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.border { border: 1px solid var(--border-default); }
+.border-t { border-top: 1px solid var(--border-default); }
+.border-b { border-bottom: 1px solid var(--border-default); }
+
+/* Background */
+.bg-subtle { background: var(--canvas-subtle); }
+.bg-default { background: var(--canvas-default); }
+
+/* Misc */
+.cursor-pointer { cursor: pointer; }
+.relative { position: relative; }
+.sticky { position: sticky; }
+.top-0 { top: 0; }
+.z-10 { z-index: 10; }
+.overflow-auto { overflow: auto; }
+.overflow-hidden { overflow: hidden; }
+
+/* ── 4. Component classes ─────────────────────────────────────────────── */
+
+/* Layout container — centered, max width like GitHub content area */
+.container-app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--sp-3);
+}
+
+/* App header (top nav) — sticky, full-width bar */
+.app-header {
+  background: var(--canvas-default);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--sp-2) var(--sp-4);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--sp-3);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.navbar .brand {
+.app-header .brand {
+  font-size: var(--font-size-lg);
   font-weight: 700;
-  font-size: 1.1rem;
+  color: var(--fg-default);
 }
-.navbar .nav-links {
-  display: flex;
-  gap: 1rem;
-  margin-left: auto;
-}
+.app-header .brand:hover { text-decoration: none; }
+.app-header .nav-spacer { flex: 1; }
 
-/* ── layout ───────────────────────────────────────────────── */
-.container {
-  max-width: 960px;
-  margin: 1.5rem auto;
-  padding: 0 1rem;
-}
-
-/* ── auth forms ──────────────────────────────────────────── */
-.auth-card {
-  max-width: 420px;
-  margin: 3rem auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
-}
-.auth-card h1 {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-}
-.auth-card .field {
-  margin-bottom: 1rem;
-}
-.auth-card label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-.auth-card input[type="text"],
-.auth-card input[type="email"],
-.auth-card input[type="password"] {
-  width: 100%;
-  padding: 0.5rem 0.625rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-}
-.auth-card input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
-}
-
-/* ── buttons ──────────────────────────────────────────────── */
+/* Button — GitHub Primer button styles */
 .btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-size: 0.9rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  border: 1px solid var(--button-default-border);
+  border-radius: var(--radius-md);
+  background: var(--button-default-bg);
+  color: var(--fg-default);
   cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
 }
-.btn:hover { background: var(--bg); text-decoration: none; }
+.btn:hover { background: var(--border-muted); text-decoration: none; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-fg);
   color: #fff;
-  border-color: var(--accent);
+  border-color: rgba(31,35,40,0.15);
 }
-.btn-primary:hover {
-  background: var(--accent-hover);
-  color: #fff;
-}
-.btn-block { width: 100%; text-align: center; }
+[data-theme="dark"] .btn-primary { color: #fff; border-color: rgba(240,246,252,0.1); }
+.btn-primary:hover { background: var(--accent-emphasis); color: #fff; }
 
-/* ── flash messages ─────────────────────────────────────── */
+.btn-danger {
+  color: var(--danger-fg);
+}
+.btn-danger:hover { background: var(--danger-subtle); }
+
+.btn-sm { padding: 0.1875rem 0.5rem; font-size: 0.75rem; }
+
+/* Form inputs — GitHub style */
+.input, .select, textarea.input {
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--fg-default);
+  background: var(--canvas-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+.input:focus, .select:focus, textarea.input:focus {
+  outline: none;
+  border-color: var(--accent-fg);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.input::placeholder { color: var(--fg-subtle); }
+
+/* Field wrapper — label + input + hint stack */
+.field { margin-bottom: var(--sp-3); }
+.field > label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+  color: var(--fg-default);
+}
+.field .hint {
+  font-size: var(--font-size-sm);
+  color: var(--fg-muted);
+  margin-top: var(--sp-1);
+}
+
+/* Flash / alert — GitHub Primer flash component */
 .alert {
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--radius);
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--sp-3);
 }
-.alert-error { background: #ffebe9; border: 1px solid #ffcecb; color: var(--danger); }
-.alert-success { background: #dafbe1; border: 1px solid #aceebb; color: var(--success); }
-.alert-info { background: #ddf4ff; border: 1px solid #b6e3ff; color: var(--accent); }
+.alert-error   { color: var(--danger-fg);    background: var(--danger-subtle);    border-color: var(--danger-fg); }
+.alert-success { color: var(--success-fg);  background: var(--success-subtle);  border-color: var(--success-fg); }
+.alert-info    { color: var(--accent-fg);   background: var(--accent-subtle); }
 
-/* ── dashboard ───────────────────────────────────────────── */
-.dashboard-empty {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--text-muted);
+/* Card — bordered surface */
+.card {
+  background: var(--canvas-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
 }
-.dashboard-empty h2 {
-  font-size: 1.2rem;
-  color: var(--text);
-  margin-bottom: 0.5rem;
+
+/* Repo header — title + meta + clone box (DESIGN.md §12) */
+.repo-header { margin-bottom: var(--sp-3); }
+.repo-header .repo-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  font-size: var(--font-size-xl);
+}
+.repo-header .repo-title .owner { color: var(--accent-fg); }
+.repo-header .repo-title .sep { color: var(--fg-muted); }
+.repo-header .repo-desc { color: var(--fg-muted); margin-top: var(--sp-1); }
+
+/* Repo tabs — Code / Issues / PR / Actions / Settings */
+.repo-tabs {
+  display: flex;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 0;
+  margin-bottom: var(--sp-3);
+  overflow-x: auto;
+}
+.repo-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-1);
+  font-size: var(--font-size-sm);
+  color: var(--fg-default);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.repo-tabs a:hover { text-decoration: none; color: var(--accent-fg); }
+.repo-tabs a.active {
+  border-bottom-color: var(--accent-fg);
+  font-weight: 600;
+}
+
+/* File tree — GitHub code browser list */
+.tree { border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden; }
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--border-muted);
+}
+.tree-row:first-child { border-top: 0; }
+.tree-row:hover { background: var(--canvas-subtle); }
+.tree-row .icon { width: 16px; text-align: center; color: var(--fg-muted); }
+.tree-row.is-dir .name { font-weight: 600; }
+
+/* Clone box — HTTPS/SSH URL + copy */
+.clone-box {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: var(--canvas-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--sp-1) var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  width: fit-content;
+}
+.clone-box code { color: var(--fg-default); }
+
+/* Commit list item — for recent commits on repo overview */
+.commit-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-top: 1px solid var(--border-muted);
+  font-size: var(--font-size-sm);
+}
+.commit-item:first-child { border-top: 0; }
+.commit-item .sha {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+.commit-item .title { flex: 1; min-width: 0; }
+
+/* Empty state — when a repo has no commits */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-6) var(--sp-3);
+  color: var(--fg-muted);
+}
+.empty-state h2 { color: var(--fg-default); margin-bottom: var(--sp-2); }
+
+/* Auth card — centered narrow form for login/setup */
+.auth-card {
+  max-width: 340px;
+  margin: var(--sp-6) auto;
+  padding: var(--sp-4);
+  background: var(--canvas-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+/* Theme toggle — small button in header */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Code block — file viewer */
+.code-view {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  background: var(--canvas-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3);
+  overflow-x: auto;
+  white-space: pre;
 }
