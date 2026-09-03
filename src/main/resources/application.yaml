@@ -7,6 +7,8 @@ spring:
     hikari:
       # SQLite is single-writer; keep the pool small to avoid "database is locked".
       maximum-pool-size: 1
+      # Enable foreign keys so ON DELETE CASCADE works (DESIGN.md \u00a7116).
+      connection-init-sql: PRAGMA foreign_keys = ON
 
 server:
   port: 3000
