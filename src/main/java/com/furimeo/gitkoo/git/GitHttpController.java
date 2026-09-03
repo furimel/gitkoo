@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +21,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import com.furimeo.gitkoo.activity.ActivityService;
 import com.furimeo.gitkoo.auth.AccessTokenService;
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.config.GitKooProperties;
 import com.furimeo.gitkoo.repository.Repository;
 import com.furimeo.gitkoo.repository.RepositoryService;
+import com.furimeo.gitkoo.workflow.WorkflowService;
+import com.furimeo.gitkoo.workflow.ast.Workflow;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -53,14 +59,22 @@ public class GitHttpController {
     private final RepositoryService repositoryService;
     private final UserService userService;
     private final AccessTokenService accessTokenService;
+    private final ActivityService activityService;
+    private final WorkflowService workflowService;
+    private final GitService gitService;
     private final String gitBinary;
 
     public GitHttpController(GitKooProperties properties, RepositoryService repositoryService,
-                            UserService userService, AccessTokenService accessTokenService) {
+                            UserService userService, AccessTokenService accessTokenService,
+                            ActivityService activityService, WorkflowService workflowService,
+                            GitService gitService) {
         this.properties = properties;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.accessTokenService = accessTokenService;
+        this.activityService = activityService;
+        this.workflowService = workflowService;
+        this.gitService = gitService;
         this.gitBinary = properties.getGit().getBinary();
     }
 
@@ -153,11 +167,15 @@ public class GitHttpController {
 
         Path storagePath = Path.of(repo.getStoragePath());
         StreamingResponseBody body = out -> {
+            // Snapshot branch heads before the push so we can compute what changed.
+            Map<String, String> before = branchHeads(storagePath);
             runStatelessRpc("git-receive-pack", storagePath, request.getInputStream(), out);
             // After a successful push, fire post-receive hooks (activity, workflow trigger).
             // This is best-effort — the push already succeeded.
             try {
-                runPostReceiveHooks(storagePath, repo);
+                Map<String, String> after = branchHeads(storagePath);
+                List<RefUpdate> pushed = pushedRefs(before, after);
+                runPostReceiveHooks(storagePath, repo, pushed);
             } catch (Exception e) {
                 log.warn("Post-receive hook failed for repo {}", repo.getId(), e);
             }
@@ -226,15 +244,89 @@ public class GitHttpController {
     }
 
     /**
-     * Runs the post-receive hook script to trigger activity and workflow events.
-     * Reads ref updates from the hook and fires them via an internal event.
+     * Runs the post-receive hooks to record activity and trigger workflows for the
+     * refs that changed during the push. Best-effort: the push already succeeded.
      */
-    private void runPostReceiveHooks(Path storagePath, Repository repo) throws IOException, InterruptedException {
-        // For MVP, log the push. Full hook-to-event wiring (activity, workflow trigger)
-        // lands when the event system (Phase 7) is ready.
-        log.info("Post-receive: push completed for repository {} (id={})",
-                repo.getName(), repo.getId());
+    private void runPostReceiveHooks(Path storagePath, Repository repo, List<RefUpdate> pushedRefs) {
+        activityService.record(repo.getId(), null, "GIT_PUSHED", "pushed to " + repo.getName());
+        for (RefUpdate ref : pushedRefs) {
+            try {
+                triggerWorkflows(storagePath, repo, ref.branch(), ref.commitSha());
+            } catch (Exception e) {
+                log.warn("Workflow trigger failed for repo {} branch {}", repo.getId(), ref.branch(), e);
+            }
+        }
     }
+
+    /**
+     * Finds {@code .gitkoo/workflows/*.koo} files on the pushed branch, parses each,
+     * and triggers the workflows whose {@code on push [branch]} trigger matches the
+     * pushed branch (DESIGN.md §31).
+     */
+    private void triggerWorkflows(Path storagePath, Repository repo, String branch, String commitSha) {
+        List<GitService.TreeEntry> entries = gitService.listTree(storagePath, branch, ".gitkoo/workflows");
+        for (GitService.TreeEntry entry : entries) {
+            if (!entry.isBlob() || !entry.name().endsWith(".koo")) {
+                continue;
+            }
+            try {
+                String source = gitService.catFile(storagePath, branch,
+                        ".gitkoo/workflows/" + entry.name());
+                if (source == null || source.isBlank()) {
+                    continue;
+                }
+                Workflow workflow = workflowService.parse(source);
+                for (Workflow.Trigger trigger : workflow.triggers()) {
+                    if (!"push".equals(trigger.event())) {
+                        continue;
+                    }
+                    // filter is an optional branch name; null means "any branch".
+                    if (trigger.filter() != null && !trigger.filter().equals(branch)) {
+                        continue;
+                    }
+                    workflowService.trigger(workflow, repo, "push", "refs/heads/" + branch,
+                            commitSha, null);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to process workflow file {} in repo {}", entry.name(), repo.getId(), e);
+            }
+        }
+    }
+
+    /** Returns branch name → commit SHA for all local branches of the repository. */
+    private Map<String, String> branchHeads(Path storagePath) {
+        Map<String, String> heads = new HashMap<>();
+        GitService.GitResult result = gitService.run(storagePath, "for-each-ref",
+                "--format=%(refname:short) %(objectname)", "refs/heads/");
+        if (!result.success()) {
+            return heads;
+        }
+        for (String line : result.stdout().lines().toList()) {
+            if (line.isBlank()) {
+                continue;
+            }
+            String[] parts = line.split("\\s+", 2);
+            if (parts.length == 2) {
+                heads.put(parts[0], parts[1]);
+            }
+        }
+        return heads;
+    }
+
+    /** Computes the branch refs that are new or updated between two snapshots. */
+    private List<RefUpdate> pushedRefs(Map<String, String> before, Map<String, String> after) {
+        List<RefUpdate> pushed = new ArrayList<>();
+        for (Map.Entry<String, String> e : after.entrySet()) {
+            String oldSha = before.get(e.getKey());
+            if (oldSha == null || !oldSha.equals(e.getValue())) {
+                pushed.add(new RefUpdate(e.getKey(), e.getValue()));
+            }
+        }
+        return pushed;
+    }
+
+    /** A branch ref updated by a push: branch name + new commit SHA. */
+    private record RefUpdate(String branch, String commitSha) {}
 
     private Repository resolveRepo(String owner, String name) {
         // Strip .git suffix if present.
