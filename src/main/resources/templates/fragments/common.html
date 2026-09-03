@@ -13,6 +13,8 @@
     <div class="nav-spacer"></div>
     <button class="theme-toggle" type="button" aria-label="Toggle theme"></button>
     <nav class="flex items-center gap-3" sec:authorize="isAuthenticated()">
+      <a th:href="@{/settings/keys}" class="btn btn-sm">Settings</a>
+      <a th:href="@{/notifications}" class="btn btn-sm">Notifications</a>
       <a th:href="@{/new}" class="btn btn-sm">New repository</a>
       <form th:action="@{/logout}" method="post" class="inline-flex">
         <button type="submit" class="btn btn-sm">Sign out</button>
