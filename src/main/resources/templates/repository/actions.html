@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('Actions')}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}" class="active">Actions</a>
+    </nav>
+    <h2 class="mb-3">Workflow runs</h2>
+    <div th:if="${runs.isEmpty()}" class="empty-state">
+      <h2>No workflow runs yet</h2>
+      <p>Add a <code>.gitkoo/workflows/build.koo</code> file and push to trigger a run.</p>
+    </div>
+    <div th:unless="${runs.isEmpty()}" class="card p-0">
+      <div class="commit-item" th:each="r : ${runs}">
+        <span class="sha">#<span th:text="${r.id}"></span></span>
+        <span class="title" th:text="${r.event} + ' ' + (r.ref != null ? r.ref : '')">event</span>
+        <span class="text-sm px-2 rounded-full" th:text="${r.status}"
+              th:style="${r.status == 'SUCCESS' ? 'background:var(--success-subtle);color:var(--success-fg)' : (r.status == 'FAILED' ? 'background:var(--danger-subtle);color:var(--danger-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)')}">status</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
