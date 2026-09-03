@@ -145,6 +145,19 @@ Key decisions:
 SQLite `PRAGMA foreign_keys = ON` is set via the HikariCP connection-init-sql so
 `ON DELETE CASCADE` works.
 
+## §56 UI philosophy
+
+The interface reads as a Git forge, not a social network. Priorities:
+information density, fast navigation, clear diffs, clear status, clear
+permissions. The repo page shows branch, latest commit, status, CI, issues,
+and PRs at a glance.
+
+The visual design follows GitHub Primer (light + dark): the same system-font
+stack, color palette, border-radius, and spacing scale, exposed as CSS custom
+properties. Utility classes (Tailwind-like syntax, hand-written, no build step)
+compose with a small set of component classes (.btn, .card, .tree, .repo-tabs).
+Dark mode is toggled client-side and persisted to localStorage.
+
 ## §109 MVP scope
 
 ```text
