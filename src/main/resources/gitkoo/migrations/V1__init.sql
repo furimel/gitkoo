@@ -65,7 +65,7 @@ CREATE TABLE repositories (
   description    TEXT,
   visibility     TEXT NOT NULL DEFAULT 'PUBLIC',
   default_branch TEXT NOT NULL DEFAULT 'main',
-  storage_path   TEXT NOT NULL UNIQUE,
+  storage_path   TEXT,
   archived       INTEGER NOT NULL DEFAULT 0,
   created_at     TEXT NOT NULL,
   updated_at     TEXT NOT NULL,

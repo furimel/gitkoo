@@ -1,6 +1,8 @@
 package com.furimeo.gitkoo.git;
 
 import java.io.IOException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,11 +44,22 @@ public class GitService {
     /**
      * Initializes a bare Git repository at the given path and sets the default branch.
      *
+     * <p>The target directory may not exist yet (git init creates it), so the working
+     * directory for the process is the parent, and the target path is passed as an argument.
+     *
      * @param storagePath absolute path to the {@code {id}.git} directory
      * @param defaultBranch initial branch name (e.g. {@code main})
      */
     public void initBare(Path storagePath, String defaultBranch) {
-        run(storagePath, "init", "--bare", "--initial-branch=" + defaultBranch, storagePath.toString());
+        Path parent = storagePath.getParent();
+        if (parent != null) {
+            try {
+                Files.createDirectories(parent);
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to create parent directory " + parent, e);
+            }
+        }
+        run(parent, "init", "--bare", "--initial-branch=" + defaultBranch, storagePath.toString());
         log.info("Initialized bare repository at {}", storagePath);
     }
 
