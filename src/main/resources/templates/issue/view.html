@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('Issue #' + ${issue.number})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app max-w-xl">
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}"></strong>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <h1><span th:text="${issue.title}"></span> <span class="text-muted">#<span th:text="${issue.number}"></span></span></h1>
+      <span class="text-sm px-3 py-1 rounded-full" th:if="${issue.status == 'OPEN'}"
+            style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
+      <span class="text-sm px-3 py-1 rounded-full" th:if="${issue.status == 'CLOSED'}"
+            style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
+    </div>
+
+    <!-- Issue body -->
+    <div class="card mb-4">
+      <div class="flex items-center gap-2 mb-2 text-sm text-muted">
+        <strong th:text="${author?.displayName ?: author?.username ?: 'Unknown'}"></strong> opened this issue
+      </div>
+      <div class="markdown-body" th:utext="${issueBodyHtml}"></div>
+    </div>
+
+    <!-- Comments -->
+    <div th:each="c,iter : ${comments}" class="card mb-3">
+      <div class="flex items-center gap-2 mb-2 text-sm text-muted">
+        <strong th:text="${commentAuthors[iter.index]?.displayName ?: commentAuthors[iter.index]?.username ?: 'Unknown'}"></strong>
+        commented
+      </div>
+      <div th:utext="${markdown.render(c.body)}"></div>
+    </div>
+
+    <!-- Add comment -->
+    <form th:if="${issue.status == 'OPEN'}"
+          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/comment'}"
+          method="post" class="card">
+      <div class="field">
+        <label for="body">Add a comment</label>
+        <textarea id="body" name="body" class="input" rows="4" placeholder="Leave a comment (Markdown supported)"></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary">Comment</button>
+        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/close'}"
+           th:onclick="|document.getElementById('closeForm').submit(); return false;|" class="btn btn-danger">Close issue</a>
+      </div>
+    </form>
+    <form th:if="${issue.status == 'OPEN'}" id="closeForm" method="post" style="display:none"
+          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/close'}"></form>
+    <form th:if="${issue.status == 'CLOSED'}" method="post"
+          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/reopen'}">
+      <button type="submit" class="btn">Reopen issue</button>
+    </form>
+  </div>
+</body>
+</html>
