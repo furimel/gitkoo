@@ -28,6 +28,8 @@
         <span class="title" th:text="${r.event} + ' ' + (r.ref != null ? r.ref : '')">event</span>
         <span class="text-sm px-2 rounded-full" th:text="${r.status}"
               th:style="${r.status == 'SUCCESS' ? 'background:var(--success-subtle);color:var(--success-fg)' : (r.status == 'FAILED' ? 'background:var(--danger-subtle);color:var(--danger-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)')}">status</span>
+        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions/' + ${r.id} + '/logs'}"
+           class="btn btn-sm" target="_blank">View logs</a>
       </div>
     </div>
   </div>
