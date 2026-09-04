@@ -3,8 +3,10 @@ package com.furimeo.gitkoo.workflow;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.StandardOpenOption;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,11 +44,23 @@ public class WorkflowExecutor {
 
     private final GitKooProperties properties;
     private final GitService gitService;
+    private final WorkflowArtifactRepository artifactRepository;
     private final ExecutorService pool;
 
-    public WorkflowExecutor(GitKooProperties properties, GitService gitService) {
+    /**
+     * Id of the run currently being executed by this executor instance. Set at the
+     * start of {@link #execute} and read by {@link #collectArtifact} when persisting
+     * artifact rows. Each run executes on a single worker thread, so a plain field is
+     * sufficient here; the parallel pool never executes {@code artifact} statements
+     * concurrently with the run that owns them.
+     */
+    private long runId;
+
+    public WorkflowExecutor(GitKooProperties properties, GitService gitService,
+                            WorkflowArtifactRepository artifactRepository) {
         this.properties = properties;
         this.gitService = gitService;
+        this.artifactRepository = artifactRepository;
         this.pool = Executors.newFixedThreadPool(properties.getCi().getWorkers());
     }
 
@@ -64,6 +79,7 @@ public class WorkflowExecutor {
      */
     public boolean execute(long runId, Workflow workflow, Path workspace, Map<String, String> context,
                            Map<String, String> secrets) {
+        this.runId = runId;
         // Build the base environment: whitelist GITKOO_* plus declared env/secret.
         Map<String, String> env = buildEnv(workflow, context, secrets);
         List<Stmt> body = filterByIf(workflow.body(), context);
@@ -202,10 +218,70 @@ public class WorkflowExecutor {
         return allOk;
     }
 
+    /**
+     * Collects files in the workspace matching the artifact's glob, copies each into
+     * {@code <data>/artifacts/{runId}/{relpath}} and records a {@link WorkflowArtifact}
+     * row (DESIGN.md §109 "artifacts").
+     *
+     * <p>The glob uses {@link PathMatcher} {@code glob:} syntax, such as a single-segment
+     * wildcard ending in {@code .jar} or a recursive {@code .txt} match. Paths are
+     * resolved and matched relative to the workspace (DESIGN.md §78 path traversal
+     * protection: the glob is treated as a pattern, never concatenated into a shell
+     * string).
+     *
+     * @return true even if no files matched (an artifact step with zero matches is not a
+     *         run failure); false only if the workspace cannot be walked
+     */
     private boolean collectArtifact(Stmt.Artifact artifact, Path workspace) {
-        // MVP: glob matching is simplified; collect matching files.
         log.info("Collecting artifacts matching '{}' from {}", artifact.glob(), workspace);
-        // Full glob + storage implementation deferred.
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + artifact.glob());
+        Path destRoot = Path.of(properties.getData(), "artifacts", String.valueOf(runId));
+        OffsetDateTime now = OffsetDateTime.now();
+        boolean allOk = true;
+
+        try (Stream<Path> paths = Files.walk(workspace)) {
+            List<Path> files = paths.filter(Files::isRegularFile).toList();
+            for (Path path : files) {
+                Path rel = workspace.relativize(path);
+                if (!matcher.matches(rel)) {
+                    continue;
+                }
+                try {
+                    allOk &= copyAndRecord(path, rel, destRoot, now);
+                } catch (IOException e) {
+                    log.warn("Failed to collect artifact {} (run #{})", path, runId, e);
+                    allOk = false;
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to walk workspace for artifact collection (run #{})", runId, e);
+            return false;
+        }
+        return allOk;
+    }
+
+    /** Copies one matched file into the artifact store and persists its metadata row. */
+    private boolean copyAndRecord(Path source, Path rel, Path destRoot, OffsetDateTime now) throws IOException {
+        // Guard against path traversal: normalize the relative path and reject any
+        // remaining parent segments that would escape the run's artifact directory.
+        Path normalized = rel.normalize();
+        if (normalized.startsWith("..") || normalized.isAbsolute()) {
+            log.warn("Skipping artifact with traversal path: {}", rel);
+            return true;
+        }
+        Path dest = destRoot.resolve(normalized);
+        Files.createDirectories(dest.getParent());
+        Files.copy(source, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        long size = Files.size(source);
+        WorkflowArtifact record = new WorkflowArtifact();
+        record.setRunId(runId);
+        record.setName(normalized.getFileName().toString());
+        record.setFilePath(dest.toString());
+        record.setSize(size);
+        record.setCreatedAt(now);
+        artifactRepository.save(record);
+        log.info("Collected artifact {} ({} bytes) for run #{}", normalized, size, runId);
         return true;
     }
 
