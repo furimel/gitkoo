@@ -15,9 +15,4 @@ public interface TopicRepository extends CrudRepository<RepositoryTopic, Long> {
     @Modifying
     @Query("DELETE FROM repository_topics WHERE repository_id = :repositoryId")
     void deleteAllFor(@Param("repositoryId") Long repositoryId);
-
-    /** Topics for many repositories at once, so a list page does not run one per row. */
-    @Query("SELECT * FROM repository_topics WHERE repository_id IN (:repositoryIds) "
-            + "ORDER BY repository_id, topic")
-    List<RepositoryTopic> findAllFor(@Param("repositoryIds") List<Long> repositoryIds);
 }

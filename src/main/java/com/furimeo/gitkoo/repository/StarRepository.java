@@ -1,7 +1,5 @@
 package com.furimeo.gitkoo.repository;
 
-import java.util.List;
-
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -24,7 +22,4 @@ public interface StarRepository extends CrudRepository<RepositoryStar, Long> {
     @Modifying
     @Query("DELETE FROM repository_stars WHERE repository_id = :repositoryId AND user_id = :userId")
     void deleteStar(@Param("repositoryId") Long repositoryId, @Param("userId") Long userId);
-
-    @Query("SELECT repository_id FROM repository_stars WHERE user_id = :userId ORDER BY created_at DESC")
-    List<Long> starredRepositoryIds(@Param("userId") Long userId);
 }

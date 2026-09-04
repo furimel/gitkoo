@@ -12,6 +12,20 @@
 
     <div th:replace="~{fragments/ui :: subhead('General', null, null)}"></div>
 
+    <div th:replace="~{fragments/form :: card('Topics',
+                       @{'/' + ${owner} + '/' + ${repo.name} + '/settings/topics'},
+                       ~{::topicFields}, 'Save topics')}">
+      <th:block th:fragment="topicFields">
+        <div th:replace="~{fragments/form :: field('topics', 'topics', 'Topics',
+                           ${#strings.listJoin(topics, ' ')}, 'java spring self-hosted',
+                           'Separated by spaces or commas. Lowercased, at most 20.',
+                           null, false, false)}"></div>
+        <div class="d-flex flex-wrap gap-1" th:if="${topics != null and !topics.isEmpty()}">
+          <span th:each="topic : ${topics}" class="topic-tag" th:text="${topic}">topic</span>
+        </div>
+      </th:block>
+    </div>
+
     <div th:replace="~{fragments/form :: card(null,
                        @{'/' + ${owner} + '/' + ${repo.name} + '/settings'},
                        ~{::fields}, 'Save changes')}">

@@ -149,6 +149,9 @@ public class RepositoryController {
 
         model.addAttribute("cloneUrl", cloneUrl(username, repo.getName()));
         model.addAttribute("sshCloneUrl", sshCloneUrl(username, repo.getName()));
+        // Above the empty-repository return: the About panel renders either way, and
+        // topics are metadata rather than something read out of the tree.
+        model.addAttribute("topics", socialService.topics(repo.getId()));
 
         if (gitService.resolveRef(storagePath, "refs/heads/" + ref).isBlank()) {
             model.addAttribute("empty", true);
@@ -180,7 +183,6 @@ public class RepositoryController {
         // Cached against the head SHA: both of these walk the whole repository, and
         // this is the most-visited page in the product.
         model.addAttribute("insight", insightService.forRef(storagePath, ref));
-        model.addAttribute("topics", socialService.topics(repo.getId()));
         return "repository/code";
     }
 
@@ -365,6 +367,7 @@ public class RepositoryController {
         Repository repo = resolve(username, name);
         requireWrite(principal, repo);
         addRepoHeader(model, username, repo, principal);
+        model.addAttribute("topics", socialService.topics(repo.getId()));
         return "repository/settings";
     }
 

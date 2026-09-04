@@ -1,7 +1,5 @@
 package com.furimeo.gitkoo.repository;
 
-import java.util.List;
-
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
@@ -17,7 +15,4 @@ public interface WatcherRepository extends CrudRepository<RepositoryWatcher, Lon
     @Modifying
     @Query("DELETE FROM repository_watchers WHERE repository_id = :repositoryId AND user_id = :userId")
     void deleteWatch(@Param("repositoryId") Long repositoryId, @Param("userId") Long userId);
-
-    @Query("SELECT user_id FROM repository_watchers WHERE repository_id = :repositoryId")
-    List<Long> watcherIds(@Param("repositoryId") Long repositoryId);
 }

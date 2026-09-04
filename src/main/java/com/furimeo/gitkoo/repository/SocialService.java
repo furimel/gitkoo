@@ -1,9 +1,7 @@
 package com.furimeo.gitkoo.repository;
 
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,10 +45,6 @@ public class SocialService {
         return true;
     }
 
-    public List<Long> starredRepositoryIds(Long userId) {
-        return stars.starredRepositoryIds(userId);
-    }
-
     // ── watchers ────────────────────────────────────────────────────────
 
     public int watcherCount(Long repositoryId) {
@@ -74,10 +68,6 @@ public class SocialService {
         }
         watchers.save(new RepositoryWatcher(repositoryId, userId, OffsetDateTime.now()));
         return true;
-    }
-
-    public List<Long> watcherIds(Long repositoryId) {
-        return watchers.watcherIds(repositoryId);
     }
 
     // ── topics ──────────────────────────────────────────────────────────
@@ -110,18 +100,5 @@ public class SocialService {
             }
         }
         seen.forEach(topic -> topics.save(new RepositoryTopic(repositoryId, topic)));
-    }
-
-    /** Topics for many repositories in one query, keyed by repository id. */
-    public Map<Long, List<String>> topicsByRepository(List<Long> repositoryIds) {
-        if (repositoryIds == null || repositoryIds.isEmpty()) {
-            return Map.of();
-        }
-        Map<Long, List<String>> byRepo = new HashMap<>();
-        for (RepositoryTopic t : topics.findAllFor(repositoryIds)) {
-            byRepo.computeIfAbsent(t.getRepositoryId(), k -> new java.util.ArrayList<>())
-                    .add(t.getTopic());
-        }
-        return byRepo;
     }
 }
