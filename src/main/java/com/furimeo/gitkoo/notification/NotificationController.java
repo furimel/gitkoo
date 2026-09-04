@@ -69,6 +69,9 @@ public class NotificationController {
     }
 
     private void populate(User user, Model model) {
+        // title is needed whenever the full page renders (no-JS POST fallback); the HTMX
+        // fragment path ignores it.
+        model.addAttribute("title", "Notifications");
         model.addAttribute("notifications", notificationService.listByUser(user.getId()));
         model.addAttribute("unreadCount", notificationService.unreadCount(user.getId()));
     }
