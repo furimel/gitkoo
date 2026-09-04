@@ -1,0 +1,87 @@
+package com.furimeo.gitkoo.repository;
+
+import java.nio.file.Path;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.furimeo.gitkoo.auth.User;
+import com.furimeo.gitkoo.auth.UserService;
+import com.furimeo.gitkoo.git.GitService;
+import com.furimeo.gitkoo.git.GitService.CommitDetail;
+
+/**
+ * Commit detail page and diff fragments (DESIGN.md §13, §15).
+ *
+ * <p>Renders a single commit (SHA, author, date, message, parent, diff) and serves a
+ * reusable diff fragment for pull requests. Repository/PR controllers are owned by other
+ * agents, so the PR diff is loaded here via HTMX from {@code pr/view.html} rather than
+ * passed as a model attribute by {@code PullRequestController}.
+ */
+@Controller
+@RequestMapping
+public class CommitController {
+
+    private final RepositoryService repositoryService;
+    private final UserService userService;
+    private final GitService gitService;
+
+    public CommitController(RepositoryService repositoryService, UserService userService,
+                            GitService gitService) {
+        this.repositoryService = repositoryService;
+        this.userService = userService;
+        this.gitService = gitService;
+    }
+
+    /** Renders the commit detail page (DESIGN.md §13). */
+    @GetMapping("/{username}/{name}/commit/{sha}")
+    public String commitDetail(@PathVariable String username, @PathVariable String name,
+                               @PathVariable String sha, Model model) {
+        Repository repo = resolve(username, name);
+        Path storagePath = Path.of(repo.getStoragePath());
+
+        CommitDetail commit = gitService.showCommit(storagePath, sha);
+        if (commit == null) {
+            return "redirect:/" + username + "/" + name;
+        }
+
+        addRepoHeader(model, username, repo);
+        model.addAttribute("commit", commit);
+        model.addAttribute("sha", sha);
+        model.addAttribute("diff", gitService.diff(storagePath, sha));
+        return "repository/commit";
+    }
+
+    /**
+     * Returns a diff fragment between two refs (DESIGN.md §15). Used by {@code pr/view.html}
+     * via HTMX to show the changes between a PR's source and target branches without touching
+     * {@code PullRequestController}. Branch names may contain slashes, so refs are passed as
+     * query parameters rather than path segments.
+     */
+    @GetMapping("/{username}/{name}/diff")
+    public String diffFragment(@PathVariable String username, @PathVariable String name,
+                               @RequestParam String base, @RequestParam String head,
+                               Model model) {
+        Repository repo = resolve(username, name);
+        Path storagePath = Path.of(repo.getStoragePath());
+        model.addAttribute("diff", gitService.diff(storagePath, base, head));
+        return "repository/diff";
+    }
+
+    private Repository resolve(String username, String name) {
+        User owner = userService.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + username + "/" + name));
+    }
+
+    private void addRepoHeader(Model model, String username, Repository repo) {
+        model.addAttribute("title", "Commit \u00b7 " + username + "/" + repo.getName());
+        model.addAttribute("owner", username);
+        model.addAttribute("repo", repo);
+    }
+}

@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.furimeo.gitkoo.activity.ActivityService;
 import com.furimeo.gitkoo.git.GitService;
+import com.furimeo.gitkoo.issue.IssueService;
 
 /**
  * Creates, reviews, and merges pull requests (DESIGN.md §15, §16, §17).
@@ -22,15 +23,18 @@ public class PullRequestService {
     private final PullRequestReviewRepository reviewRepository;
     private final GitService gitService;
     private final ActivityService activityService;
+    private final IssueService issueService;
 
     public PullRequestService(PullRequestRepository prRepository,
                              PullRequestReviewRepository reviewRepository,
                              GitService gitService,
-                             ActivityService activityService) {
+                             ActivityService activityService,
+                             IssueService issueService) {
         this.prRepository = prRepository;
         this.reviewRepository = reviewRepository;
         this.gitService = gitService;
         this.activityService = activityService;
+        this.issueService = issueService;
     }
 
     @Transactional
@@ -80,17 +84,35 @@ public class PullRequestService {
             throw new IllegalStateException("Cannot merge a non-open PR");
         }
 
-        // git merge via the CLI in the bare repo.
-        GitService.GitResult result = gitService.run(storagePath,
-                "merge", "--no-ff", "-m",
-                "Merge PR #" + pr.getNumber() + ": " + pr.getTitle(),
-                pr.getSourceBranch());
-
-        if (!result.success()) {
-            return null;
+        // Merge via a temporary non-bare clone so we can checkout the target branch
+        // and merge correctly (bare repos merge into HEAD only, ignoring target).
+        String mergeMsg = "Merge PR #" + pr.getNumber() + ": " + pr.getTitle();
+        Path tempDir;
+        try {
+            tempDir = java.nio.file.Files.createTempDirectory("gitkoo-merge");
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("Failed to create temp dir for merge", e);
         }
 
-        // Resolve the new HEAD on the target branch.
+        try {
+            gitService.run(tempDir, "clone", storagePath.toString(), tempDir.toString());
+            gitService.run(tempDir, "checkout", pr.getTargetBranch());
+            GitService.GitResult mergeResult = gitService.run(tempDir, "merge", "--no-ff",
+                    "-m", mergeMsg, pr.getSourceBranch());
+            if (!mergeResult.success()) {
+                return null;
+            }
+            // Push the merged target branch back to the bare repo.
+            gitService.run(tempDir, "push", "origin", pr.getTargetBranch());
+        } finally {
+            try {
+                deleteRecursively(tempDir);
+            } catch (java.io.IOException e) {
+                // best-effort cleanup
+            }
+        }
+
+        // Resolve the new HEAD on the target branch in the bare repo.
         String sha = gitService.resolveRef(storagePath,
                 "refs/heads/" + pr.getTargetBranch());
 
@@ -102,7 +124,23 @@ public class PullRequestService {
         prRepository.save(pr);
         activityService.record(pr.getRepositoryId(), pr.getAuthorId(), "PR_MERGED",
                 "merged PR #" + pr.getNumber());
+
+        // Auto-close issues referenced by "fixes #NN" / "closes #NN" (DESIGN.md §20).
+        if (pr.getBody() != null) {
+            issueService.autoCloseFromText(pr.getBody(), pr.getRepositoryId());
+        }
         return sha;
+    }
+
+    private static void deleteRecursively(Path path) throws java.io.IOException {
+        if (java.nio.file.Files.isDirectory(path)) {
+            try (var entries = java.nio.file.Files.list(path)) {
+                entries.forEach(p -> {
+                    try { deleteRecursively(p); } catch (java.io.IOException ignored) {}
+                });
+            }
+        }
+        java.nio.file.Files.deleteIfExists(path);
     }
 
     @Transactional

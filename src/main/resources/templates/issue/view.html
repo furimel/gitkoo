@@ -20,6 +20,49 @@
             style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
     </div>
 
+    <!-- Labels -->
+    <div class="card mb-4" th:with="repoLabels=${@labelService.listLabels(repo.id)},
+                                 attachedIds=${@labelService.getIssueLabels(issue.id).![labelId]}">
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
+        <span class="text-sm text-muted">Labels:</span>
+        <span th:each="label : ${repoLabels}" th:if="${attachedIds.contains(label.id)}"
+              class="text-sm px-2 py-1 rounded-full"
+              th:style="'background:' + ${label.color} + ';color:#fff'">
+          <span th:text="${label.name}">label</span>
+          <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/remove'}"
+                method="post" class="inline-flex">
+            <input type="hidden" name="labelId" th:value="${label.id}">
+            <button type="submit" class="btn btn-sm btn-danger ml-1" aria-label="Remove label">&times;</button>
+          </form>
+        </span>
+        <span th:if="${repoLabels.?[attachedIds.contains(id)].isEmpty()}" class="text-sm text-muted">None yet</span>
+      </div>
+
+      <!-- Add a label (dropdown of the repo's labels not yet attached) -->
+      <form th:if="${!repoLabels.?[!attachedIds.contains(id)].isEmpty()}"
+            th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/add'}"
+            method="post" class="flex items-center gap-2 mb-2">
+        <select name="labelName" class="input" style="width:auto">
+          <option th:each="label : ${repoLabels}" th:if="${!attachedIds.contains(label.id)}"
+                  th:value="${label.name}" th:text="${label.name}">label</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Add label</button>
+      </form>
+
+      <!-- Create a new label for the repo -->
+      <details class="mt-2">
+        <summary class="text-sm text-muted cursor-pointer">Create a new label</summary>
+        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/labels/new'}" method="post"
+              class="flex items-center gap-2 mt-2 flex-wrap">
+          <input type="hidden" name="returnNumber" th:value="${issue.number}">
+          <input type="text" name="name" class="input" placeholder="Label name" required>
+          <input type="color" name="color" value="#0969da" class="input" style="width:auto;padding:2px">
+          <input type="text" name="description" class="input" placeholder="Description (optional)" style="width:auto">
+          <button type="submit" class="btn btn-sm">Create label</button>
+        </form>
+      </details>
+    </div>
+
     <!-- Issue body -->
     <div class="card mb-4">
       <div class="flex items-center gap-2 mb-2 text-sm text-muted">

@@ -8,7 +8,15 @@
       <h1>Dashboard</h1>
       <a th:href="@{/new}" class="btn btn-primary">New repository</a>
     </div>
-    <div class="empty-state">
+    <div th:if="${repos != null and !repos.isEmpty()}" class="card p-0">
+      <div class="commit-item" th:each="r : ${repos}">
+        <a class="title font-medium" th:href="@{'/' + ${#authentication.name} + '/' + ${r.name}}" th:text="${r.name}">repo</a>
+        <span class="text-muted text-sm" th:if="${r.description}" th:text="${r.description}">desc</span>
+        <span class="text-sm px-2 rounded-full" th:text="${r.visibility}"
+              th:style="${r.visibility == 'PRIVATE' ? 'background:var(--canvas-subtle);color:var(--fg-muted)' : 'background:var(--success-subtle);color:var(--success-fg)'}">vis</span>
+      </div>
+    </div>
+    <div th:if="${repos == null or repos.isEmpty()}" class="empty-state">
       <h2>No repositories yet</h2>
       <p>Create your first repository to get started.</p>
     </div>

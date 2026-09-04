@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <!-- Repository header: owner / name (DESIGN.md §12) -->
+    <div class="repo-header">
+      <div class="repo-title">
+        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
+        <span class="sep">/</span>
+        <strong th:text="${repo.name}">repo</strong>
+      </div>
+    </div>
+
+    <!-- Tabs: Code / Issues / Pull Requests / Actions / Settings -->
+    <nav class="repo-tabs">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" class="active">Code</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}">Settings</a>
+    </nav>
+
+    <!-- Commit metadata: SHA, author, date, message, parent (DESIGN.md §13) -->
+    <div class="card mb-3">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="sha" th:text="${#strings.substring(sha, 0, 7)}">sha</span>
+        <span class="text-muted text-sm" th:text="${commit.authorName}">author</span>
+        <span class="text-muted text-sm" th:text="${commit.authorDateIso}">date</span>
+      </div>
+      <pre class="commit-message" th:text="${commit.message}">message</pre>
+      <div class="text-sm text-muted mt-2" th:if="${commit.parent != null and !commit.parent.isEmpty()}">
+        Parent:
+        <a class="sha"
+           th:each="p : ${commit.parent.split(' ')}"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${p}}"
+           th:text="${#strings.substring(p, 0, 7)}">parent</a>
+      </div>
+    </div>
+
+    <!-- Diff (DESIGN.md §13) -->
+    <h2 class="text-sm text-muted mb-2">Changes</h2>
+    <pre class="code-view" th:if="${diff != null and !diff.isEmpty()}" th:text="${diff}">diff</pre>
+    <p class="text-muted" th:if="${diff == null or diff.isEmpty()}">No changes</p>
+  </div>
+</body>
+</html>

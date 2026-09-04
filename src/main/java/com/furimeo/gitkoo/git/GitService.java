@@ -137,6 +137,67 @@ public class GitService {
         return commits;
     }
 
+    // ── commit detail & diff ────────────────────────────────────────────
+
+    /**
+     * Returns metadata for a single commit (DESIGN.md §13): SHA, author, author date,
+     * full message, and parent SHA(s). Uses {@code git show -s} so the diff is suppressed.
+     *
+     * <p>For a merge commit {@code parent} contains all parent SHAs space-separated; callers
+     * that need a single parent (e.g. {@link #diff(Path, String)}) take the first one.
+     *
+     * @return the commit detail, or {@code null} if the SHA does not resolve
+     */
+    public CommitDetail showCommit(Path storagePath, String sha) {
+        String sep = "\u001F"; // unit separator, unlikely in commit text (see log())
+        String format = "%H" + sep + "%an" + sep + "%ae" + sep + "%aI" + sep + "%P" + sep + "%B";
+        GitResult result = run(storagePath, "show", "-s", "--format=" + format, sha);
+        if (!result.success() || result.stdout().isBlank()) {
+            return null;
+        }
+        // %B is multi-line, so split the whole output by the unit separator (not by line).
+        String[] parts = result.stdout().split(sep, -1);
+        if (parts.length < 6) {
+            return null;
+        }
+        return new CommitDetail(parts[0], parts[1], parts[2], parts[3],
+                parts[4].strip(), parts[5].stripTrailing());
+    }
+
+    /**
+     * Returns the diff introduced by a single commit (DESIGN.md §13). For a normal commit
+     * this is {@code git diff {parent}..{sha}}; for a root commit (no parent) it is
+     * {@code git show {sha}} so the initial state is shown.
+     */
+    public String diff(Path storagePath, String sha) {
+        String parent = firstParent(storagePath, sha);
+        if (parent.isBlank()) {
+            GitResult result = run(storagePath, "show", sha, "--no-color");
+            return result.success() ? result.stdout() : "";
+        }
+        return diff(storagePath, parent, sha);
+    }
+
+    /**
+     * Returns the diff between two refs (DESIGN.md §15), e.g. a PR's source and target
+     * branches: {@code git diff {baseRef} {headRef}}.
+     */
+    public String diff(Path storagePath, String baseRef, String headRef) {
+        GitResult result = run(storagePath, "diff", baseRef, headRef, "--no-color");
+        return result.success() ? result.stdout() : "";
+    }
+
+    /** Resolves the first parent SHA of a commit, or empty for a root commit. */
+    private String firstParent(Path storagePath, String sha) {
+        GitResult result = run(storagePath, "show", "-s", "--format=%P", sha);
+        if (!result.success()) {
+            return "";
+        }
+        String parents = result.stdout().strip();
+        int space = parents.indexOf(' ');
+        return space > 0 ? parents.substring(0, space) : parents;
+    }
+
     // ── branches ────────────────────────────────────────────────────────
 
     /** Lists branch names. */
@@ -201,5 +262,11 @@ public class GitService {
     /** A parsed commit from {@code git log}. */
     public record CommitInfo(String sha, String authorName, String authorEmail, String subject,
                               String committerDateIso) {
+    }
+
+    /** Full metadata for a single commit (DESIGN.md §13). {@code parent} is space-separated
+     *  for merge commits (empty for a root commit). */
+    public record CommitDetail(String sha, String authorName, String authorEmail,
+                               String authorDateIso, String parent, String message) {
     }
 }

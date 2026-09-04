@@ -7,6 +7,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.furimeo.gitkoo.activity.AuditService;
+
 /**
  * Creates teams and manages membership (DESIGN.md §21).
  */
@@ -15,10 +17,13 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final AuditService auditService;
 
-    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository) {
+    public TeamService(TeamRepository teamRepository, TeamMemberRepository teamMemberRepository,
+                       AuditService auditService) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -37,6 +42,7 @@ public class TeamService {
 
         // Creator becomes OWNER.
         addMember(team.getId(), creatorId, TeamMember.Role.OWNER.name());
+        auditService.record(creatorId, "TEAM_CREATED", "team", team.getId(), null);
         return team;
     }
 
@@ -52,7 +58,9 @@ public class TeamService {
         member.setRole(role);
         member.setCreatedAt(now);
         member.setUpdatedAt(now);
-        return teamMemberRepository.save(member);
+        teamMemberRepository.save(member);
+        auditService.record(userId, "TEAM_MEMBER_ADDED", "team", teamId, null);
+        return member;
     }
 
     @Transactional
