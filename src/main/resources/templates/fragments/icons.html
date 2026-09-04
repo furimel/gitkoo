@@ -106,7 +106,22 @@
   <symbol id="octicon-star" viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Zm0 2.445L6.615 5.5a.75.75 0 0 1-.564.41l-3.097.45 2.24 2.184a.75.75 0 0 1 .216.664l-.528 3.084 2.769-1.456a.75.75 0 0 1 .698 0l2.77 1.456-.53-3.084a.75.75 0 0 1 .216-.664l2.24-2.183-3.096-.45a.75.75 0 0 1-.564-.41L8 2.694Z"/></symbol>
 
   <!-- GitKoo's own mark: a commit graph in a rounded square. Not a GitHub asset. -->
-  <symbol id="gitkoo-logo" viewBox="0 0 24 24"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h13A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5Zm5.75 1.75a1.75 1.75 0 1 0-.75 3.33v2.84a1.75 1.75 0 1 0 1.5 0v-1.03c.44.26.95.41 1.5.41h2.25c.55 0 1.06-.15 1.5-.41v.2a1.75 1.75 0 1 0 1.5 0v-.2c0-1.66-1.34-3-3-3H11c-.83 0-1.5-.67-1.5-1.5v-.14a1.75 1.75 0 0 0-.75-1.5Z"/></symbol>
+  <!--
+    GitKoo's own mark: a commit graph, one branch splitting off a trunk. Drawn as
+    separate strokes and circles rather than one path, because the previous single
+    path relied on subpath winding to punch out its interior and simply filled solid,
+    rendering the logo as a featureless blob at every size.
+
+    Single colour and no background plate, so it inherits currentColor and works on
+    the dark header and on a light page alike. Not a GitHub asset.
+  -->
+  <symbol id="gitkoo-logo" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          d="M7.5 7.5v9M7.5 12.5h5a4 4 0 0 0 4-4v-.5"/>
+    <circle cx="7.5" cy="4.5" r="2.75"/>
+    <circle cx="7.5" cy="19.5" r="2.75"/>
+    <circle cx="16.5" cy="5" r="2.75"/>
+  </symbol>
 
 </svg>
 </body>
