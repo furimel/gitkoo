@@ -19,6 +19,8 @@ import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.git.GitService;
 import com.furimeo.gitkoo.git.GitService.CommitInfo;
 import com.furimeo.gitkoo.git.GitService.TreeEntry;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission;
 
 /**
  * Repository creation and code browsing (DESIGN.md §12, §69).
@@ -35,13 +37,16 @@ public class RepositoryController {
     private final RepositoryRepository repositoryRepository;
     private final UserService userService;
     private final GitService gitService;
+    private final RepositoryPermissionService permissionService;
 
     public RepositoryController(RepositoryService repositoryService, RepositoryRepository repositoryRepository,
-                                UserService userService, GitService gitService) {
+                                UserService userService, GitService gitService,
+                                RepositoryPermissionService permissionService) {
         this.repositoryService = repositoryService;
         this.repositoryRepository = repositoryRepository;
         this.userService = userService;
         this.gitService = gitService;
+        this.permissionService = permissionService;
     }
 
     // ── create ──────────────────────────────────────────────────────────
@@ -80,8 +85,10 @@ public class RepositoryController {
 
     @GetMapping("/{username}/{name}")
     public String repositoryOverview(@PathVariable String username, @PathVariable String name,
-                                     Model model) {
+                                     Model model,
+                                     @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
+        requireRead(principal, repo);
         addRepoHeader(model, username, repo);
 
         Path storagePath = Path.of(repo.getStoragePath());
@@ -104,8 +111,10 @@ public class RepositoryController {
     @GetMapping("/{username}/{name}/activity")
     public String repositoryActivity(@PathVariable String username, @PathVariable String name,
                                      Model model,
+                                     @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
                                      com.furimeo.gitkoo.activity.ActivityService activityService) {
         Repository repo = resolve(username, name);
+        requireRead(principal, repo);
         model.addAttribute("title", "Activity \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
@@ -116,10 +125,12 @@ public class RepositoryController {
     @GetMapping("/{username}/{name}/blob/{ref}/**")
     public String fileViewer(@PathVariable String username, @PathVariable String name,
                             @PathVariable String ref,
+                            @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
                             org.springframework.web.servlet.mvc.support.RedirectAttributes ra,
                             jakarta.servlet.http.HttpServletRequest request,
                             Model model) {
         Repository repo = resolve(username, name);
+        requireRead(principal, repo);
         addRepoHeader(model, username, repo);
 
         // Extract the file path after /blob/{ref}/
@@ -142,19 +153,23 @@ public class RepositoryController {
 
     @GetMapping("/{username}/{name}/settings")
     public String repositorySettings(@PathVariable String username, @PathVariable String name,
-                                     Model model) {
+                                     Model model,
+                                     @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
+        requireWrite(principal, repo);
         addRepoHeader(model, username, repo);
         return "repository/settings";
     }
 
     @PostMapping("/{username}/{name}/settings")
     public String updateRepositorySettings(@PathVariable String username, @PathVariable String name,
+                                           @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
                                            @RequestParam(required = false) String description,
                                            @RequestParam String visibility,
                                            @RequestParam String defaultBranch,
                                            RedirectAttributes redirectAttributes) {
         Repository repo = resolve(username, name);
+        requireWrite(principal, repo);
         // Name is read-only and intentionally not updated (storage path is id-based,
         // but renaming is out of scope for the MVP settings page).
         repo.setDescription(description);
@@ -171,6 +186,32 @@ public class RepositoryController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + username + "/" + name));
+    }
+
+    /** Requires at least READ permission for the authenticated user, else 403. */
+    private void requireRead(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have read access to " + repo.getName());
+        }
+    }
+
+    /** Requires at least WRITE permission for the authenticated user, else 403. */
+    private void requireWrite(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.WRITE)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have write access to " + repo.getName());
+        }
+    }
+
+    /** Resolves the authenticated user, or null when anonymous. */
+    private User actor(org.springframework.security.core.userdetails.User principal) {
+        if (principal == null || "anonymousUser".equals(principal.getUsername())) {
+            return null;
+        }
+        return userService.findByUsername(principal.getUsername()).orElse(null);
     }
 
     private void addRepoHeader(Model model, String username, Repository repo) {

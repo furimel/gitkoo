@@ -54,7 +54,8 @@
         <div class="commit-item" th:each="c : ${commits}">
           <span class="title font-medium" th:text="${c.subject}">subject</span>
           <span class="text-muted text-sm" th:text="${c.authorName}">author</span>
-          <span class="sha" th:text="${#strings.substring(c.sha, 0, 7)}">sha</span>
+          <a class="sha" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${c.sha}}"
+             th:text="${#strings.substring(c.sha, 0, 7)}">sha</a>
         </div>
       </div>
     </th:block>

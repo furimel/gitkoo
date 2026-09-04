@@ -15,6 +15,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.furimeo.gitkoo.auth.User;
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.repository.Repository;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission;
 import com.furimeo.gitkoo.repository.RepositoryService;
 import com.furimeo.gitkoo.web.MarkdownService;
 
@@ -29,18 +31,23 @@ public class IssueController {
     private final RepositoryService repositoryService;
     private final UserService userService;
     private final MarkdownService markdownService;
+    private final RepositoryPermissionService permissionService;
 
     public IssueController(IssueService issueService, RepositoryService repositoryService,
-                           UserService userService, MarkdownService markdownService) {
+                           UserService userService, MarkdownService markdownService,
+                           RepositoryPermissionService permissionService) {
         this.issueService = issueService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.markdownService = markdownService;
+        this.permissionService = permissionService;
     }
 
     @GetMapping("/issues")
-    public String listIssues(@PathVariable String username, @PathVariable String name, Model model) {
+    public String listIssues(@PathVariable String username, @PathVariable String name, Model model,
+                             @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         List<Issue> issues = issueService.listByRepository(repo.getId());
         model.addAttribute("title", "Issues \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
@@ -50,8 +57,10 @@ public class IssueController {
     }
 
     @GetMapping("/issues/new")
-    public String newIssueForm(@PathVariable String username, @PathVariable String name, Model model) {
+    public String newIssueForm(@PathVariable String username, @PathVariable String name, Model model,
+                               @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         model.addAttribute("title", "New issue \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
@@ -64,6 +73,7 @@ public class IssueController {
                              @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
                              RedirectAttributes ra) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         User author = userService.findByUsername(principal.getUsername()).orElseThrow();
         Issue issue = issueService.create(repo.getId(), title, body, author.getId());
         return "redirect:/" + username + "/" + name + "/issues/" + issue.getNumber();
@@ -71,8 +81,10 @@ public class IssueController {
 
     @GetMapping("/issues/{number}")
     public String viewIssue(@PathVariable String username, @PathVariable String name,
-                           @PathVariable Integer number, Model model) {
+                           @PathVariable Integer number, Model model,
+                           @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         Issue issue = issueService.findByRepositoryAndNumber(repo.getId(), number);
         if (issue == null) {
             model.addAttribute("error", "Issue not found");
@@ -99,6 +111,7 @@ public class IssueController {
                             @PathVariable Integer number, @RequestParam String body,
                             @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         Issue issue = issueService.findByRepositoryAndNumber(repo.getId(), number);
         User author = userService.findByUsername(principal.getUsername()).orElseThrow();
         issueService.addComment(issue.getId(), body, author.getId());
@@ -107,8 +120,10 @@ public class IssueController {
 
     @PostMapping("/issues/{number}/close")
     public String closeIssue(@PathVariable String username, @PathVariable String name,
-                            @PathVariable Integer number) {
+                            @PathVariable Integer number,
+                            @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         Issue issue = issueService.findByRepositoryAndNumber(repo.getId(), number);
         if (issue != null) issueService.close(issue.getId());
         return "redirect:/" + username + "/" + name + "/issues/" + number;
@@ -116,8 +131,10 @@ public class IssueController {
 
     @PostMapping("/issues/{number}/reopen")
     public String reopenIssue(@PathVariable String username, @PathVariable String name,
-                             @PathVariable Integer number) {
+                             @PathVariable Integer number,
+                             @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         Issue issue = issueService.findByRepositoryAndNumber(repo.getId(), number);
         if (issue != null) issueService.reopen(issue.getId());
         return "redirect:/" + username + "/" + name + "/issues/" + number;
@@ -128,5 +145,31 @@ public class IssueController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+    }
+
+    /** Requires at least READ permission for the authenticated user, else 403. */
+    private void requireRead(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have read access to " + repo.getName());
+        }
+    }
+
+    /** Requires at least WRITE permission for the authenticated user, else 403. */
+    private void requireWrite(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.WRITE)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have write access to " + repo.getName());
+        }
+    }
+
+    /** Resolves the authenticated user, or null when anonymous. */
+    private User actor(org.springframework.security.core.userdetails.User principal) {
+        if (principal == null || "anonymousUser".equals(principal.getUsername())) {
+            return null;
+        }
+        return userService.findByUsername(principal.getUsername()).orElse(null);
     }
 }

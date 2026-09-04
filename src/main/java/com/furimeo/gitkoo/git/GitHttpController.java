@@ -23,9 +23,13 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import com.furimeo.gitkoo.activity.ActivityService;
 import com.furimeo.gitkoo.auth.AccessTokenService;
+import com.furimeo.gitkoo.auth.User;
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.config.GitKooProperties;
+import com.furimeo.gitkoo.repository.ProtectedBranchService;
 import com.furimeo.gitkoo.repository.Repository;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission;
 import com.furimeo.gitkoo.repository.RepositoryService;
 import com.furimeo.gitkoo.workflow.WorkflowService;
 import com.furimeo.gitkoo.workflow.ast.Workflow;
@@ -62,12 +66,15 @@ public class GitHttpController {
     private final ActivityService activityService;
     private final WorkflowService workflowService;
     private final GitService gitService;
+    private final RepositoryPermissionService permissionService;
+    private final ProtectedBranchService protectedBranchService;
     private final String gitBinary;
 
     public GitHttpController(GitKooProperties properties, RepositoryService repositoryService,
                             UserService userService, AccessTokenService accessTokenService,
                             ActivityService activityService, WorkflowService workflowService,
-                            GitService gitService) {
+                            GitService gitService, RepositoryPermissionService permissionService,
+                            ProtectedBranchService protectedBranchService) {
         this.properties = properties;
         this.repositoryService = repositoryService;
         this.userService = userService;
@@ -75,6 +82,8 @@ public class GitHttpController {
         this.activityService = activityService;
         this.workflowService = workflowService;
         this.gitService = gitService;
+        this.permissionService = permissionService;
+        this.protectedBranchService = protectedBranchService;
         this.gitBinary = properties.getGit().getBinary();
     }
 
@@ -98,10 +107,21 @@ public class GitHttpController {
 
         // Permission: upload-pack = READ, receive-pack = WRITE.
         boolean needWrite = "git-receive-pack".equals(service);
-        if (needWrite && !checkWrite(owner, request)) {
-            response.setHeader("WWW-Authenticate", "Basic realm=\"GitKoo\"");
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        User actor = resolveActor(request);
+        if (needWrite) {
+            if (actor == null || !permissionService.hasPermission(actor, repo, Permission.WRITE)) {
+                response.setHeader("WWW-Authenticate", "Basic realm=\"GitKoo\"");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+        } else {
+            // upload-pack = READ. PUBLIC repos grant READ to anonymous; PRIVATE repos
+            // require an explicit grant (NONE permission is rejected).
+            if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+                response.setHeader("WWW-Authenticate", "Basic realm=\"GitKoo\"");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
         }
 
         Path storagePath = Path.of(repo.getStoragePath());
@@ -138,6 +158,13 @@ public class GitHttpController {
             return ResponseEntity.notFound().build();
         }
 
+        User actor = resolveActor(request);
+        if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED)
+                    .header("WWW-Authenticate", "Basic realm=\"GitKoo\"")
+                    .build();
+        }
+
         Path storagePath = Path.of(repo.getStoragePath());
         StreamingResponseBody body = out -> runStatelessRpc(
                 "git-upload-pack", storagePath, request.getInputStream(), out);
@@ -154,15 +181,16 @@ public class GitHttpController {
             HttpServletRequest request,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-        if (!checkWrite(owner, request)) {
-            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED)
-                    .header("WWW-Authenticate", "Basic realm=\"GitKoo\"")
-                    .build();
-        }
-
         Repository repo = resolveRepo(owner, name);
         if (repo == null) {
             return ResponseEntity.notFound().build();
+        }
+
+        User actor = resolveActor(request);
+        if (actor == null || !permissionService.hasPermission(actor, repo, Permission.WRITE)) {
+            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED)
+                    .header("WWW-Authenticate", "Basic realm=\"GitKoo\"")
+                    .build();
         }
 
         Path storagePath = Path.of(repo.getStoragePath());
@@ -340,31 +368,30 @@ public class GitHttpController {
     }
 
     /**
-     * Checks write permission for git push. MVP: the user must be authenticated
-     * (via session or access token) and be the repository owner. Full permission
-     * model (team roles, repository_members) lands in Phase 4.
+     * Resolves the authenticated user for a git transport request. Tries a Bearer
+     * personal access token first (git clients send it as the password in Basic
+     * auth, or directly as a Bearer header), then falls back to the session
+     * principal populated by the {@link AccessTokenAuthenticationFilter}.
+     *
+     * @return the acting user, or {@code null} if the request is anonymous
      */
-    private boolean checkWrite(String owner, HttpServletRequest request) {
+    private User resolveActor(HttpServletRequest request) {
         // Try Bearer token first.
         String auth = request.getHeader("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
             String token = auth.substring(7).trim();
             var resolved = accessTokenService.resolve(token);
             if (resolved.isPresent()) {
-                var user = userService.findById(resolved.get().userId());
-                if (user.isPresent()) {
-                    return user.get().getUsername().equals(owner);
-                }
+                return userService.findById(resolved.get().userId()).orElse(null);
             }
         }
-        // Basic auth (git sends username:password or username:token).
-        // For MVP, accept any authenticated session principal as owner.
+        // Fall back to the security context (session principal or token filter).
         var principal = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
         if (principal != null && principal.isAuthenticated()
                 && !"anonymousUser".equals(principal.getName())) {
-            return principal.getName().equals(owner);
+            return userService.findByUsername(principal.getName()).orElse(null);
         }
-        return false;
+        return null;
     }
 }

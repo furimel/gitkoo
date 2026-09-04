@@ -20,12 +20,14 @@ public class IssueService {
     private final IssueRepository issueRepository;
     private final IssueCommentRepository commentRepository;
     private final ActivityService activityService;
+    private final AuditService auditService;
 
     public IssueService(IssueRepository issueRepository, IssueCommentRepository commentRepository,
-                       ActivityService activityService) {
+                       ActivityService activityService, AuditService auditService) {
         this.issueRepository = issueRepository;
         this.commentRepository = commentRepository;
         this.activityService = activityService;
+        this.auditService = auditService;
     }
 
     /** Creates a new issue with a per-repository sequence number (DESIGN.md §116). */
@@ -45,6 +47,7 @@ public class IssueService {
         issue = issueRepository.save(issue);
         activityService.record(repositoryId, authorId, "ISSUE_OPENED",
                 "opened issue #" + issue.getNumber() + ": " + title);
+        auditService.record(authorId, "ISSUE_CREATED", "issue", issue.getId(), null);
         return issue;
     }
 

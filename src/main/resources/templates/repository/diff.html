@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Diff fragment loaded via HTMX into PR view (DESIGN.md §15). Not a full page. -->
+<pre class="code-view" th:if="${diff != null and !diff.isEmpty()}" th:text="${diff}">diff</pre>
+<p class="text-muted" th:if="${diff == null or diff.isEmpty()}">No changes</p>

@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.furimeo.gitkoo.auth.User;
 import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.repository.Repository;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission;
 import com.furimeo.gitkoo.repository.RepositoryService;
 import com.furimeo.gitkoo.web.MarkdownService;
 
@@ -27,18 +29,23 @@ public class PullRequestController {
     private final RepositoryService repositoryService;
     private final UserService userService;
     private final MarkdownService markdownService;
+    private final RepositoryPermissionService permissionService;
 
     public PullRequestController(PullRequestService prService, RepositoryService repositoryService,
-                                UserService userService, MarkdownService markdownService) {
+                                UserService userService, MarkdownService markdownService,
+                                RepositoryPermissionService permissionService) {
         this.prService = prService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.markdownService = markdownService;
+        this.permissionService = permissionService;
     }
 
     @GetMapping("/pulls")
-    public String listPulls(@PathVariable String username, @PathVariable String name, Model model) {
+    public String listPulls(@PathVariable String username, @PathVariable String name, Model model,
+                            @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         List<PullRequest> pulls = prService.listByRepository(repo.getId());
         model.addAttribute("title", "Pull Requests \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
@@ -48,8 +55,10 @@ public class PullRequestController {
     }
 
     @GetMapping("/pulls/new")
-    public String newPullForm(@PathVariable String username, @PathVariable String name, Model model) {
+    public String newPullForm(@PathVariable String username, @PathVariable String name, Model model,
+                              @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         model.addAttribute("title", "New pull request \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
@@ -62,6 +71,7 @@ public class PullRequestController {
                             @RequestParam String sourceBranch, @RequestParam(defaultValue = "main") String targetBranch,
                             @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         User author = userService.findByUsername(principal.getUsername()).orElseThrow();
         PullRequest pr = prService.create(repo.getId(), title, body, author.getId(),
                 sourceBranch, targetBranch);
@@ -70,8 +80,10 @@ public class PullRequestController {
 
     @GetMapping("/pulls/{number}")
     public String viewPull(@PathVariable String username, @PathVariable String name,
-                         @PathVariable Integer number, Model model) {
+                         @PathVariable Integer number, Model model,
+                         @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         PullRequest pr = prService.findByRepositoryAndNumber(repo.getId(), number);
         if (pr == null) {
             return "redirect:/" + username + "/" + name + "/pulls";
@@ -98,6 +110,7 @@ public class PullRequestController {
                              @RequestParam(required = false) String body,
                              @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         PullRequest pr = prService.findByRepositoryAndNumber(repo.getId(), number);
         User reviewer = userService.findByUsername(principal.getUsername()).orElseThrow();
         prService.addReview(pr.getId(), reviewer.getId(), state, body);
@@ -106,8 +119,10 @@ public class PullRequestController {
 
     @PostMapping("/pulls/{number}/merge")
     public String mergePull(@PathVariable String username, @PathVariable String name,
-                           @PathVariable Integer number) {
+                           @PathVariable Integer number,
+                           @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         PullRequest pr = prService.findByRepositoryAndNumber(repo.getId(), number);
         Path storagePath = Path.of(repo.getStoragePath());
         prService.merge(pr.getId(), storagePath);
@@ -116,8 +131,10 @@ public class PullRequestController {
 
     @PostMapping("/pulls/{number}/close")
     public String closePull(@PathVariable String username, @PathVariable String name,
-                           @PathVariable Integer number) {
+                           @PathVariable Integer number,
+                           @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireWrite(principal, repo);
         PullRequest pr = prService.findByRepositoryAndNumber(repo.getId(), number);
         prService.close(pr.getId());
         return "redirect:/" + username + "/" + name + "/pulls/" + number;
@@ -128,5 +145,31 @@ public class PullRequestController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+    }
+
+    /** Requires at least READ permission for the authenticated user, else 403. */
+    private void requireRead(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have read access to " + repo.getName());
+        }
+    }
+
+    /** Requires at least WRITE permission for the authenticated user, else 403. */
+    private void requireWrite(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = actor(principal);
+        if (!permissionService.hasPermission(actor, repo, Permission.WRITE)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have write access to " + repo.getName());
+        }
+    }
+
+    /** Resolves the authenticated user, or null when anonymous. */
+    private User actor(org.springframework.security.core.userdetails.User principal) {
+        if (principal == null || "anonymousUser".equals(principal.getUsername())) {
+            return null;
+        }
+        return userService.findByUsername(principal.getUsername()).orElse(null);
     }
 }
