@@ -5,9 +5,7 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4"
-      th:with="openCount=${#lists.size(issues.?[status == 'OPEN'])},
-               closedCount=${#lists.size(issues.?[status == 'CLOSED'])}">
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
 
   <div class="d-flex flex-justify-end mb-3">
     <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
@@ -17,15 +15,15 @@
     <!-- Open / Closed filter bar, GitHub's issue list header -->
     <div class="Box-header d-flex flex-items-center gap-3">
       <a class="d-flex flex-items-center gap-1"
-         th:classappend="${filter != 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+         th:classappend="${filter == 'open'} ? ' text-bold color-fg-default' : ' Link--secondary'"
          th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">
         <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
         <span th:text="${openCount}">0</span> Open
       </a>
       <a class="d-flex flex-items-center gap-1"
          th:classappend="${filter == 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
-         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues(state=closed)'}">
-        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
+         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues' (state='closed')}">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-closed"></use></svg>
         <span th:text="${closedCount}">0</span> Closed
       </a>
     </div>
@@ -50,9 +48,16 @@
 
     <div th:if="${issues.isEmpty()}" class="blankslate">
       <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
-      <h3 class="blankslate-heading">No issues yet</h3>
-      <p>Issues are a good way to track bugs and tasks.</p>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
+      <!-- An empty "closed" tab means none are closed yet, not that none exist. -->
+      <th:block th:if="${filter == 'closed'}">
+        <h3 class="blankslate-heading">No closed issues</h3>
+        <p>Issues you close will be listed here.</p>
+      </th:block>
+      <th:block th:unless="${filter == 'closed'}">
+        <h3 class="blankslate-heading">No open issues</h3>
+        <p>Issues are a good way to track bugs and tasks.</p>
+        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
+      </th:block>
     </div>
   </div>
 </main>

@@ -43,16 +43,33 @@ public class IssueController {
         this.permissionService = permissionService;
     }
 
+    /**
+     * Issue list, optionally narrowed by state.
+     *
+     * @param state {@code closed} to show closed issues; anything else shows open ones,
+     *              matching GitHub's default of hiding what is already dealt with
+     */
     @GetMapping("/issues")
     public String listIssues(@PathVariable String username, @PathVariable String name, Model model,
+                             @RequestParam(required = false) String state,
                              @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
         requireRead(principal, repo);
-        List<Issue> issues = issueService.listByRepository(repo.getId());
+
+        List<Issue> all = issueService.listByRepository(repo.getId());
+        boolean showClosed = "closed".equalsIgnoreCase(state);
+        List<Issue> issues = all.stream()
+                .filter(i -> showClosed != "OPEN".equals(i.getStatus()))
+                .toList();
+
         model.addAttribute("title", "Issues \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
         model.addAttribute("issues", issues);
+        model.addAttribute("filter", showClosed ? "closed" : "open");
+        // Counts come from the unfiltered list so both tabs always show a total.
+        model.addAttribute("openCount", all.stream().filter(i -> "OPEN".equals(i.getStatus())).count());
+        model.addAttribute("closedCount", all.stream().filter(i -> !"OPEN".equals(i.getStatus())).count());
         return "issue/list";
     }
 
