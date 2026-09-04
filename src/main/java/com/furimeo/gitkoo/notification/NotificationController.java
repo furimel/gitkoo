@@ -39,9 +39,10 @@ public class NotificationController {
     @GetMapping("/notifications")
     public String listNotifications(@AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
                                     @RequestHeader(value = "HX-Request", required = false) String hxRequest,
+                                    @org.springframework.web.bind.annotation.RequestParam(required = false) Integer page,
                                     Model model) {
         User user = currentUser(principal);
-        populate(user, model);
+        populate(user, model, page);
         return isHtmx(hxRequest) ? PANEL_FRAGMENT : VIEW;
     }
 
@@ -69,10 +70,17 @@ public class NotificationController {
     }
 
     private void populate(User user, Model model) {
+        populate(user, model, null);
+    }
+
+    private void populate(User user, Model model, Integer page) {
         // title is needed whenever the full page renders (no-JS POST fallback); the HTMX
         // fragment path ignores it.
         model.addAttribute("title", "Notifications");
-        model.addAttribute("notifications", notificationService.listByUser(user.getId()));
+        var pageOfNotifications = com.furimeo.gitkoo.web.Page.of(
+                notificationService.listByUser(user.getId()), page);
+        model.addAttribute("notifications", pageOfNotifications.items());
+        model.addAttribute("page", pageOfNotifications);
         model.addAttribute("unreadCount", notificationService.unreadCount(user.getId()));
     }
 

@@ -54,6 +54,8 @@
       <h3 class="blankslate-heading">All caught up</h3>
       <p>You have no notifications.</p>
     </div>
+
+    <div th:replace="~{fragments/common :: pagination(${page}, @{/notifications})}"></div>
   </div>
 </main>
 

@@ -42,11 +42,15 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public String users(Model model) {
+    public String users(Model model,
+                        @org.springframework.web.bind.annotation.RequestParam(required = false) Integer page) {
         List<User> users = new java.util.ArrayList<>();
         userRepository.findAll().forEach(users::add);
+        var pageOfUsers = Page.of(users, page);
         model.addAttribute("title", "Users \u00b7 Admin");
-        model.addAttribute("users", users);
+        model.addAttribute("users", pageOfUsers.items());
+        model.addAttribute("page", pageOfUsers);
+        model.addAttribute("totalUsers", users.size());
         return "admin/users";
     }
 

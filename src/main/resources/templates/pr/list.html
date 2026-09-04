@@ -15,14 +15,18 @@
 
   <div class="Box">
     <div class="Box-header d-flex flex-items-center gap-3">
-      <span class="d-flex flex-items-center gap-1 text-bold">
+      <a class="d-flex flex-items-center gap-1"
+         th:classappend="${filter == 'open'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">
         <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
         <span th:text="${openCount}">0</span> Open
-      </span>
-      <span class="d-flex flex-items-center gap-1 color-fg-muted">
+      </a>
+      <a class="d-flex flex-items-center gap-1"
+         th:classappend="${filter == 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls' (state='closed')}">
         <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
         <span th:text="${closedCount}">0</span> Closed
-      </span>
+      </a>
     </div>
 
     <div class="Box-row d-flex flex-items-start" th:each="p : ${pulls}">
@@ -48,11 +52,21 @@
 
     <div th:if="${pulls.isEmpty()}" class="blankslate">
       <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
-      <h3 class="blankslate-heading">No pull requests</h3>
-      <p>Push a branch, then open a pull request to propose changes.</p>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
+      <th:block th:if="${filter == 'closed'}">
+        <h3 class="blankslate-heading">No closed pull requests</h3>
+        <p>Pull requests you merge or close will be listed here.</p>
+      </th:block>
+      <th:block th:unless="${filter == 'closed'}">
+        <h3 class="blankslate-heading">No open pull requests</h3>
+        <p>Push a branch, then open a pull request to propose changes.</p>
+        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
+      </th:block>
     </div>
   </div>
+
+  <div th:replace="~{fragments/common :: pagination(${page},
+       @{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}
+       + (${filter == 'closed'} ? '?state=closed' : ''))}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

@@ -20,7 +20,7 @@
     <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
       Binary file not shown.
     </p>
-    <table class="diff-table" th:unless="${file.binary}">
+    <table class="diff-table" th:unless="${file.binary}" th:attr="data-language=${file.language}">
       <tbody>
         <tr th:each="line : ${file.lines}"
             th:classappend="${line.isHunk()} ? ' diff-line--hunk'

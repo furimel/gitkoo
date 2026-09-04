@@ -37,6 +37,10 @@
         <a class="f4 text-bold Link--primary"
            th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${i.number}}"
            th:text="${i.title}">title</a>
+        <!-- Batch-loaded in the controller, so this costs no query per row. -->
+        <span th:each="label : ${issueLabels.get(i.id)}" class="Label ml-1"
+              th:style="'background:' + ${label.color} + ';color:#fff'"
+              th:title="${label.description}" th:text="${label.name}">label</span>
         <div class="color-fg-muted f6 mt-1">
           #<span th:text="${i.number}">1</span>
           <span th:if="${i.status == 'OPEN'}">opened</span>
@@ -60,6 +64,8 @@
       </th:block>
     </div>
   </div>
+
+  <div th:replace="~{fragments/common :: pagination(${page}, @{'/' + ${owner} + '/' + ${repo.name} + '/issues'} + (${filter == 'closed'} ? '?state=closed' : ''))}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

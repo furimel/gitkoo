@@ -37,6 +37,7 @@
     })();
   </script>
   <script th:src="@{/assets/js/htmx.min.js}" defer></script>
+  <script th:src="@{/assets/js/highlight.min.js}" defer></script>
   <script th:src="@{/assets/js/gitkoo.js}" defer></script>
 </head>
 
@@ -98,9 +99,7 @@
         <details class="details-overlay details-reset">
           <summary class="Header-link d-flex flex-items-center" role="button" aria-haspopup="menu"
                    th:aria-label="'Account menu for ' + ${#authentication.name}">
-            <span class="avatar avatar-small circle color-bg-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                  style="width:20px;height:20px;font-size:11px"
-                  th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</span>
+            <span th:replace="~{fragments/common :: avatar(${#authentication.name}, 20)}"></span>
             <span class="dropdown-caret"></span>
           </summary>
           <div class="dropdown-menu dropdown-menu-sw" role="menu">
@@ -208,6 +207,41 @@
     </nav>
   </div>
 </div>
+
+<!-- ══ Avatar ══════════════════════════════════════════════════════════ -->
+<!--
+  Served by AvatarController: the account's own image when it has one, otherwise a
+  generated identicon. Always an <img>, so callers never build initials by hand.
+-->
+<img th:fragment="avatar(username, size)" class="avatar"
+     th:src="@{'/avatars/' + ${username}}"
+     th:alt="${username} + ' avatar'"
+     th:width="${size}" th:height="${size}"
+     th:style="'width:' + ${size} + 'px;height:' + ${size} + 'px'"
+     loading="lazy" decoding="async">
+
+<!-- ══ Pagination ══════════════════════════════════════════════════════ -->
+<!--
+  Hidden entirely when everything fits on one page. `baseUrl` may already carry a
+  query string, so the separator is chosen rather than assumed.
+-->
+<nav th:fragment="pagination(page, baseUrl)" th:unless="${page.single()}"
+     class="paginate-container" aria-label="Pagination">
+  <div class="pagination" th:with="sep=${#strings.contains(baseUrl, '?')} ? '&amp;' : '?'">
+    <a th:if="${page.hasPrevious()}"
+       th:href="${baseUrl} + ${sep} + 'page=' + ${page.previousPage()}" rel="prev">Previous</a>
+    <span th:unless="${page.hasPrevious()}" class="disabled" aria-disabled="true">Previous</span>
+
+    <span class="color-fg-muted px-3">
+      Page <span th:text="${page.page()}">1</span>
+      of <span th:text="${page.totalPages()}">1</span>
+    </span>
+
+    <a th:if="${page.hasNext()}"
+       th:href="${baseUrl} + ${sep} + 'page=' + ${page.nextPage()}" rel="next">Next</a>
+    <span th:unless="${page.hasNext()}" class="disabled" aria-disabled="true">Next</span>
+  </div>
+</nav>
 
 <!-- ══ Footer ══════════════════════════════════════════════════════════ -->
 <!--

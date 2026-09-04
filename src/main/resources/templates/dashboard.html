@@ -39,6 +39,8 @@
     <p>Repositories you create will show up here.</p>
     <a th:href="@{/new}" class="btn btn-primary">Create a repository</a>
   </div>
+
+  <div th:replace="~{fragments/common :: pagination(${page}, @{/})}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

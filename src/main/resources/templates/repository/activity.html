@@ -26,6 +26,9 @@
     <h3 class="blankslate-heading">No activity yet</h3>
     <p>Activity appears when someone pushes, opens issues, or merges pull requests.</p>
   </div>
+
+  <div th:replace="~{fragments/common :: pagination(${page},
+       @{'/' + ${owner} + '/' + ${repo.name} + '/activity'})}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

@@ -41,9 +41,7 @@
       <!-- Description -->
       <div class="TimelineItem">
         <div class="TimelineItem-avatar">
-          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                style="width:40px;height:40px"
-                th:text="${#strings.toUpperCase(#strings.substring(author?.username ?: 'U', 0, 1))}">U</span>
+          <span th:replace="~{fragments/common :: avatar(${author?.username ?: 'ghost'}, 40)}"></span>
         </div>
         <div class="TimelineItem-body">
           <div class="Box">
@@ -192,7 +190,7 @@
         <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
           Binary file not shown.
         </p>
-        <table class="diff-table" th:unless="${file.binary}">
+        <table class="diff-table" th:unless="${file.binary}" th:attr="data-language=${file.language}">
           <tbody>
             <tr th:each="line : ${file.lines}"
                 th:classappend="${line.isHunk()} ? ' diff-line--hunk'

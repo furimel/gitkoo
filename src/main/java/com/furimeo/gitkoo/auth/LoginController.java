@@ -30,6 +30,7 @@ public class LoginController {
 
     @GetMapping("/")
     public String dashboard(@AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
+                            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer page,
                             Model model) {
         model.addAttribute("title", "Dashboard");
         if (principal != null) {
@@ -37,7 +38,9 @@ public class LoginController {
             if (user != null) {
                 var repos = repositoryService.findByOwner(
                         Repository.OwnerType.USER.name(), user.getId());
-                model.addAttribute("repos", repos);
+                var pageOfRepos = com.furimeo.gitkoo.web.Page.of(repos, page);
+                model.addAttribute("repos", pageOfRepos.items());
+                model.addAttribute("page", pageOfRepos);
             }
         }
         return "dashboard";

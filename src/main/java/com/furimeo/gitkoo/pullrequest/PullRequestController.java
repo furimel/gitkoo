@@ -49,14 +49,27 @@ public class PullRequestController {
 
     @GetMapping("/pulls")
     public String listPulls(@PathVariable String username, @PathVariable String name, Model model,
+                            @RequestParam(required = false) String state,
+                            @RequestParam(required = false) Integer page,
                             @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
         requireRead(principal, repo);
-        List<PullRequest> pulls = prService.listByRepository(repo.getId());
+
+        List<PullRequest> all = prService.listByRepository(repo.getId());
+        boolean showClosed = "closed".equalsIgnoreCase(state);
+        List<PullRequest> matching = all.stream()
+                .filter(p -> showClosed != "OPEN".equals(p.getStatus()))
+                .toList();
+        var pageOfPulls = com.furimeo.gitkoo.web.Page.of(matching, page);
+
         model.addAttribute("title", "Pull Requests \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
-        model.addAttribute("pulls", pulls);
+        model.addAttribute("pulls", pageOfPulls.items());
+        model.addAttribute("page", pageOfPulls);
+        model.addAttribute("filter", showClosed ? "closed" : "open");
+        model.addAttribute("openCount", all.stream().filter(p -> "OPEN".equals(p.getStatus())).count());
+        model.addAttribute("closedCount", all.stream().filter(p -> !"OPEN".equals(p.getStatus())).count());
         return "pr/list";
     }
 
