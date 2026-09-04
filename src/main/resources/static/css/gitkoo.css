@@ -41,9 +41,13 @@
 
 /* == File tree ========================================================== */
 
+/*
+ * One column, not three. GitHub also shows the last commit and its age per file,
+ * which costs a `git log` per entry; until that is worth the subprocess budget,
+ * reserving the space would just leave two thirds of every row blank.
+ */
 .tree-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--base-size-16);
   padding: var(--base-size-4) var(--base-size-16);
@@ -62,18 +66,6 @@
 .tree-row-name .octicon { flex-shrink: 0; margin-right: 0; }
 .tree-row-icon--dir  { color: var(--fgColor-accent, var(--color-accent-fg)); }
 .tree-row-icon--file { color: var(--fgColor-muted, var(--color-fg-muted)); }
-
-.tree-row-commit,
-.tree-row-age {
-  font-size: 14px;
-  color: var(--fgColor-muted, var(--color-fg-muted));
-}
-.tree-row-age { text-align: right; white-space: nowrap; }
-
-@media (max-width: 767px) {
-  .tree-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .tree-row-commit { display: none; }
-}
 
 /* == Blob viewer: code with line numbers ================================ */
 

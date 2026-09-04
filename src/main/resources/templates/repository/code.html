@@ -124,8 +124,6 @@
               <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${ref}
                           + (${parentPath.isEmpty()} ? '' : '/' + ${parentPath})}">..</a>
             </div>
-            <div class="tree-row-commit"></div>
-            <div class="tree-row-age"></div>
           </div>
 
           <div class="tree-row" th:each="entry : ${entries}">
@@ -139,8 +137,6 @@
                            + (${entry.directory} ? '/tree/' : '/blob/') + ${ref} + '/'
                            + (${path != null and !path.isEmpty()} ? ${path} + '/' : '') + ${entry.name}}">name</a>
             </div>
-            <div class="tree-row-commit css-truncate css-truncate-target"></div>
-            <div class="tree-row-age"></div>
           </div>
         </div>
 
