@@ -68,7 +68,15 @@ public class WorkflowExecutor {
         Map<String, String> env = buildEnv(workflow, context, secrets);
         List<Stmt> body = filterByIf(workflow.body(), context);
 
-        RunLog runLog = openLog(runId);
+        // Collect the secret values to mask in log output (DESIGN.md §78).
+        List<String> secretValues = new ArrayList<>();
+        for (String value : secrets.values()) {
+            if (value != null && !value.isEmpty()) {
+                secretValues.add(value);
+            }
+        }
+
+        RunLog runLog = openLog(runId, secretValues);
         runLog.appendLine("Workflow '" + workflow.name() + "' run #" + runId + " started");
         try {
             for (Stmt stmt : body) {
@@ -209,38 +217,49 @@ public class WorkflowExecutor {
     }
 
     /** Opens (creating parent dirs) the per-run log file, or a no-op sink on failure. */
-    private RunLog openLog(long runId) {
+    private RunLog openLog(long runId, List<String> secretValues) {
         Path logFile = logPath(runId);
         try {
             Files.createDirectories(logFile.getParent());
             Writer writer = Files.newBufferedWriter(logFile, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            return new RunLog(writer);
+            return new RunLog(writer, secretValues);
         } catch (IOException e) {
             log.warn("Failed to open workflow log file {}; logging will be dropped", logFile, e);
-            return new RunLog(Writer.nullWriter());
+            return new RunLog(Writer.nullWriter(), secretValues);
         }
     }
 
     /**
      * Appends lines to the per-run log file. Writes are synchronized so that
      * parallel-block tasks running on the worker pool can share one writer safely.
+     *
+     * <p>Each line is scanned for known secret values, which are replaced with
+     * {@code ***} before being written (DESIGN.md §78 secret masking).
      */
     private static final class RunLog implements AutoCloseable {
         private final Writer writer;
+        private final List<String> secretValues;
 
-        RunLog(Writer writer) {
+        RunLog(Writer writer, List<String> secretValues) {
             this.writer = writer;
+            this.secretValues = secretValues;
         }
 
         synchronized void appendLine(String line) {
+            String masked = mask(line);
             try {
-                writer.write(line);
+                writer.write(masked);
                 writer.write("\n");
                 writer.flush();
             } catch (IOException e) {
                 log.warn("Failed to write workflow log line", e);
             }
+        }
+
+        /** Replaces any occurrence of a known secret value with {@code ***}. */
+        private String mask(String line) {
+            return maskSecrets(line, secretValues);
         }
 
         @Override
@@ -297,6 +316,24 @@ public class WorkflowExecutor {
                 }
             } else {
                 result.add(s);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Replaces any occurrence of a known secret value in the line with
+     * {@code ***}. Used to keep secrets out of workflow log output
+     * (DESIGN.md §78 secret masking).
+     */
+    static String maskSecrets(String line, List<String> secretValues) {
+        if (line == null || secretValues == null || secretValues.isEmpty()) {
+            return line;
+        }
+        String result = line;
+        for (String secret : secretValues) {
+            if (secret != null && !secret.isEmpty() && result.contains(secret)) {
+                result = result.replace(secret, "***");
             }
         }
         return result;

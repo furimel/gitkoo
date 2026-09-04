@@ -30,4 +30,41 @@ class WorkflowExecutorTest {
         List<String> tokens = WorkflowExecutor.shlexSplit("git   commit   -m   \"wip\"");
         assertThat(tokens).containsExactly("git", "commit", "-m", "wip");
     }
+
+    @Test
+    void maskSecretsReplacesSecretValue() {
+        String masked = WorkflowExecutor.maskSecrets(
+                "token is supersecret123", List.of("supersecret123"));
+        assertThat(masked).isEqualTo("token is ***");
+    }
+
+    @Test
+    void maskSecretsReplacesMultipleOccurrences() {
+        String masked = WorkflowExecutor.maskSecrets(
+                "pw=abc pw=abc", List.of("abc"));
+        assertThat(masked).isEqualTo("pw=*** pw=***");
+    }
+
+    @Test
+    void maskSecretsLeavesNonSecretTextUnchanged() {
+        String masked = WorkflowExecutor.maskSecrets("no secrets here", List.of("abc"));
+        assertThat(masked).isEqualTo("no secrets here");
+    }
+
+    @Test
+    void maskSecretsHandlesNoSecrets() {
+        assertThat(WorkflowExecutor.maskSecrets("anything", List.of()))
+                .isEqualTo("anything");
+    }
+
+    @Test
+    void maskSecretsHandlesNullAndEmpty() {
+        assertThat(WorkflowExecutor.maskSecrets(null, List.of("x"))).isNull();
+        assertThat(WorkflowExecutor.maskSecrets("x", null)).isEqualTo("x");
+        // A list may contain empty/null entries; those are skipped, not blown up on.
+        var secrets = new java.util.ArrayList<String>();
+        secrets.add("");
+        secrets.add(null);
+        assertThat(WorkflowExecutor.maskSecrets("x", secrets)).isEqualTo("x");
+    }
 }
