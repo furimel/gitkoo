@@ -40,7 +40,7 @@
           <a class="btn" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}">
             <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
             <strong th:text="${totalCommits}">0</strong>
-            <span class="color-fg-muted ml-1"
+            <span class="color-fg-muted"
                   th:text="${totalCommits == 1} ? 'commit' : 'commits'">commits</span>
           </a>
           <details class="details-overlay details-reset position-relative">

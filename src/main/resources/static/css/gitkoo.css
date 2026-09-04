@@ -380,3 +380,50 @@
   background: var(--color-prettylights-syntax-markup-deleted-bg);
 }
 
+
+/* == Sticky footer ====================================================== */
+/*
+ * On a short page the footer sat wherever the content happened to end, leaving a
+ * band of dead space beneath it. Pushing it down with margin-top:auto in a column
+ * flex body keeps it at the bottom of the viewport without pinning it there when
+ * the page is long.
+ *
+ * body > * gets width:100% because auto side margins on a flex item disable the
+ * default stretch, which would otherwise shrink .container-sm/md pages to the
+ * width of their content.
+ */
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body > * { width: 100%; }
+
+/*
+ * The footer carried Primer's .mt-6 utility, and every Primer utility is declared
+ * !important, so a 40px margin silently beat margin-top:auto and the footer stayed
+ * where the content ended. The class is gone from the template; the footer's own
+ * top padding and border give it the same breathing room on a long page.
+ *
+ * Worth remembering generally: a Primer utility class always wins over a rule in
+ * this file, whatever the specificity.
+ */
+body > footer { margin-top: auto; }
+
+/* == Icons inside buttons =============================================== */
+/*
+ * Primer 21's .btn is inline-block, so an icon inside it aligns on the text
+ * baseline (.octicon carries vertical-align: text-bottom) and lands about 1.5px
+ * above centre. Primer also gives it a 4px right margin for inline use, which
+ * stacks on top of whatever spacing the button already has.
+ *
+ * Laying the button out as flex centres the icon exactly and makes the spacing a
+ * single value instead of two that have to be kept in step.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--base-size-8);
+}
+.btn > .octicon { margin-right: 0; }
