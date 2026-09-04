@@ -69,12 +69,15 @@ public class GitHttpController {
     private final RepositoryPermissionService permissionService;
     private final ProtectedBranchService protectedBranchService;
     private final String gitBinary;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public GitHttpController(GitKooProperties properties, RepositoryService repositoryService,
                             UserService userService, AccessTokenService accessTokenService,
                             ActivityService activityService, WorkflowService workflowService,
                             GitService gitService, RepositoryPermissionService permissionService,
-                            ProtectedBranchService protectedBranchService) {
+                            ProtectedBranchService protectedBranchService,
+                            org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
         this.properties = properties;
         this.repositoryService = repositoryService;
         this.userService = userService;
@@ -130,10 +133,22 @@ public class GitHttpController {
         response.setContentType(contentType);
         // No charset - git protocol is binary.
 
-        // Smart protocol: write service announcement line, then git's ref advertisement.
+        /*
+         * Smart protocol ref advertisement, per Documentation/http-protocol.txt:
+         *
+         *   PKT-LINE("# service=$servicename" LF)
+         *   "0000"
+         *   ref_list
+         *   "0000"
+         *
+         * The "0000" flush packet after the service line is mandatory. Without it a
+         * client reads the first ref as a continuation of the header and gives up with
+         * "Could not read from remote repository", which is why cloning over HTTP had
+         * never worked. git itself emits the trailing flush with --advertise-refs.
+         */
         OutputStream out = response.getOutputStream();
-        String announce = "# service=" + service + "\n";
-        writePktLine(out, announce);
+        writePktLine(out, "# service=" + service + "\n");
+        out.write(FLUSH_PKT);
         out.flush();
 
         ProcessBuilder pb = new ProcessBuilder(
@@ -252,6 +267,47 @@ public class GitHttpController {
         }
         process.destroy();
     }
+
+    /**
+     * Resolves HTTP Basic credentials to a user.
+     *
+     * <p>The password may be the account password or an access token, because that is
+     * how people actually use Git over HTTP: credential helpers store one string, and
+     * a token is the safer thing to store.
+     *
+     * @param encoded the base64 payload of the Authorization header
+     * @return the authenticated user, or null when the credentials do not check out
+     */
+    private User resolveBasic(String encoded) {
+        String decoded;
+        try {
+            decoded = new String(java.util.Base64.getDecoder().decode(encoded), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+        int colon = decoded.indexOf(':');
+        if (colon < 0) {
+            return null;
+        }
+        String username = decoded.substring(0, colon);
+        String secret = decoded.substring(colon + 1);
+
+        // A token authenticates on its own; the username beside it is ignored, which
+        // is what lets `git clone https://token@host/...` work.
+        var byToken = accessTokenService.resolve(secret);
+        if (byToken.isPresent()) {
+            return userService.findById(byToken.get().userId()).orElse(null);
+        }
+
+        User user = userService.findByUsername(username).orElse(null);
+        if (user == null || user.getPasswordHash() == null) {
+            return null;
+        }
+        return passwordEncoder.matches(secret, user.getPasswordHash()) ? user : null;
+    }
+
+    /** The pkt-line flush packet, which ends a section of the Git wire protocol. */
+    private static final byte[] FLUSH_PKT = "0000".getBytes(StandardCharsets.US_ASCII);
 
     /** Writes a pkt-line: 4-byte hex length + payload. */
     private void writePktLine(OutputStream out, String payload) throws IOException {
@@ -383,6 +439,19 @@ public class GitHttpController {
             var resolved = accessTokenService.resolve(token);
             if (resolved.isPresent()) {
                 return userService.findById(resolved.get().userId()).orElse(null);
+            }
+        }
+        /*
+         * HTTP Basic, which is what a Git client actually sends. This branch was
+         * missing: the 401 above challenges with WWW-Authenticate: Basic and the
+         * credentials that came back were then ignored, so the client retried, got
+         * challenged again and gave up with "Authentication failed". Cloning or
+         * pushing a private repository over HTTP could never succeed.
+         */
+        if (auth != null && auth.startsWith("Basic ")) {
+            User actor = resolveBasic(auth.substring(6).trim());
+            if (actor != null) {
+                return actor;
             }
         }
         // Fall back to the security context (session principal or token filter).

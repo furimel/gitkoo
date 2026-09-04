@@ -23,6 +23,23 @@ import com.furimeo.gitkoo.auth.UserService;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * The Git smart-HTTP service endpoints, in both the bare and {@code .git} forms
+     * that GitHttpController maps. Authorization for these lives in that controller,
+     * which is the only place that can answer a Git client in a way it understands.
+     */
+    private static final String[] GIT_SERVICE_PATHS = {
+        "/*/*/info/refs", "/*/*.git/info/refs",
+        "/*/*/git-upload-pack", "/*/*.git/git-upload-pack",
+        "/*/*/git-receive-pack", "/*/*.git/git-receive-pack"
+    };
+
+    private static String[] concat(String[] first, String[] second) {
+        String[] all = java.util.Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(second, 0, all, first.length, second.length);
+        return all;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -70,8 +87,25 @@ public class SecurityConfig {
                         "/login",
                         "/register",
                         "/assets/**",
-                        "/avatars/**"
+                        "/avatars/**",
+                        // Spring forwards here to render an error. Without it, an
+                        // anonymous visitor who hits a bad URL is redirected to the
+                        // login page instead of being told the page does not exist.
+                        "/error"
                 ).permitAll()
+                /*
+                 * Git smart HTTP authenticates itself. GitHttpController reads HTTP Basic
+                 * or a token, checks READ for upload-pack and WRITE for receive-pack, and
+                 * answers 401 with WWW-Authenticate so the client prompts for credentials.
+                 *
+                 * Spring must not get there first: its response to an unauthenticated
+                 * request is a redirect to /login, which a Git client follows until it
+                 * gives up ("Maximum (20) redirects followed") instead of asking for a
+                 * password. Leaving only the GET half open was worse still - ref discovery
+                 * succeeded and the pack transfer then failed, so an anonymous clone of a
+                 * public repository broke halfway through.
+                 */
+                .requestMatchers(GIT_SERVICE_PATHS).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers(
                         "/",
@@ -100,7 +134,11 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 // Git smart-HTTP and API endpoints use tokens, not browser forms.
-                .ignoringRequestMatchers("/api/**", "/git/**", "/**.git/**")
+                // The service paths are listed explicitly: "/**.git/**" misses the
+                // suffix-less form, so a push to /owner/repo/git-receive-pack was
+                // rejected as a CSRF failure.
+                .ignoringRequestMatchers(
+                        concat(new String[] {"/api/**", "/git/**", "/**.git/**"}, GIT_SERVICE_PATHS))
             );
         return http.build();
     }
