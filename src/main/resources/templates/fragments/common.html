@@ -63,7 +63,7 @@
     <th:block sec:authorize="isAuthenticated()">
       <!-- Create -->
       <div class="Header-item mr-0 mr-md-3">
-        <details class="details-overlay details-reset">
+        <details class="details-overlay details-reset position-relative">
           <summary class="Header-link btn-octicon d-flex flex-items-center"
                    role="button" aria-haspopup="menu" aria-label="Create new...">
             <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-plus"></use></svg>
@@ -96,7 +96,7 @@
 
       <!-- Account -->
       <div class="Header-item mr-0">
-        <details class="details-overlay details-reset">
+        <details class="details-overlay details-reset position-relative">
           <summary class="Header-link d-flex flex-items-center" role="button" aria-haspopup="menu"
                    th:aria-label="'Account menu for ' + ${#authentication.name}">
             <span th:replace="~{fragments/common :: avatar(${#authentication.name}, 20)}"></span>
