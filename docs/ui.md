@@ -91,16 +91,26 @@ Defined in `templates/fragments/common.html`:
 Every page is `head` -> `header` -> `<main class="container-xl">` -> `footer`.
 Use `container-xl` (1280px) for app pages; Primer's `container-lg` is only 1012px.
 
-## Keeping templates and CSS in sync
+## Guard rails
 
-A class used in a template but defined nowhere fails silently - the original
-stylesheet drifted this way, leaving `rounded-full` and `markdown-body` used on
-every page and defined nowhere, so no badge was a pill and rendered Markdown had
-no spacing at all. Guard against it:
+Two test classes hold the UI to its conventions. Both run under `./gradlew test`,
+which matters: CI runs only `test` and `bootJar`, so a shell script would never
+have executed anywhere but a developer machine.
 
-```bash
-tools/check-css-classes.sh
-```
+**`PageRenderTest`** renders every route and asserts the body closes with the html
+end tag. Status alone is not enough - a Thymeleaf error thrown after the response
+buffer flushes leaves the request at 200 with truncated HTML, so a sweep over
+status codes reports success on a visibly broken page. It covers signed-in,
+anonymous and empty-repository variants, because the empty branch of a list is
+where a null model attribute hides.
+
+**`TemplateConventionsTest`** enforces the structural rules. Some are absolute
+(every class used is defined; every decorative icon carries `aria-hidden`), and
+some are *ratchets*: the current violation count is pinned so it can fall but
+never rise. Lower the budget to zero as each is cleaned up.
+
+A ratchet budget must equal the true count, not a round number above it. Set too
+loosely it silently permits new debt, which defeats the point.
 
 ## Static assets
 
