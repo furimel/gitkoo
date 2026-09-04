@@ -35,16 +35,20 @@ public class IssueController {
 
     private final LabelService labelService;
 
+    private final com.furimeo.gitkoo.repository.RepoChrome repoChrome;
+
     public IssueController(IssueService issueService, RepositoryService repositoryService,
                            UserService userService, MarkdownService markdownService,
                            RepositoryPermissionService permissionService,
-                           LabelService labelService) {
+                           LabelService labelService,
+                                com.furimeo.gitkoo.repository.RepoChrome repoChrome) {
         this.issueService = issueService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.markdownService = markdownService;
         this.permissionService = permissionService;
         this.labelService = labelService;
+            this.repoChrome = repoChrome;
     }
 
     /**
@@ -68,9 +72,8 @@ public class IssueController {
                 .toList();
         var pageOfIssues = com.furimeo.gitkoo.web.Page.of(matching, page);
 
-        model.addAttribute("title", "Issues \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         model.addAttribute("issues", pageOfIssues.items());
         model.addAttribute("page", pageOfIssues);
         model.addAttribute("filter", showClosed ? "closed" : "open");
@@ -88,9 +91,8 @@ public class IssueController {
                                @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
         requireWrite(principal, repo);
-        model.addAttribute("title", "New issue \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         return "issue/new";
     }
 
@@ -119,9 +121,8 @@ public class IssueController {
         }
         List<IssueComment> comments = issueService.listComments(issue.getId());
         var author = userService.findById(issue.getAuthorId());
-        model.addAttribute("title", "#" + number + " \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         model.addAttribute("issue", issue);
         model.addAttribute("issueBodyHtml", markdownService.render(issue.getBody()));
         model.addAttribute("comments", comments);

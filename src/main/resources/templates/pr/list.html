@@ -3,70 +3,73 @@
 <head th:replace="~{fragments/common :: head('Pull requests - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
 
 <!-- openCount and closedCount come from the controller: counting `pulls` here
      would only count the current page. -->
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div class="d-flex flex-justify-end mb-3" sec:authorize="isAuthenticated()">
-    <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
-  </div>
-
-  <div class="Box">
-    <div class="Box-header d-flex flex-items-center gap-3">
-      <a class="d-flex flex-items-center gap-1"
-         th:classappend="${filter == 'open'} ? ' text-bold color-fg-default' : ' Link--secondary'"
-         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">
-        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
-        <span th:text="${openCount}">0</span> Open
-      </a>
-      <a class="d-flex flex-items-center gap-1"
-         th:classappend="${filter == 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
-         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls' (state='closed')}">
-        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
-        <span th:text="${closedCount}">0</span> Closed
-      </a>
+    <div class="d-flex flex-justify-end" sec:authorize="isAuthenticated()">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
     </div>
 
-    <div class="Box-row d-flex flex-items-start" th:each="p : ${pulls}">
-      <svg class="octicon mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true"
-           th:classappend="${p.status == 'OPEN'} ? ' color-fg-success'
-                           : (${p.status == 'MERGED'} ? ' color-fg-done' : ' color-fg-danger')">
-        <use th:href="${p.status == 'MERGED'} ? '#octicon-git-merge' : '#octicon-git-pull-request'"></use>
-      </svg>
-      <div class="flex-auto">
-        <a class="f4 text-bold Link--primary"
-           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${p.number}}"
-           th:text="${p.title}">title</a>
-        <div class="color-fg-muted f6 mt-1 d-flex flex-items-center flex-wrap gap-1">
-          <span>#<span th:text="${p.number}">1</span></span>
-          <time th:if="${p.createdAt != null}" th:datetime="${p.createdAt}" th:text="${p.createdAt}">date</time>
-          <span>&middot;</span>
-          <span class="branch-name" th:text="${p.sourceBranch}">feature</span>
-          <svg class="octicon" width="12" height="12" aria-hidden="true"><use href="#octicon-arrow-right"></use></svg>
-          <span class="branch-name" th:text="${p.targetBranch}">main</span>
+    <div class="Box">
+      <div class="Box-header d-flex flex-items-center gap-3">
+        <a class="d-flex flex-items-center gap-1"
+           th:classappend="${filter == 'open'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+          <span th:text="${openCount}">0</span> Open
+        </a>
+        <a class="d-flex flex-items-center gap-1"
+           th:classappend="${filter == 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls' (state='closed')}">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
+          <span th:text="${closedCount}">0</span> Closed
+        </a>
+      </div>
+
+      <div class="Box-row d-flex flex-items-start gap-2" th:each="p : ${pulls}">
+        <svg class="octicon mt-1 flex-shrink-0" width="16" height="16" aria-hidden="true"
+             th:classappend="${p.status == 'OPEN'} ? ' color-fg-success'
+                             : (${p.status == 'MERGED'} ? ' color-fg-done' : ' color-fg-danger')">
+          <use th:href="${p.status == 'MERGED'} ? '#octicon-git-merge' : '#octicon-git-pull-request'"></use>
+        </svg>
+        <div class="flex-auto">
+          <a class="f4 text-bold Link--primary"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${p.number}}"
+             th:text="${p.title}">title</a>
+          <div class="color-fg-muted f6 mt-1 d-flex flex-items-center flex-wrap gap-1">
+            <span>#<span th:text="${p.number}">1</span></span>
+            <span th:replace="~{fragments/ui :: timeAgo(${p.createdAt})}"></span>
+            <span>&middot;</span>
+            <span class="branch-name" th:text="${p.sourceBranch}">feature</span>
+            <svg class="octicon" width="12" height="12" aria-hidden="true"><use href="#octicon-arrow-right"></use></svg>
+            <span class="branch-name" th:text="${p.targetBranch}">main</span>
+          </div>
         </div>
+      </div>
+
+      <div th:if="${pulls.isEmpty()}" class="blankslate">
+        <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+        <th:block th:if="${filter == 'closed'}">
+          <h3 class="blankslate-heading">No closed pull requests</h3>
+          <p>Pull requests you merge or close will be listed here.</p>
+        </th:block>
+        <th:block th:unless="${filter == 'closed'}">
+          <h3 class="blankslate-heading">No open pull requests</h3>
+          <p>Push a branch, then open a pull request to propose changes.</p>
+          <a sec:authorize="isAuthenticated()" class="btn btn-primary"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}">New pull request</a>
+        </th:block>
       </div>
     </div>
 
-    <div th:if="${pulls.isEmpty()}" class="blankslate">
-      <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
-      <th:block th:if="${filter == 'closed'}">
-        <h3 class="blankslate-heading">No closed pull requests</h3>
-        <p>Pull requests you merge or close will be listed here.</p>
-      </th:block>
-      <th:block th:unless="${filter == 'closed'}">
-        <h3 class="blankslate-heading">No open pull requests</h3>
-        <p>Push a branch, then open a pull request to propose changes.</p>
-        <a sec:authorize="isAuthenticated()" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
-      </th:block>
-    </div>
-  </div>
-
-  <div th:replace="~{fragments/common :: pagination(${page},
-       @{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}
-       + (${filter == 'closed'} ? '?state=closed' : ''))}"></div>
+    <div th:replace="~{fragments/common :: pagination(${page},
+         @{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}
+         + (${filter == 'closed'} ? '?state=closed' : ''))}"></div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

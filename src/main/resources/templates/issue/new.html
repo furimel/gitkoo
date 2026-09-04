@@ -3,35 +3,35 @@
 <head th:replace="~{fragments/common :: head('New issue - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'issues')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Layout Layout--sidebarPosition-end Layout--sidebar-wide">
-    <div class="Layout-main">
-      <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" method="post">
-        <div class="Box">
-          <div class="Box-body">
-            <input type="text" id="title" name="title" class="form-control input-lg width-full mb-3"
-                   required placeholder="Title" aria-label="Issue title" autofocus>
-            <textarea id="body" name="body" class="form-control width-full" rows="12"
-                      placeholder="Leave a comment (Markdown supported)"></textarea>
-          </div>
-          <div class="Box-footer d-flex flex-justify-end">
-            <button type="submit" class="btn btn-primary">Submit new issue</button>
-          </div>
-        </div>
-      </form>
-    </div>
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
+    <div th:replace="~{fragments/layout :: withSidebar('end', ~{::compose}, ~{::tips})}">
 
-    <div class="Layout-sidebar color-fg-muted f6">
-      <p class="mb-2 text-bold">Writing tips</p>
-      <ul class="ml-3" style="list-style:disc">
-        <li class="mb-1">Markdown is supported.</li>
-        <li class="mb-1">Reference other issues with <code>#123</code>.</li>
-        <li>Use <code>- [ ]</code> for task lists.</li>
-      </ul>
+      <th:block th:fragment="compose">
+        <div th:replace="~{fragments/form :: card(null,
+                           @{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'},
+                           ~{::fields}, 'Submit new issue')}"></div>
+      </th:block>
+
+      <th:block th:fragment="fields">
+        <input type="text" id="title" name="title" class="form-control input-lg width-full"
+               required placeholder="Title" aria-label="Issue title" autofocus>
+        <div th:replace="~{fragments/form :: textarea('body', 'body', null, null, 12,
+                           'Leave a comment (Markdown supported)')}"></div>
+      </th:block>
+
+      <div th:fragment="tips" class="section color-fg-muted f6">
+        <div class="section-title">Writing tips</div>
+        <ul class="bullet-list">
+          <li>Markdown is supported.</li>
+          <li>Reference other issues with <code>#123</code>.</li>
+          <li>Use <code>- [ ]</code> for task lists.</li>
+        </ul>
+      </div>
     </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

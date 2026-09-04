@@ -4,43 +4,29 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-sm mt-6">
-  <div class="text-center mb-4">
-    <svg class="octicon" width="48" height="48" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
-    <h1 class="f2 text-normal mt-3">Welcome to GitKoo</h1>
-    <p class="color-fg-muted">Create the administrator account to finish setting up this instance.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('auth', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
 
-  <div class="Box Box--spacious">
-    <div class="Box-body">
-      <form th:action="@{/setup}" method="post">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" name="username" class="form-control width-full"
-                 th:value="${username}" required placeholder="e.g. minh" autocomplete="username" autofocus>
-        </div>
+    <div th:replace="~{fragments/form :: authCard('Welcome to GitKoo',
+                       'Create the administrator account to finish setting up this instance.',
+                       @{/setup}, ~{::fields}, 'Create administrator account', null, null, null)}">
+      <th:block th:fragment="fields">
+        <div th:replace="~{fragments/form :: field('username', 'username', 'Username',
+                           ${username}, 'e.g. minh', null, null, true, true)}"></div>
         <div class="form-group">
           <label for="email">Email</label>
           <input type="email" id="email" name="email" class="form-control width-full"
                  th:value="${email}" required autocomplete="email">
         </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" class="form-control width-full"
-                 required minlength="8" autocomplete="new-password">
-          <p class="note">Use at least 8 characters.</p>
-        </div>
-        <div class="form-group">
-          <label for="confirmPassword">Confirm password</label>
-          <input type="password" id="confirmPassword" name="confirmPassword" class="form-control width-full"
-                 required minlength="8" autocomplete="new-password">
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Create administrator account</button>
-      </form>
+        <div th:replace="~{fragments/form :: password('password', 'password', 'Password',
+                           'Use at least 8 characters.')}"></div>
+        <div th:replace="~{fragments/form :: password('confirmPassword', 'confirmPassword',
+                           'Confirm password', null)}"></div>
+      </th:block>
     </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

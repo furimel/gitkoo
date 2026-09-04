@@ -3,81 +3,39 @@
 <head th:replace="~{fragments/common :: head('Commit ' + ${#strings.substring(sha, 0, 7)})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'code')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'code')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <!-- Commit message and metadata -->
-  <div class="Box mb-4">
-    <div class="Box-body">
-      <h1 class="f3 mb-2" th:text="${commit.message}">message</h1>
-    </div>
-    <div class="Box-row d-flex flex-items-center flex-wrap gap-2 color-fg-muted">
-      <span th:replace="~{fragments/common :: avatar(${commit.authorName}, 20)}"></span>
-      <strong class="color-fg-default" th:text="${commit.authorName}">author</strong>
-      <span>committed</span>
-      <time th:if="${commit.authorDateIso != null}" th:datetime="${commit.authorDateIso}"
-            th:text="${commit.authorDateIso}">date</time>
-      <span class="ml-auto d-flex flex-items-center flex-wrap gap-2">
-        <span th:if="${commit.parent != null and !commit.parent.isEmpty()}">
-          parent
-          <a class="text-mono" th:each="p : ${commit.parent.split(' ')}"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${p}}"
-             th:text="${#strings.substring(p, 0, 7)}">0000000</a>
+    <!-- Commit message and metadata -->
+    <div class="Box">
+      <div class="Box-body">
+        <h1 class="f3" th:text="${commit.message}">message</h1>
+      </div>
+      <div class="Box-row d-flex flex-items-center flex-wrap gap-2 color-fg-muted">
+        <span th:replace="~{fragments/common :: avatar(${commit.authorName}, 20)}"></span>
+        <strong class="color-fg-default" th:text="${commit.authorName}">author</strong>
+        <span>committed</span>
+        <span th:replace="~{fragments/ui :: timeAgo(${commit.committerDateIso})}"></span>
+        <span class="ml-auto d-flex flex-items-center flex-wrap gap-2">
+          <span th:if="${commit.parent != null and !commit.parent.isEmpty()}">
+            parent
+            <a class="text-mono" th:each="p : ${commit.parent.split(' ')}"
+               th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${p}}"
+               th:text="${#strings.substring(p, 0, 7)}">0000000</a>
+          </span>
+          <span class="text-mono">commit <span th:text="${#strings.substring(sha, 0, 7)}">0000000</span></span>
         </span>
-        <span class="text-mono color-fg-muted">commit <span th:text="${#strings.substring(sha, 0, 7)}">0000000</span></span>
-      </span>
+      </div>
     </div>
-  </div>
 
-  <!-- Diff -->
-  <h2 class="f4 mb-3 d-flex flex-items-center flex-wrap gap-2">
-    <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-    Showing
-    <span class="Counter" th:text="${#lists.size(diffFiles)}">0</span>
-    <span th:text="${#lists.size(diffFiles) == 1} ? 'changed file' : 'changed files'">changed files</span>
-    <span class="f6 text-normal">
-      <span class="color-fg-success text-bold">+<span th:text="${additions}">0</span></span>
-      <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${deletions}">0</span></span>
-    </span>
-  </h2>
-
-  <div th:if="${diffFiles.isEmpty()}" class="blankslate border rounded-2">
-    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-file"></use></svg>
-    <h3 class="blankslate-heading">No changes</h3>
-    <p>This commit does not modify any files.</p>
-  </div>
-
-  <div class="diff-file" th:each="file : ${diffFiles}">
-    <div class="diff-file-header">
-      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-      <strong th:text="${file.path}">path</strong>
-      <span class="ml-auto">
-        <span class="color-fg-success text-bold">+<span th:text="${file.additions}">0</span></span>
-        <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${file.deletions}">0</span></span>
-      </span>
+    <div class="section">
+      <div th:replace="~{fragments/diff :: summary(${#lists.size(diffFiles)},
+                         ${additions}, ${deletions}, 'Showing')}"></div>
     </div>
-    <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
-      Binary file not shown.
-    </p>
-    <table class="diff-table" th:unless="${file.binary}" th:attr="data-language=${file.language}">
-      <tbody>
-        <tr th:each="line : ${file.lines}"
-            th:classappend="${line.isHunk()} ? ' diff-line--hunk'
-                            : (${line.isAddition()} ? ' diff-line--add'
-                            : (${line.isDeletion()} ? ' diff-line--del' : ''))">
-          <th:block th:if="${line.isHunk()}">
-            <td colspan="3" th:text="${line.content}">@@</td>
-          </th:block>
-          <th:block th:unless="${line.isHunk()}">
-            <td class="diff-num" th:text="${line.oldNumber}"></td>
-            <td class="diff-num" th:text="${line.newNumber}"></td>
-            <td class="diff-code" th:text="${line.content}">code</td>
-          </th:block>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div th:replace="~{fragments/diff :: files(${diffFiles})}"></div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

@@ -15,4 +15,8 @@ public interface PullRequestRepository extends CrudRepository<PullRequest, Long>
     List<PullRequest> findByRepositoryIdOrderByNumberDesc(Long repositoryId);
 
     Optional<PullRequest> findByRepositoryIdAndNumber(Long repositoryId, Integer number);
+
+    /** Feeds the tab counter in the repository header band. */
+    @Query("SELECT COUNT(*) FROM pull_requests WHERE repository_id = :repoId AND status = :status")
+    int countByRepositoryIdAndStatus(@Param("repoId") Long repoId, @Param("status") String status);
 }

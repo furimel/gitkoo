@@ -4,32 +4,28 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-md px-3 mt-5">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">Create a new team</h1>
-    <p class="Subhead-description">Teams group people so you can grant repository access once.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('form', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+    <div th:replace="~{fragments/ui :: subhead('Create a new team',
+                       'Teams group people so you can grant repository access once.', null)}"></div>
 
-  <form th:action="@{/teams/new}" method="post">
-    <div class="form-group">
-      <label for="name">Team name</label>
-      <input type="text" id="name" name="name" class="form-control" required
-             placeholder="e.g. platform" style="max-width:340px" autofocus>
-      <p class="note">Used in URLs. Lowercase, no spaces.</p>
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+    <div th:replace="~{fragments/form :: card(null, @{/teams/new}, ~{::fields}, 'Create team')}">
+      <th:block th:fragment="fields">
+        <div th:replace="~{fragments/form :: field('name', 'name', 'Team name', null,
+                           'e.g. platform', 'Used in URLs. Lowercase, no spaces.',
+                           'field-w-md', true, true)}"></div>
+        <div th:replace="~{fragments/form :: field('displayName', 'displayName',
+                           'Display name (optional)', null, 'Platform Team', null,
+                           null, false, false)}"></div>
+        <div th:replace="~{fragments/form :: field('description', 'description',
+                           'Description (optional)', null,
+                           'What this team is responsible for', null, null, false, false)}"></div>
+      </th:block>
     </div>
-    <div class="form-group">
-      <label for="displayName">Display name <span class="color-fg-muted text-normal">(optional)</span></label>
-      <input type="text" id="displayName" name="displayName" class="form-control" placeholder="Platform Team">
-    </div>
-    <div class="form-group">
-      <label for="description">Description <span class="color-fg-muted text-normal">(optional)</span></label>
-      <input type="text" id="description" name="description" class="form-control"
-             placeholder="What this team is responsible for">
-    </div>
-    <button type="submit" class="btn btn-primary">Create team</button>
-  </form>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

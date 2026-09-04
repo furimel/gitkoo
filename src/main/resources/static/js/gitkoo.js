@@ -335,6 +335,29 @@
       }
     });
 
+    /*
+     * SelectMenu filter. Primer ships the markup but no behaviour, and a filter box
+     * that does not filter is worse than no filter box, so this wires it: type in a
+     * .SelectMenu-input and the .SelectMenu-item siblings that do not match are
+     * hidden. Case-insensitive substring match, the same as GitHub's.
+     */
+    document.addEventListener("input", function (event) {
+      var input = event.target;
+      if (!input.classList || !input.classList.contains("SelectMenu-input")) {
+        return;
+      }
+      var modal = input.closest(".SelectMenu-modal");
+      if (!modal) {
+        return;
+      }
+      var needle = input.value.trim().toLowerCase();
+      var items = modal.querySelectorAll(".SelectMenu-item");
+      for (var i = 0; i < items.length; i++) {
+        var text = (items[i].textContent || "").trim().toLowerCase();
+        items[i].hidden = needle !== "" && text.indexOf(needle) === -1;
+      }
+    });
+
     /* Re-apply to markup HTMX swaps in. */
     document.body.addEventListener("htmx:afterSwap", function (event) {
       applyRelativeTimes(event.target);

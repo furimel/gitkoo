@@ -53,12 +53,19 @@ public class RepositoryController {
      */
     private static final int ENTRY_HISTORY_DEPTH = 500;
 
+    private final RepoChrome repoChrome;
+    private final com.furimeo.gitkoo.git.RepoInsightService insightService;
+    private final SocialService socialService;
+
     public RepositoryController(RepositoryService repositoryService, RepositoryRepository repositoryRepository,
                                 UserService userService, GitService gitService,
                                 RepositoryPermissionService permissionService,
                                 com.furimeo.gitkoo.web.MarkdownService markdownService,
                                 com.furimeo.gitkoo.config.GitKooProperties properties,
-                                com.furimeo.gitkoo.activity.ActivityService activityService) {
+                                com.furimeo.gitkoo.activity.ActivityService activityService,
+                                RepoChrome repoChrome,
+                                com.furimeo.gitkoo.git.RepoInsightService insightService,
+                                SocialService socialService) {
         this.repositoryService = repositoryService;
         this.repositoryRepository = repositoryRepository;
         this.userService = userService;
@@ -67,6 +74,9 @@ public class RepositoryController {
         this.markdownService = markdownService;
         this.properties = properties;
         this.activityService = activityService;
+        this.repoChrome = repoChrome;
+        this.insightService = insightService;
+        this.socialService = socialService;
     }
 
     // ── create ──────────────────────────────────────────────────────────
@@ -109,7 +119,7 @@ public class RepositoryController {
                                      @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
-        return browse(model, username, repo, repo.getDefaultBranch(), "");
+        return browse(model, username, repo, repo.getDefaultBranch(), "", principal);
     }
 
     /** Browsing a directory inside the tree: {@code /{user}/{repo}/tree/{ref}/path/to/dir}. */
@@ -122,7 +132,7 @@ public class RepositoryController {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
         String path = pathAfter(request, "/" + username + "/" + name + "/tree/" + ref);
-        return browse(model, username, repo, ref, path);
+        return browse(model, username, repo, ref, path, principal);
     }
 
     /**
@@ -132,8 +142,9 @@ public class RepositoryController {
      * commit count, the latest commit, the directory listing with directories first,
      * clone URLs, and the rendered README.
      */
-    private String browse(Model model, String username, Repository repo, String ref, String path) {
-        addRepoHeader(model, username, repo);
+    private String browse(Model model, String username, Repository repo, String ref, String path,
+                          org.springframework.security.core.userdetails.User principal) {
+        addRepoHeader(model, username, repo, principal);
         Path storagePath = Path.of(repo.getStoragePath());
 
         model.addAttribute("cloneUrl", cloneUrl(username, repo.getName()));
@@ -165,6 +176,11 @@ public class RepositoryController {
                 entries.stream().map(TreeEntry::name).toList(), ENTRY_HISTORY_DEPTH));
 
         addReadme(model, storagePath, ref, path, entries);
+
+        // Cached against the head SHA: both of these walk the whole repository, and
+        // this is the most-visited page in the product.
+        model.addAttribute("insight", insightService.forRef(storagePath, ref));
+        model.addAttribute("topics", socialService.topics(repo.getId()));
         return "repository/code";
     }
 
@@ -265,7 +281,7 @@ public class RepositoryController {
                             Model model) {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
-        addRepoHeader(model, username, repo);
+        addRepoHeader(model, username, repo, principal);
 
         String filePath = pathAfter(request, "/" + username + "/" + name + "/blob/" + ref);
         if (filePath.isEmpty()) {
@@ -348,7 +364,7 @@ public class RepositoryController {
                                      @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
         requireWrite(principal, repo);
-        addRepoHeader(model, username, repo);
+        addRepoHeader(model, username, repo, principal);
         return "repository/settings";
     }
 
@@ -405,9 +421,9 @@ public class RepositoryController {
         return userService.findByUsername(principal.getUsername()).orElse(null);
     }
 
-    private void addRepoHeader(Model model, String username, Repository repo) {
-        model.addAttribute("title", username + "/" + repo.getName());
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+    private void addRepoHeader(Model model, String username, Repository repo,
+                               org.springframework.security.core.userdetails.User principal) {
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
     }
 }

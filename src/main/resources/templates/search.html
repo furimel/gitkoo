@@ -4,45 +4,42 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">Search results</h1>
-    <p class="Subhead-description" th:if="${query != null}">
-      <span th:text="${results != null ? #lists.size(results) : 0}">0</span> repositories matching
-      <strong th:text="${query}">query</strong>
-    </p>
-  </div>
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <form th:action="@{/search}" method="get" class="mb-4">
-    <div class="d-flex gap-2">
-      <input type="text" name="q" class="form-control flex-auto" th:value="${query}"
-             placeholder="Search repositories..." required aria-label="Search query">
-      <button type="submit" class="btn btn-primary">Search</button>
-    </div>
-  </form>
+    <div th:replace="~{fragments/ui :: subhead('Search results',
+                       ${query != null} ? ${#lists.size(results)} + ' repositories matching ' + ${query} : null,
+                       null)}"></div>
 
-  <div th:if="${results != null and !results.isEmpty()}" class="Box">
-    <div class="Box-row d-flex flex-items-start" th:each="r : ${results}">
-      <svg class="octicon color-fg-muted mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true">
-        <use th:href="${r.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
-      </svg>
-      <div class="flex-auto">
-        <a class="f4 text-bold" th:if="${r.owner != null}"
-           th:href="@{'/' + ${r.owner} + '/' + ${r.name}}">
-          <span th:text="${r.owner}">owner</span><span class="color-fg-muted">/</span><span th:text="${r.name}">name</span>
-        </a>
-        <span class="f4 text-bold" th:if="${r.owner == null}" th:text="${r.name}">name</span>
-        <span class="Label Label--secondary ml-1" th:text="${#strings.toLowerCase(r.visibility)}">public</span>
-        <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
+    <form th:action="@{/search}" method="get" class="Box">
+      <div class="Box-body d-flex gap-2">
+        <input type="text" name="q" class="form-control flex-auto" th:value="${query}"
+               placeholder="Search repositories..." required aria-label="Search query">
+        <button type="submit" class="btn btn-primary">Search</button>
       </div>
-    </div>
-  </div>
+    </form>
 
-  <div th:if="${results != null and results.isEmpty() and query != null}" class="blankslate border rounded-2">
-    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-search"></use></svg>
-    <h3 class="blankslate-heading">No results</h3>
-    <p>No repositories match <strong th:text="${query}">query</strong>.</p>
-  </div>
+    <ul class="list" th:if="${results != null and !results.isEmpty()}">
+      <li class="list-item" th:each="r : ${results}">
+        <svg class="octicon color-fg-muted mt-1" width="16" height="16" aria-hidden="true">
+          <use th:href="${r.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
+        </svg>
+        <div class="flex-auto">
+          <a class="f4 text-bold" th:if="${r.owner != null}"
+             th:href="@{'/' + ${r.owner} + '/' + ${r.name}}">
+            <span th:text="${r.owner}">owner</span><span class="color-fg-muted">/</span><span th:text="${r.name}">name</span>
+          </a>
+          <span class="f4 text-bold" th:if="${r.owner == null}" th:text="${r.name}">name</span>
+          <span th:replace="~{fragments/ui :: visibilityLabel(${r.visibility})}"></span>
+          <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
+        </div>
+      </li>
+    </ul>
+
+    <div th:if="${results != null and results.isEmpty() and query != null}"
+         th:replace="~{fragments/ui :: emptyState('search', 'No results',
+                       'No repositories match that search.', null)}"></div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

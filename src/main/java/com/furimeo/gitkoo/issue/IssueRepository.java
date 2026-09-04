@@ -16,4 +16,8 @@ public interface IssueRepository extends CrudRepository<Issue, Long> {
     List<Issue> findByRepositoryIdOrderByNumberDesc(Long repositoryId);
 
     Optional<Issue> findByRepositoryIdAndNumber(Long repositoryId, Integer number);
+
+    /** Feeds the tab counter in the repository header band. */
+    @Query("SELECT COUNT(*) FROM issues WHERE repository_id = :repoId AND status = :status")
+    int countByRepositoryIdAndStatus(@Param("repoId") Long repoId, @Param("status") String status);
 }

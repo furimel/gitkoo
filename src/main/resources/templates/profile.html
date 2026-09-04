@@ -4,70 +4,63 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Layout Layout--sidebarPosition-start Layout--sidebar-wide">
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
+    <div th:replace="~{fragments/layout :: withSidebar('start', ~{::repos}, ~{::identity})}">
 
-    <!-- Identity -->
-    <div class="Layout-sidebar">
-      <span th:replace="~{fragments/common :: avatar(${profile.username}, 260)}"></span>
-      <h1 class="f2 text-normal mt-3 mb-0" th:text="${profile.displayName ?: profile.username}">Name</h1>
-      <p class="f3 color-fg-muted mb-3" th:text="${profile.username}">username</p>
+      <!-- ══ Identity ══════════════════════════════════════════════════ -->
+      <th:block th:fragment="identity">
+        <span th:replace="~{fragments/common :: avatarProfile(${profile.username})}"></span>
 
-      <p th:if="${profile.bio}" th:text="${profile.bio}" class="mb-3">bio</p>
-
-      <a th:if="${isSelf}" th:href="@{/settings/keys}" class="btn btn-block mb-3">Edit profile</a>
-
-      <div class="d-flex flex-column gap-2 color-fg-muted f6 border-top pt-3">
-        <span class="d-flex flex-items-center gap-2">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
-          <span><strong class="color-fg-default" th:text="${repoCount}">0</strong> repositories</span>
-        </span>
-        <span class="d-flex flex-items-center gap-2" th:if="${profile.createdAt != null}">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-clock"></use></svg>
-          <span>Joined <time th:datetime="${profile.createdAt}" th:text="${profile.createdAt}">date</time></span>
-        </span>
-        <span class="d-flex flex-items-center gap-2" th:if="${profile.admin}">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-shield"></use></svg>
-          <span>Site administrator</span>
-        </span>
-      </div>
-    </div>
-
-    <!-- Repositories -->
-    <div class="Layout-main">
-      <div class="Subhead">
-        <h2 class="Subhead-heading f4">Repositories</h2>
-        <span class="Counter" th:text="${repoCount}">0</span>
-      </div>
-
-      <div th:unless="${repos.isEmpty()}" class="Box">
-        <div class="Box-row d-flex flex-items-start" th:each="r : ${repos}">
-          <div class="flex-auto">
-            <div class="d-flex flex-items-center flex-wrap gap-2">
-              <a class="f4 text-bold"
-                 th:href="@{'/' + ${profile.username} + '/' + ${r.name}}" th:text="${r.name}">repo</a>
-              <span class="Label Label--secondary" th:text="${#strings.toLowerCase(r.visibility)}">public</span>
-            </div>
-            <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
-          </div>
-          <span class="color-fg-muted f6 d-flex flex-items-center gap-1 no-wrap ml-3">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
-            <span th:text="${r.defaultBranch}">main</span>
-          </span>
+        <div class="section">
+          <h1 class="f2 text-normal lh-condensed" th:text="${profile.displayName ?: profile.username}">Name</h1>
+          <p class="f3 color-fg-muted" th:text="${profile.username}">username</p>
+          <p th:if="${profile.bio}" th:text="${profile.bio}">bio</p>
+          <a th:if="${isSelf}" th:href="@{/settings/keys}" class="btn btn-block">Edit profile</a>
         </div>
-      </div>
 
-      <div th:if="${repos.isEmpty()}" class="blankslate border rounded-2">
-        <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-repo"></use></svg>
-        <h3 class="blankslate-heading">No repositories to show</h3>
-        <p th:if="${isSelf}">Repositories you create will appear here.</p>
-        <p th:unless="${isSelf}">This user has no repositories you can see.</p>
-        <a th:if="${isSelf}" th:href="@{/new}" class="btn btn-primary">New repository</a>
-      </div>
+        <ul class="d-flex flex-column gap-2 color-fg-muted f6 list-style-none">
+          <li class="d-flex flex-items-center gap-2">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
+            <span><strong class="color-fg-default" th:text="${repoCount}">0</strong> repositories</span>
+          </li>
+          <li class="d-flex flex-items-center gap-2" th:if="${profile.createdAt != null}">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-clock"></use></svg>
+            <span>Joined <time th:datetime="${profile.createdAt}" th:text="${profile.createdAt}">date</time></span>
+          </li>
+          <li class="d-flex flex-items-center gap-2" th:if="${profile.admin}">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-shield"></use></svg>
+            <span>Site administrator</span>
+          </li>
+        </ul>
+      </th:block>
 
-      <div th:replace="~{fragments/common :: pagination(${page}, @{'/@/' + ${profile.username}})}"></div>
+      <!-- ══ Repositories ══════════════════════════════════════════════ -->
+      <th:block th:fragment="repos">
+        <div class="Subhead">
+          <h2 class="Subhead-heading f4">Repositories</h2>
+          <div class="Subhead-actions"><span class="Counter" th:text="${repoCount}">0</span></div>
+        </div>
+
+        <ul class="list" th:unless="${repos.isEmpty()}">
+          <th:block th:each="r : ${repos}">
+            <li th:replace="~{fragments/ui :: repoRow(${profile.username}, ${r})}"></li>
+          </th:block>
+        </ul>
+
+        <div th:if="${repos.isEmpty() and isSelf}"
+             th:replace="~{fragments/ui :: emptyState('repo', 'No repositories to show',
+                           'Repositories you create will appear here.', ~{::createFirst})}">
+          <a th:fragment="createFirst" th:href="@{/new}" class="btn btn-primary">New repository</a>
+        </div>
+        <div th:if="${repos.isEmpty() and !isSelf}"
+             th:replace="~{fragments/ui :: emptyState('repo', 'No repositories to show',
+                           'This user has no repositories you can see.', null)}"></div>
+
+        <div th:replace="~{fragments/common :: pagination(${page}, @{'/@/' + ${profile.username}})}"></div>
+      </th:block>
     </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

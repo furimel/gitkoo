@@ -24,13 +24,17 @@ public class WorkflowController {
 
     private final com.furimeo.gitkoo.repository.RepositoryPermissionService permissionService;
 
+    private final com.furimeo.gitkoo.repository.RepoChrome repoChrome;
+
     public WorkflowController(WorkflowService workflowService, RepositoryService repositoryService,
                              UserService userService,
-                             com.furimeo.gitkoo.repository.RepositoryPermissionService permissionService) {
+                             com.furimeo.gitkoo.repository.RepositoryPermissionService permissionService,
+                                com.furimeo.gitkoo.repository.RepoChrome repoChrome) {
         this.workflowService = workflowService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.permissionService = permissionService;
+            this.repoChrome = repoChrome;
     }
 
     /**
@@ -58,9 +62,8 @@ public class WorkflowController {
         Repository repo = resolveRepo(username, name);
         requireRead(principal, repo);
         List<WorkflowRun> runs = workflowService.listRuns(repo.getId());
-        model.addAttribute("title", "Actions \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         model.addAttribute("runs", runs);
         return "repository/actions";
     }

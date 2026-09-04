@@ -31,9 +31,14 @@
       var el = document.documentElement;
       var pref = "auto";
       try { pref = localStorage.getItem("gitkoo-theme") || "auto"; } catch (e) { /* private mode */ }
-      el.setAttribute("data-color-mode", pref === "auto" ? "auto" : "light");
-      el.setAttribute("data-light-theme", pref === "auto" ? "light" : pref);
-      el.setAttribute("data-dark-theme", "dark");
+      // Primer only defines [data-color-mode=light] against a light-* theme and
+      // [data-color-mode=dark] against a dark-* one. Naming a dark theme under
+      // light mode matches no rule at all, so every token falls back to nothing:
+      // transparent background, black text, an apparently broken page.
+      var isDark = pref.indexOf("dark") === 0;
+      el.setAttribute("data-color-mode", pref === "auto" ? "auto" : (isDark ? "dark" : "light"));
+      el.setAttribute("data-light-theme", isDark ? "light" : (pref === "auto" ? "light" : pref));
+      el.setAttribute("data-dark-theme", pref === "auto" ? "dark" : (isDark ? pref : "dark"));
     })();
   </script>
   <script th:src="@{/assets/js/htmx.min.js}" defer></script>
@@ -54,8 +59,8 @@
     </div>
 
     <div class="Header-item Header-item--full">
-      <form class="Header-search" th:action="@{/search}" method="get" role="search">
-        <input type="search" name="q" th:value="${param.q}" class="form-control input-sm"
+      <form class="width-full" th:action="@{/search}" method="get" role="search">
+        <input type="search" name="q" th:value="${param.q}" class="form-control input-sm Header-input width-full"
                placeholder="Search or jump to..." aria-label="Search repositories" autocomplete="off">
       </form>
     </div>
@@ -136,79 +141,6 @@
   </header>
 </th:block>
 
-<!-- ══ Repository title + tab bar ══════════════════════════════════════ -->
-<div th:fragment="repoHead(owner, repo, tab)" class="repo-head">
-  <div class="container-xl px-3 px-md-4 px-lg-5">
-    <div class="repo-title">
-      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true">
-        <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
-      </svg>
-      <a class="Link--primary" th:href="@{'/@/' + ${owner}}" th:text="${owner}">owner</a>
-      <span class="separator">/</span>
-      <strong><a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" th:text="${repo.name}">repo</a></strong>
-      <span class="Label Label--secondary" th:text="${#strings.toLowerCase(repo.visibility)}">public</span>
-    </div>
-
-    <nav class="UnderlineNav" aria-label="Repository">
-      <ul class="UnderlineNav-body list-style-none">
-        <li class="d-inline-flex">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'code'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name}}"
-             th:aria-current="${tab == 'code'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
-            <span>Code</span>
-          </a>
-        </li>
-        <li class="d-inline-flex">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'issues'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}"
-             th:aria-current="${tab == 'issues'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
-            <span>Issues</span>
-            <span class="Counter" th:if="${openIssueCount != null and openIssueCount > 0}"
-                  th:text="${openIssueCount}">0</span>
-          </a>
-        </li>
-        <li class="d-inline-flex">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'pulls'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}"
-             th:aria-current="${tab == 'pulls'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
-            <span>Pull requests</span>
-            <span class="Counter" th:if="${openPrCount != null and openPrCount > 0}"
-                  th:text="${openPrCount}">0</span>
-          </a>
-        </li>
-        <li class="d-inline-flex">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'actions'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}"
-             th:aria-current="${tab == 'actions'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-play"></use></svg>
-            <span>Actions</span>
-          </a>
-        </li>
-        <li class="d-inline-flex">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'activity'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}"
-             th:aria-current="${tab == 'activity'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
-            <span>Activity</span>
-          </a>
-        </li>
-        <!-- Hidden from anonymous visitors, for whom it only leads to the login page. -->
-        <li class="d-inline-flex" sec:authorize="isAuthenticated()">
-          <a class="UnderlineNav-item" th:classappend="${tab == 'settings'} ? ' selected'"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}"
-             th:aria-current="${tab == 'settings'} ? 'page' : null">
-            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
-            <span>Settings</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</div>
-
 <!-- ══ Avatar ══════════════════════════════════════════════════════════ -->
 <!--
   Served by AvatarController: the account's own image when it has one, otherwise a
@@ -220,6 +152,16 @@
      th:width="${size}" th:height="${size}"
      th:style="'width:' + ${size} + 'px;height:' + ${size} + 'px'"
      loading="lazy" decoding="async">
+
+<!--
+  The profile portrait. Same image, but it fills the sidebar column instead of
+  carrying a fixed pixel size, so it shrinks with the layout rather than forcing
+  a 260px sidebar on a phone.
+-->
+<img th:fragment="avatarProfile(username)" class="avatar avatar--profile"
+     th:src="@{'/avatars/' + ${username}}"
+     th:alt="${username} + ' avatar'"
+     width="260" height="260" decoding="async">
 
 <!-- ══ Pagination ══════════════════════════════════════════════════════ -->
 <!--
@@ -254,7 +196,7 @@
 <th:block th:fragment="footer">
 <div th:replace="~{fragments/icons :: sprite}"></div>
 
-<footer class="container-xl px-3 px-md-4 px-lg-5 pt-4 pb-4 border-top color-fg-muted f6">
+<footer class="footer page page--wide page--flush">
   <div class="d-flex flex-wrap flex-items-center gap-3">
     <svg class="octicon color-fg-subtle" width="20" height="20" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
     <span>GitKoo &mdash; self-hosted Git forge</span>

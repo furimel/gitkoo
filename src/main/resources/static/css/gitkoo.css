@@ -1,19 +1,243 @@
 /*
  * GitKoo supplement to Primer CSS.
  *
- * primer.css (@primer/css 21.5.1, MIT) is the design system and is loaded first.
- * It already provides Header, Layout, Box, btn, State, Label, Counter,
- * UnderlineNav, TimelineItem, avatar, blankslate, Subhead, flash, SelectMenu,
- * details-overlay dropdowns, markdown-body and the whole utility layer.
+ * primer.css (@primer/css 21.5.1, MIT) is the design system and loads first. It
+ * provides Header, Layout, Box, btn, State, Label, Counter, UnderlineNav,
+ * TimelineItem, avatar, blankslate, Subhead, flash, SelectMenu, Progress,
+ * AvatarStack, SideNav, details-overlay dropdowns, markdown-body and the whole
+ * utility layer. Reach for Primer first; only what it genuinely lacks belongs here.
  *
- * This file adds ONLY what Primer does not ship: the code-browser chrome
- * (file tree, blob viewer with line numbers, unified diff) plus a few GitKoo
- * specifics. Everything here is built on Primer's own custom properties so it
- * follows all nine themes automatically - never hardcode a hex value.
+ * Rules for editing this file:
  *
- * Primer token pattern:  var(--fgColor-muted, var(--color-fg-muted))
- * The fallback keeps it working if a theme only defines the older name.
+ *   1. Never hardcode a colour. Use Primer custom properties so all nine themes
+ *      follow: var(--fgColor-muted, var(--color-fg-muted)).
+ *   2. Every Primer utility is declared !important, so a rule here ALWAYS loses to
+ *      a utility class on the same element regardless of specificity. Never put a
+ *      gitkoo component class and a Primer spacing utility on one element.
+ *   3. No CSS nesting, @layer or color-mix(). The build minifies this file with a
+ *      2013 regex-based compressor that mangles them silently - the source looks
+ *      fine and the jar is broken.
+ *
+ * Spacing is a property of the container, never of the block inside it. That single
+ * rule is what keeps the rhythm consistent: a block that cannot set its own outside
+ * margin cannot drift, and there is nothing left to undo with mb-0.
  */
+
+/* == Page shells ======================================================== */
+/*
+ * Owned by fragments/layout.html so no template picks a container of its own.
+ * Four widths, matching what GitHub actually uses, and one top gap for all pages.
+ */
+
+.page {
+  padding-top: var(--stack-gap-spacious, 24px);
+  padding-left: var(--base-size-16);
+  padding-right: var(--base-size-16);
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 768px) {
+  .page { padding-left: var(--base-size-24); padding-right: var(--base-size-24); }
+}
+@media (min-width: 1012px) {
+  .page { padding-left: var(--base-size-32); padding-right: var(--base-size-32); }
+}
+
+.page--wide   { max-width: 1280px; }
+.page--form   { max-width: 768px; }
+.page--narrow { max-width: 768px; }
+.page--auth   { max-width: 544px; padding-top: var(--base-size-40); }
+
+/* Nested inside a band that already provides the top gap, e.g. the repo header. */
+.page--flush  { padding-top: 0; }
+
+/* == Field widths ======================================================= */
+/*
+ * Three named steps replace twenty inline pixel values that were scattered across
+ * the templates with no relationship to each other.
+ */
+
+.field-w-sm { max-width: 240px; }
+.field-w-md { max-width: 340px; }
+.field-w-lg { max-width: 440px; }
+
+/* == Unboxed list ======================================================= */
+/*
+ * A Box is a card: use it only when the group needs a header bar, a footer bar or
+ * its own background. A plain sequence of rows is this instead - hairline dividers,
+ * no outer border, no radius. Primer 21 ships no borderless Box, hence these.
+ */
+
+.list { list-style: none; margin: 0; padding: 0; }
+
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--base-size-8);
+  padding: var(--base-size-16) 0;
+  border-top: 1px solid var(--borderColor-muted, var(--color-border-muted));
+}
+.list-item:first-child { border-top: 0; }
+.list--hover .list-item:hover { background: var(--bgColor-muted, var(--color-canvas-subtle)); }
+
+/* == Section ============================================================ */
+/* A titled region on the page canvas: sidebar panels, About, issue metadata. */
+
+.section {
+  padding-bottom: var(--stack-gap-normal, 16px);
+  margin-bottom: var(--stack-gap-normal, 16px);
+  border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));
+}
+.section:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--base-size-8);
+  font-size: 14px;
+  font-weight: var(--base-text-weight-semibold, 600);
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+
+/* == Small named one-offs =============================================== */
+
+/* The circular status glyph on a merge box. CircleBadge starts at 56px; this is 32. */
+.state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--control-medium-size, 32px);
+  height: var(--control-medium-size, 32px);
+  border-radius: 50%;
+}
+
+.clone-menu { width: 340px; }
+
+.color-swatch { width: 44px; padding: 2px; }
+
+/* Markdown gets more room to breathe than a normal Box body, as on GitHub. */
+.markdown-pane { padding: var(--base-size-40); }
+@media (max-width: 767px) { .markdown-pane { padding: var(--base-size-16); } }
+
+.bullet-list { padding-left: var(--base-size-24); list-style: disc; }
+
+/* == Avatar ============================================================= */
+/*
+ * Primer styles .avatar for inline use: float:left plus a right margin. Every
+ * avatar here sits in a flex row, where the float is inert but the margin is not -
+ * it stacked on top of the parent gap and pushed twelve pages a few pixels out of
+ * true. The parent's gap is the only spacing authority.
+ */
+
+.avatar { float: none; margin-right: 0; }
+
+/* The profile avatar is fluid on GitHub, not a fixed square. */
+.avatar--profile { width: 100%; max-width: 260px; height: auto; }
+
+/* == Gap utilities ====================================================== */
+/* Primer 21 spaces flex rows with margins and ships no gap-*. Inline rows only;
+   vertical rhythm belongs to Stack. */
+
+.gap-1 { gap: var(--base-size-4); }
+.gap-2 { gap: var(--base-size-8); }
+.gap-3 { gap: var(--base-size-16); }
+
+/* == Icons inside buttons =============================================== */
+/*
+ * Primer 21's .btn is inline-block, so an icon aligns on the text baseline and
+ * lands about 1.5px above centre, with a 4px margin stacked on the button's own
+ * spacing. Flex centres it exactly and makes the spacing one value, not two.
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--base-size-8);
+}
+.btn > .octicon { margin-right: 0; }
+
+/* == Icons in inline chips ============================================== */
+/*
+ * Same fix as .btn above, for the other place Primer pairs an icon with text inside
+ * an inline-block: the State pill. Measured 1.5px high before, 0.0px after.
+ */
+
+.State {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--base-size-4);
+}
+.State > .octicon { margin-right: 0; }
+
+/* == Sticky footer ====================================================== */
+/*
+ * On a short page the footer used to sit wherever the content ended, leaving dead
+ * space beneath it. body > * takes width:100% because auto side margins on a flex
+ * item disable the default stretch, which would shrink narrow pages to their
+ * content width.
+ *
+ * The footer must not carry a Primer margin utility: .mt-6 is !important and beat
+ * margin-top:auto, which is why this looked broken the first time.
+ */
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body > * { width: 100%; }
+body > footer { margin-top: auto; }
+
+.footer {
+  padding-top: var(--base-size-16);
+  padding-bottom: var(--base-size-16);
+  border-top: 1px solid var(--borderColor-muted, var(--color-border-muted));
+  font-size: 12px;
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+
+/* == Repository header ================================================== */
+
+.repo-head {
+  padding-top: var(--base-size-16);
+  background: var(--bgColor-muted, var(--color-canvas-subtle));
+  border-bottom: 1px solid var(--borderColor-default, var(--color-border-default));
+}
+.repo-head .UnderlineNav { box-shadow: none; border-bottom: 0; }
+
+.repo-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--base-size-8);
+  font-size: 20px;
+  line-height: 1.25;
+  margin-bottom: var(--base-size-16);
+}
+.repo-title .octicon { margin-right: 0; }
+.repo-title .separator {
+  font-weight: 300;
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+
+/* The octicon sprite is markup, not artwork - it defines symbols and shows none. */
+.icon-sprite { display: none; }
+
+/* == Topic chips ======================================================== */
+/* Primer has no topic component; this is GitHub's, in eight lines. */
+
+.topic-tag {
+  display: inline-block;
+  padding: 0 7px;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--fgColor-accent, var(--color-accent-fg));
+  background: var(--bgColor-accent-muted, var(--color-accent-subtle));
+  border-radius: 2em;
+}
 
 /* == File navigation strip ============================================== */
 
@@ -40,12 +264,12 @@
 }
 
 /* == File tree ========================================================== */
-
 /*
  * Name, last commit, age - the three columns GitHub shows. The commit data comes
  * from a single history walk in GitService.lastCommits, so the extra columns cost
  * one subprocess for the whole listing rather than one per row.
  */
+
 .tree-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
@@ -75,10 +299,8 @@
 }
 .tree-row-age { text-align: right; white-space: nowrap; }
 
-/*
- * Truncate to the grid cell, not to a fixed width. Primer's .css-truncate-target
- * caps at 125px, which cut commit subjects off long before the column ran out.
- */
+/* Truncate to the grid cell. Primer's .css-truncate-target caps at 125px, which
+   cut commit subjects off long before the column ran out. */
 .tree-row-name a,
 .tree-row-commit a,
 .commit-tease-subject {
@@ -90,12 +312,43 @@
 }
 .commit-tease-subject { max-width: 50ch; }
 
-/* Below the fold the commit column is the first thing worth dropping. */
 @media (max-width: 767px) {
   .tree-row { grid-template-columns: minmax(0, 1fr) auto; }
   .tree-row-commit { display: none; }
 }
 
+/* == Language bar legend ================================================ */
+
+.lang-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* == Header and notifications =========================================== */
+
+/* Blue dot on the bell when there is something unread. */
+.unread-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--bgColor-accent-emphasis, var(--color-accent-emphasis));
+  border: 2px solid var(--header-bgColor, #24292f);
+  border-radius: 50%;
+}
+
+/* gitkoo.js reveals whichever icon matches the theme you would switch to, so
+   neither flashes before the script runs. */
+.theme-icon-light,
+.theme-icon-dark { display: none; }
+
+.notification-row--unread {
+  background: var(--bgColor-accent-muted, var(--color-accent-subtle));
+}
 /* == Blob viewer: code with line numbers ================================ */
 
 .blob-wrapper {
@@ -216,75 +469,6 @@
   accent-color: var(--bgColor-accent-emphasis, var(--color-accent-emphasis));
 }
 
-/* == Header search: full width inside the dark bar ====================== */
-
-.Header-search { flex: 1 1 auto; max-width: 340px; }
-.Header-search .form-control {
-  width: 100%;
-  color: var(--header-fgColor-default, #fff);
-  background: transparent;
-  border-color: var(--header-borderColor-divider, rgba(255, 255, 255, .25));
-  box-shadow: none;
-}
-.Header-search .form-control::placeholder {
-  color: var(--header-fgColor-logo, rgba(255, 255, 255, .7));
-}
-.Header-search .form-control:focus {
-  color: var(--fgColor-default, var(--color-fg-default));
-  background: var(--bgColor-default, var(--color-canvas-default));
-  border-color: var(--borderColor-accent-emphasis, var(--color-accent-emphasis));
-}
-
-/* Unread dot on the notification bell. */
-.unread-indicator {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  background: var(--bgColor-accent-emphasis, var(--color-accent-emphasis));
-  border: 2px solid var(--header-bgColor, #24292f);
-  border-radius: 50%;
-}
-
-/* gitkoo.js reveals whichever icon matches the theme you would switch to,
-   so neither flashes before the script runs. */
-.theme-icon-light,
-.theme-icon-dark { display: none; }
-
-/* == Repository header ================================================== */
-
-.repo-head {
-  padding-top: var(--base-size-16);
-  background: var(--bgColor-muted, var(--color-canvas-subtle));
-  border-bottom: 1px solid var(--borderColor-default, var(--color-border-default));
-}
-.repo-head .UnderlineNav { box-shadow: none; border-bottom: 0; }
-
-.repo-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--base-size-8);
-  font-size: 20px;
-  line-height: 1.25;
-  margin-bottom: var(--base-size-16);
-}
-.repo-title .octicon { margin-right: 0; }
-.repo-title .separator {
-  font-weight: 300;
-  color: var(--fgColor-muted, var(--color-fg-muted));
-}
-
-/* == Gap utilities ====================================================== */
-/* Primer 21 spaces flex rows with margin utilities and ships no gap-*.
-   These fill that hole using Primer's own base-size scale. */
-
-.gap-1 { gap: var(--base-size-4); }
-.gap-2 { gap: var(--base-size-8); }
-.gap-3 { gap: var(--base-size-16); }
-.gap-4 { gap: var(--base-size-24); }
-
 /* == Breadcrumb ========================================================= */
 /* The primer.css bundle omits the breadcrumb component, so define it here. */
 
@@ -381,49 +565,3 @@
 }
 
 
-/* == Sticky footer ====================================================== */
-/*
- * On a short page the footer sat wherever the content happened to end, leaving a
- * band of dead space beneath it. Pushing it down with margin-top:auto in a column
- * flex body keeps it at the bottom of the viewport without pinning it there when
- * the page is long.
- *
- * body > * gets width:100% because auto side margins on a flex item disable the
- * default stretch, which would otherwise shrink .container-sm/md pages to the
- * width of their content.
- */
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-body > * { width: 100%; }
-
-/*
- * The footer carried Primer's .mt-6 utility, and every Primer utility is declared
- * !important, so a 40px margin silently beat margin-top:auto and the footer stayed
- * where the content ended. The class is gone from the template; the footer's own
- * top padding and border give it the same breathing room on a long page.
- *
- * Worth remembering generally: a Primer utility class always wins over a rule in
- * this file, whatever the specificity.
- */
-body > footer { margin-top: auto; }
-
-/* == Icons inside buttons =============================================== */
-/*
- * Primer 21's .btn is inline-block, so an icon inside it aligns on the text
- * baseline (.octicon carries vertical-align: text-bottom) and lands about 1.5px
- * above centre. Primer also gives it a 4px right margin for inline use, which
- * stacks on top of whatever spacing the button already has.
- *
- * Laying the button out as flex centres the icon exactly and makes the spacing a
- * single value instead of two that have to be kept in step.
- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--base-size-8);
-}
-.btn > .octicon { margin-right: 0; }

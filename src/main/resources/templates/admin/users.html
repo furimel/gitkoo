@@ -4,28 +4,36 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">Users</h1>
-    <p class="Subhead-description"><span th:text="${totalUsers}">0</span> accounts on this instance.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div class="Box">
-    <div class="Box-row d-flex flex-items-center gap-3" th:each="u : ${users}">
-      <span th:replace="~{fragments/common :: avatar(${u.username}, 32)}"></span>
-      <div class="flex-auto">
-        <a class="text-bold" th:href="@{'/@/' + ${u.username}}"
-           th:text="${u.displayName ?: u.username}">user</a>
-        <div class="color-fg-muted f6" th:text="${u.email}">email</div>
-      </div>
-      <span th:if="${u.admin}" class="Label Label--accent">admin</span>
-      <span class="Label"
-            th:classappend="${u.status == 'ACTIVE'} ? ' Label--success' : ' Label--secondary'"
-            th:text="${#strings.toLowerCase(u.status)}">active</span>
+    <div th:replace="~{fragments/ui :: subhead('Users',
+                       ${totalUsers} + ' accounts on this instance.', null)}"></div>
+
+    <div th:replace="~{fragments/layout :: withSidebar('start', ~{::adminBody}, ~{::adminRail})}">
+      <div th:fragment="adminRail" th:replace="~{fragments/layout :: adminNav('users')}"></div>
+
+      <th:block th:fragment="adminBody">
+
+      <ul class="list">
+        <li class="list-item flex-items-center" th:each="u : ${users}">
+          <span th:replace="~{fragments/common :: avatar(${u.username}, 32)}"></span>
+          <div class="flex-auto">
+            <a class="text-bold" th:href="@{'/@/' + ${u.username}}"
+               th:text="${u.displayName ?: u.username}">user</a>
+            <div class="color-fg-muted f6" th:text="${u.email}">email</div>
+          </div>
+          <span th:if="${u.admin}" class="Label Label--accent">admin</span>
+          <span class="Label"
+                th:classappend="${u.status == 'ACTIVE'} ? ' Label--success' : ' Label--secondary'"
+                th:text="${#strings.toLowerCase(u.status)}">active</span>
+        </li>
+      </ul>
+
+      <div th:replace="~{fragments/common :: pagination(${page}, @{/admin/users})}"></div>
+      </th:block>
     </div>
-  </div>
-
-  <div th:replace="~{fragments/common :: pagination(${page}, @{/admin/users})}"></div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

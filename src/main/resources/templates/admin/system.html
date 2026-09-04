@@ -4,42 +4,51 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">System</h1>
-    <p class="Subhead-description">Runtime configuration of this instance.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div class="Box">
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">GitKoo version</span>
-      <span class="text-mono color-fg-muted" th:text="${gitkooVersion}">0.0.1</span>
+    <div th:replace="~{fragments/ui :: subhead('System',
+                       'Runtime configuration of this instance.', null)}"></div>
+
+    <div th:replace="~{fragments/layout :: withSidebar('start', ~{::adminBody}, ~{::adminRail})}">
+      <div th:fragment="adminRail" th:replace="~{fragments/layout :: adminNav('system')}"></div>
+
+      <th:block th:fragment="adminBody">
+
+      <div class="Box">
+        <div class="Box-header"><h2 class="Box-title">Runtime</h2></div>
+        <div class="Box-row d-flex flex-items-center">
+          <span class="flex-auto text-bold">GitKoo version</span>
+          <span class="text-mono color-fg-muted" th:text="${gitkooVersion}">0.0.1</span>
+        </div>
+        <div class="Box-row d-flex flex-items-center">
+          <span class="flex-auto text-bold">Java version</span>
+          <span class="text-mono color-fg-muted" th:text="${javaVersion}">21</span>
+        </div>
+        <div class="Box-row d-flex flex-items-center">
+          <span class="flex-auto text-bold">Git binary</span>
+          <span class="text-mono color-fg-muted" th:text="${gitBinary}">git</span>
+        </div>
+        <div class="Box-row d-flex flex-items-center">
+          <span class="flex-auto text-bold">Data path</span>
+          <span class="text-mono color-fg-muted" th:text="${dataPath}">./data</span>
+        </div>
+        <div class="Box-row d-flex flex-items-center gap-2">
+          <span class="flex-auto text-bold">CI</span>
+          <span class="Label" th:classappend="${ciEnabled} ? ' Label--success' : ' Label--secondary'"
+                th:text="${ciEnabled} ? 'enabled' : 'disabled'">enabled</span>
+          <span class="color-fg-muted"><span th:text="${ciWorkers}">2</span> workers</span>
+        </div>
+        <div class="Box-row d-flex flex-items-center gap-2">
+          <span class="flex-auto text-bold">SSH</span>
+          <span class="Label" th:classappend="${sshEnabled} ? ' Label--success' : ' Label--secondary'"
+                th:text="${sshEnabled} ? 'enabled' : 'disabled'">enabled</span>
+          <span class="color-fg-muted">port <span th:text="${sshPort}">2222</span></span>
+        </div>
+      </div>
+      </th:block>
     </div>
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">Java version</span>
-      <span class="text-mono color-fg-muted" th:text="${javaVersion}">21</span>
-    </div>
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">Git binary</span>
-      <span class="text-mono color-fg-muted" th:text="${gitBinary}">git</span>
-    </div>
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">Data path</span>
-      <span class="text-mono color-fg-muted" th:text="${dataPath}">./data</span>
-    </div>
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">CI</span>
-      <span class="Label" th:classappend="${ciEnabled} ? ' Label--success' : ' Label--secondary'"
-            th:text="${ciEnabled} ? 'enabled' : 'disabled'">enabled</span>
-      <span class="color-fg-muted ml-2"><span th:text="${ciWorkers}">2</span> workers</span>
-    </div>
-    <div class="Box-row d-flex flex-items-center">
-      <span class="flex-auto text-bold">SSH</span>
-      <span class="Label" th:classappend="${sshEnabled} ? ' Label--success' : ' Label--secondary'"
-            th:text="${sshEnabled} ? 'enabled' : 'disabled'">enabled</span>
-      <span class="color-fg-muted ml-2">port <span th:text="${sshPort}">2222</span></span>
-    </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

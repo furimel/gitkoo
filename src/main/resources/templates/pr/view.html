@@ -3,26 +3,14 @@
 <head th:replace="~{fragments/common :: head(${pr.title} + ' - Pull Request #' + ${pr.number})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <!-- Title, state, and the branch pair -->
-  <div class="border-bottom pb-3 mb-4">
-    <h1 class="f1 text-normal lh-condensed mb-2">
-      <span th:text="${pr.title}">title</span>
-      <span class="color-fg-muted text-light">#<span th:text="${pr.number}">1</span></span>
-    </h1>
-    <div class="d-flex flex-items-center flex-wrap gap-2">
-      <span class="State"
-            th:classappend="${pr.status == 'OPEN'} ? ' State--open'
-                            : (${pr.status == 'MERGED'} ? ' State--merged' : ' State--closed')">
-        <svg class="octicon" width="16" height="16" aria-hidden="true">
-          <use th:href="${pr.status == 'MERGED'} ? '#octicon-git-merge' : '#octicon-git-pull-request'"></use>
-        </svg>
-        <span th:text="${#strings.capitalize(#strings.toLowerCase(pr.status))}">Open</span>
-      </span>
-      <span class="color-fg-muted d-flex flex-items-center flex-wrap gap-1">
+    <div th:replace="~{fragments/conversation :: header(${pr.title}, ${pr.number},
+                       'pr', ${pr.status}, ~{::byline})}">
+      <span th:fragment="byline" class="d-inline-flex flex-items-center flex-wrap gap-1">
         <strong th:text="${author?.displayName ?: author?.username ?: 'Unknown'}">author</strong>
         <span>wants to merge</span>
         <strong th:text="${#lists.size(commits)}">0</strong>
@@ -33,213 +21,164 @@
         <span class="branch-name" th:text="${pr.sourceBranch}">feature</span>
       </span>
     </div>
-  </div>
 
-  <div class="Layout Layout--sidebarPosition-end Layout--sidebar-wide">
-    <div class="Layout-main">
+    <div th:replace="~{fragments/layout :: withSidebar('end', ~{::timeline}, ~{::metaRail})}">
 
-      <!-- Description -->
-      <div class="TimelineItem">
-        <div class="TimelineItem-avatar">
-          <span th:replace="~{fragments/common :: avatar(${author?.username ?: 'ghost'}, 40)}"></span>
-        </div>
-        <div class="TimelineItem-body">
-          <div class="Box">
-            <div class="Box-header d-flex flex-items-center flex-wrap gap-1 color-fg-muted">
-              <strong class="color-fg-default" th:text="${author?.displayName ?: author?.username ?: 'Unknown'}">author</strong>
-              <span>opened this pull request</span>
-              <time th:if="${pr.createdAt != null}" th:datetime="${pr.createdAt}" th:text="${pr.createdAt}">date</time>
-            </div>
-            <div class="Box-body markdown-body" th:utext="${prBodyHtml}"></div>
-          </div>
-        </div>
-      </div>
+      <!-- ══ Conversation ══════════════════════════════════════════════ -->
+      <th:block th:fragment="timeline">
+        <div th:replace="~{fragments/conversation :: comment(${author?.username},
+                           ${author?.displayName}, 'opened this pull request',
+                           ${pr.createdAt}, ${prBodyHtml})}"></div>
 
-      <!-- Reviews -->
-      <div class="TimelineItem" th:each="r,iter : ${reviews}">
-        <div class="TimelineItem-badge"
-             th:classappend="${r.state == 'APPROVE'} ? ' color-bg-success-emphasis color-fg-on-emphasis'
-                             : (${r.state == 'REQUEST_CHANGES'} ? ' color-bg-danger-emphasis color-fg-on-emphasis' : '')">
-          <svg class="octicon" width="16" height="16" aria-hidden="true">
-            <use th:href="${r.state == 'APPROVE'} ? '#octicon-check'
-                          : (${r.state == 'REQUEST_CHANGES'} ? '#octicon-x' : '#octicon-comment')"></use>
-          </svg>
-        </div>
-        <div class="TimelineItem-body">
-          <div class="color-fg-muted mb-2">
-            <strong class="color-fg-default"
-                    th:text="${reviewers[iter.index]?.displayName ?: reviewers[iter.index]?.username ?: 'Unknown'}">reviewer</strong>
-            <span th:if="${r.state == 'APPROVE'}">approved these changes</span>
-            <span th:if="${r.state == 'REQUEST_CHANGES'}">requested changes</span>
-            <span th:if="${r.state == 'COMMENT'}">reviewed</span>
-          </div>
-          <div class="Box" th:if="${r.body != null and !r.body.isEmpty()}">
-            <div class="Box-body markdown-body" th:utext="${markdown.render(r.body)}"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Merge box -->
-      <div class="Box mt-4" th:if="${pr.status == 'OPEN'}" sec:authorize="isAuthenticated()">
-        <!-- Status reflects a real `git merge-tree` check, not an assumption. -->
-        <div class="Box-row d-flex flex-items-center gap-3">
-          <span class="d-flex flex-items-center flex-justify-center circle color-fg-on-emphasis flex-shrink-0"
-                th:classappend="${mergesCleanly} ? ' color-bg-success-emphasis' : ' color-bg-danger-emphasis'"
-                style="width:32px;height:32px">
+        <!-- A review is an event on the rail, with the write-up hanging off it. -->
+        <div class="TimelineItem" th:each="r,iter : ${reviews}">
+          <div class="TimelineItem-badge"
+               th:classappend="${r.state == 'APPROVE'} ? ' color-bg-success-emphasis color-fg-on-emphasis'
+                               : (${r.state == 'REQUEST_CHANGES'} ? ' color-bg-danger-emphasis color-fg-on-emphasis' : '')">
             <svg class="octicon" width="16" height="16" aria-hidden="true">
-              <use th:href="${mergesCleanly} ? '#octicon-git-merge' : '#octicon-alert'"></use>
+              <use th:href="${r.state == 'APPROVE'} ? '#octicon-check'
+                            : (${r.state == 'REQUEST_CHANGES'} ? '#octicon-x' : '#octicon-comment')"></use>
             </svg>
-          </span>
-          <div class="flex-auto">
-            <h3 class="f4 mb-1" th:if="${mergesCleanly}">This branch has no conflicts with the base branch</h3>
-            <p class="color-fg-muted mb-0 f6" th:if="${mergesCleanly}">Merging can be performed automatically.</p>
-            <h3 class="f4 mb-1" th:unless="${mergesCleanly}">This branch has conflicts that must be resolved</h3>
-            <p class="color-fg-muted mb-0 f6" th:unless="${mergesCleanly}">
-              Merge <span class="branch-name" th:text="${pr.targetBranch}">main</span> into
-              <span class="branch-name" th:text="${pr.sourceBranch}">feature</span> and push again.
-            </p>
+          </div>
+          <div class="TimelineItem-body">
+            <div class="color-fg-muted">
+              <strong class="color-fg-default"
+                      th:text="${reviewers[iter.index]?.displayName ?: reviewers[iter.index]?.username ?: 'Unknown'}">reviewer</strong>
+              <span th:if="${r.state == 'APPROVE'}">approved these changes</span>
+              <span th:if="${r.state == 'REQUEST_CHANGES'}">requested changes</span>
+              <span th:if="${r.state == 'COMMENT'}">reviewed</span>
+            </div>
+            <div class="Box mt-2" th:if="${r.body != null and !r.body.isEmpty()}">
+              <div class="Box-body markdown-body" th:utext="${markdown.render(r.body)}"></div>
+            </div>
           </div>
         </div>
-        <div class="Box-footer d-flex gap-2">
-          <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/merge'}"
-                method="post">
-            <button type="submit" class="btn btn-primary" th:disabled="${!mergesCleanly}">
-              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
-              Merge pull request
-            </button>
-          </form>
-          <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/close'}"
-                method="post" data-confirm="Close this pull request without merging?">
-            <button type="submit" class="btn btn-danger">Close pull request</button>
-          </form>
-        </div>
-      </div>
 
-      <div class="Box mt-4" th:if="${pr.status == 'MERGED'}">
-        <div class="Box-row d-flex flex-items-center gap-3">
-          <span class="d-flex flex-items-center flex-justify-center circle color-bg-done-emphasis color-fg-on-emphasis flex-shrink-0"
-                style="width:32px;height:32px">
+        <!--
+          One merge panel with three states, not two mutually exclusive Boxes plus a
+          third for the review form. Closed and merged are terminal, so the panel is
+          the last thing on the rail in those cases.
+        -->
+        <div class="TimelineItem TimelineItem--condensed" th:if="${pr.status == 'MERGED'}">
+          <div class="TimelineItem-badge color-bg-done-emphasis color-fg-on-emphasis">
             <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
-          </span>
-          <div>
-            <h3 class="f4 mb-1">Pull request successfully merged</h3>
-            <p class="color-fg-muted mb-0 f6">
+          </div>
+          <div class="TimelineItem-body">
+            <h3 class="f4">Pull request successfully merged</h3>
+            <p class="color-fg-muted f6">
               Merged as
               <code th:if="${pr.mergeCommitSha != null}"
                     th:text="${#strings.substring(pr.mergeCommitSha, 0, 7)}">0000000</code>
             </p>
           </div>
         </div>
-      </div>
 
-      <!-- Review form -->
-      <div class="Box mt-4" th:if="${pr.status == 'OPEN'}" sec:authorize="isAuthenticated()">
-        <div class="Box-header">
-          <h3 class="Box-title">Submit a review</h3>
-        </div>
-        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/review'}"
-              method="post">
-          <div class="Box-body">
-            <textarea id="body" name="body" class="form-control width-full mb-3" rows="4"
-                      placeholder="Leave a comment (Markdown supported)"></textarea>
-            <div class="form-checkbox mt-0">
-              <label><input type="radio" name="state" value="COMMENT" checked> Comment</label>
-              <p class="note">Submit general feedback without explicit approval.</p>
-            </div>
-            <div class="form-checkbox">
-              <label><input type="radio" name="state" value="APPROVE"> Approve</label>
-              <p class="note">Submit feedback and approve merging these changes.</p>
-            </div>
-            <div class="form-checkbox">
-              <label><input type="radio" name="state" value="REQUEST_CHANGES"> Request changes</label>
-              <p class="note">Submit feedback that must be addressed before merging.</p>
+        <div class="TimelineItem" th:if="${pr.status == 'OPEN'}" sec:authorize="isAuthenticated()">
+          <div class="TimelineItem-badge"
+               th:classappend="${mergesCleanly} ? ' color-bg-success-emphasis color-fg-on-emphasis'
+                                                : ' color-bg-danger-emphasis color-fg-on-emphasis'">
+            <svg class="octicon" width="16" height="16" aria-hidden="true">
+              <use th:href="${mergesCleanly} ? '#octicon-git-merge' : '#octicon-alert'"></use>
+            </svg>
+          </div>
+          <div class="TimelineItem-body">
+            <!-- Status reflects a real `git merge-tree` check, not an assumption. -->
+            <h3 class="f4" th:if="${mergesCleanly}">This branch has no conflicts with the base branch</h3>
+            <p class="color-fg-muted f6" th:if="${mergesCleanly}">Merging can be performed automatically.</p>
+            <h3 class="f4" th:unless="${mergesCleanly}">This branch has conflicts that must be resolved</h3>
+            <p class="color-fg-muted f6" th:unless="${mergesCleanly}">
+              Merge <span class="branch-name" th:text="${pr.targetBranch}">main</span> into
+              <span class="branch-name" th:text="${pr.sourceBranch}">feature</span> and push again.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <form method="post"
+                    th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/merge'}">
+                <button type="submit" class="btn btn-primary" th:disabled="${!mergesCleanly}">
+                  <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
+                  Merge pull request
+                </button>
+              </form>
+              <form method="post" data-confirm="Close this pull request without merging?"
+                    th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/close'}">
+                <button type="submit" class="btn btn-danger">Close pull request</button>
+              </form>
             </div>
           </div>
-          <div class="Box-footer d-flex flex-justify-end">
-            <button type="submit" class="btn btn-primary">Submit review</button>
+        </div>
+
+        <!-- The review form is the last item on the rail, as on GitHub. -->
+        <div class="TimelineItem" th:if="${pr.status == 'OPEN'}" sec:authorize="isAuthenticated()">
+          <div class="TimelineItem-avatar">
+            <span th:replace="~{fragments/common :: avatar(${#authentication.name}, 40)}"></span>
           </div>
-        </form>
-      </div>
-
-      <!-- Files changed -->
-      <h2 class="f4 mt-5 mb-3 d-flex flex-items-center flex-wrap gap-2">
-        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-        Files changed
-        <span class="Counter" th:text="${#lists.size(diffFiles)}">0</span>
-        <span class="f6 text-normal">
-          <span class="color-fg-success text-bold">+<span th:text="${additions}">0</span></span>
-          <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${deletions}">0</span></span>
-        </span>
-      </h2>
-
-      <div th:if="${diffFiles.isEmpty()}" class="blankslate border rounded-2">
-        <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-file"></use></svg>
-        <h3 class="blankslate-heading">No changes</h3>
-        <p>This branch is identical to the base branch.</p>
-      </div>
-
-      <div class="diff-file" th:each="file : ${diffFiles}">
-        <div class="diff-file-header">
-          <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-          <strong th:text="${file.path}">path</strong>
-          <span class="ml-auto">
-            <span class="color-fg-success text-bold">+<span th:text="${file.additions}">0</span></span>
-            <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${file.deletions}">0</span></span>
-          </span>
+          <div class="TimelineItem-body">
+            <form method="post" class="Box"
+                  th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/review'}">
+              <div class="Box-header">
+                <h3 class="Box-title">Submit a review</h3>
+              </div>
+              <div class="Box-body">
+                <textarea id="body" name="body" class="form-control width-full mb-3" rows="4"
+                          placeholder="Leave a comment (Markdown supported)"></textarea>
+                <div class="form-checkbox mt-0">
+                  <label><input type="radio" name="state" value="COMMENT" checked> Comment</label>
+                  <p class="note">Submit general feedback without explicit approval.</p>
+                </div>
+                <div class="form-checkbox">
+                  <label><input type="radio" name="state" value="APPROVE"> Approve</label>
+                  <p class="note">Submit feedback and approve merging these changes.</p>
+                </div>
+                <div class="form-checkbox">
+                  <label><input type="radio" name="state" value="REQUEST_CHANGES"> Request changes</label>
+                  <p class="note">Submit feedback that must be addressed before merging.</p>
+                </div>
+              </div>
+              <div class="Box-footer d-flex flex-justify-end">
+                <button type="submit" class="btn btn-primary">Submit review</button>
+              </div>
+            </form>
+          </div>
         </div>
-        <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
-          Binary file not shown.
-        </p>
-        <table class="diff-table" th:unless="${file.binary}" th:attr="data-language=${file.language}">
-          <tbody>
-            <tr th:each="line : ${file.lines}"
-                th:classappend="${line.isHunk()} ? ' diff-line--hunk'
-                                : (${line.isAddition()} ? ' diff-line--add'
-                                : (${line.isDeletion()} ? ' diff-line--del' : ''))">
-              <th:block th:if="${line.isHunk()}">
-                <td colspan="3" th:text="${line.content}">@@</td>
-              </th:block>
-              <th:block th:unless="${line.isHunk()}">
-                <td class="diff-num" th:text="${line.oldNumber}"></td>
-                <td class="diff-num" th:text="${line.newNumber}"></td>
-                <td class="diff-code" th:text="${line.content}">code</td>
-              </th:block>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+
+        <!-- ══ Files changed ═══════════════════════════════════════════ -->
+        <div class="section">
+          <div th:replace="~{fragments/diff :: summary(${#lists.size(diffFiles)},
+                             ${additions}, ${deletions}, 'Changed')}"></div>
+        </div>
+        <div th:replace="~{fragments/diff :: files(${diffFiles})}"></div>
+      </th:block>
+
+      <!-- ══ Metadata rail ═════════════════════════════════════════════ -->
+      <th:block th:fragment="metaRail">
+        <div class="section">
+          <div class="section-title">Reviewers</div>
+          <div th:if="${reviews.isEmpty()}" class="color-fg-muted f6">No reviews yet</div>
+          <div th:each="r,iter : ${reviews}" class="d-flex flex-items-center gap-2 mb-1">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"
+                 th:classappend="${r.state == 'APPROVE'} ? ' color-fg-success'
+                                 : (${r.state == 'REQUEST_CHANGES'} ? ' color-fg-danger' : ' color-fg-muted')">
+              <use th:href="${r.state == 'APPROVE'} ? '#octicon-check'
+                            : (${r.state == 'REQUEST_CHANGES'} ? '#octicon-x' : '#octicon-comment')"></use>
+            </svg>
+            <span th:text="${reviewers[iter.index]?.username ?: 'unknown'}">reviewer</span>
+          </div>
+        </div>
+
+        <div class="section color-fg-muted f6">
+          <div class="d-flex flex-items-center gap-2 mb-1">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-commit"></use></svg>
+            <span><span th:text="${#lists.size(commits)}">0</span>
+              <span th:text="${#lists.size(commits) == 1} ? 'commit' : 'commits'">commits</span></span>
+          </div>
+          <div class="d-flex flex-items-center gap-2">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
+            <span><span th:text="${#lists.size(diffFiles)}">0</span>
+              <span th:text="${#lists.size(diffFiles) == 1} ? 'file changed' : 'files changed'">files changed</span></span>
+          </div>
+        </div>
+      </th:block>
     </div>
-
-    <!-- Sidebar -->
-    <div class="Layout-sidebar">
-      <div class="border-bottom pb-3 mb-3">
-        <h2 class="f6 text-bold color-fg-muted mb-2">Reviewers</h2>
-        <div th:if="${reviews.isEmpty()}" class="color-fg-muted f6">No reviews yet</div>
-        <div th:each="r,iter : ${reviews}" class="d-flex flex-items-center gap-2 mb-1">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"
-               th:classappend="${r.state == 'APPROVE'} ? ' color-fg-success'
-                               : (${r.state == 'REQUEST_CHANGES'} ? ' color-fg-danger' : ' color-fg-muted')">
-            <use th:href="${r.state == 'APPROVE'} ? '#octicon-check'
-                          : (${r.state == 'REQUEST_CHANGES'} ? '#octicon-x' : '#octicon-comment')"></use>
-          </svg>
-          <span th:text="${reviewers[iter.index]?.username ?: 'unknown'}">reviewer</span>
-        </div>
-      </div>
-
-      <div class="color-fg-muted f6">
-        <div class="d-flex flex-items-center gap-2 mb-1">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-commit"></use></svg>
-          <span><span th:text="${#lists.size(commits)}">0</span>
-            <span th:text="${#lists.size(commits) == 1} ? 'commit' : 'commits'">commits</span></span>
-        </div>
-        <div class="d-flex flex-items-center gap-2">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-          <span><span th:text="${#lists.size(diffFiles)}">0</span>
-            <span th:text="${#lists.size(diffFiles) == 1} ? 'file changed' : 'files changed'">files changed</span></span>
-        </div>
-      </div>
-    </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

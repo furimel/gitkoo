@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Atoms. Small pieces that were written out by hand in a dozen places and drifted
+  apart each time.
+-->
+<body>
+
+<!-- An octicon. Guarantees aria-hidden, which was missing in places. -->
+<svg th:fragment="icon(name, size)" class="octicon" th:width="${size}" th:height="${size}"
+     aria-hidden="true"><use th:href="'#octicon-' + ${name}"></use></svg>
+
+<!-- Page heading with optional description and right-aligned actions. -->
+<div th:fragment="subhead(heading, description, actions)" class="Subhead">
+  <h1 class="Subhead-heading" th:text="${heading}">Heading</h1>
+  <div class="Subhead-actions" th:if="${actions != null}">
+    <th:block th:replace="${actions}"></th:block>
+  </div>
+  <p class="Subhead-description" th:if="${description != null}" th:text="${description}">Description</p>
+</div>
+
+<!--
+  The one empty state. There were three competing conventions before: bordered on
+  the canvas, bare inside a Box, and blankslate-large. A blankslate is never inside
+  a Box - it is itself the container for the empty case.
+-->
+<div th:fragment="emptyState(icon, heading, body, action)" class="blankslate border rounded-2">
+  <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true">
+    <use th:href="'#octicon-' + ${icon}"></use>
+  </svg>
+  <h3 class="blankslate-heading" th:text="${heading}">Nothing here</h3>
+  <p th:if="${body != null}" th:text="${body}">Explanation.</p>
+  <th:block th:replace="${action} ?: ~{}"></th:block>
+</div>
+
+<!-- Open / Closed / Merged pill. `kind` is issue or pr. -->
+<span th:fragment="stateBadge(kind, status)" class="State"
+      th:classappend="${status == 'OPEN'} ? ' State--open'
+                      : (${status == 'MERGED'} ? ' State--merged' : ' State--closed')">
+  <svg class="octicon" width="16" height="16" aria-hidden="true">
+    <use th:href="${kind == 'pr'}
+                  ? (${status == 'MERGED'} ? '#octicon-git-merge' : '#octicon-git-pull-request')
+                  : (${status == 'OPEN'} ? '#octicon-issue-opened' : '#octicon-issue-closed')"></use>
+  </svg>
+  <span th:text="${#strings.capitalize(#strings.toLowerCase(status))}">Open</span>
+</span>
+
+<span th:fragment="visibilityLabel(visibility)" class="Label Label--secondary"
+      th:text="${#strings.toLowerCase(visibility)}">public</span>
+
+<!-- Rewritten to "3 hours ago" by gitkoo.js; the exact stamp moves to the tooltip. -->
+<time th:fragment="timeAgo(at)" th:if="${at != null}" th:datetime="${at}" th:text="${at}">date</time>
+
+<!--
+  One repository row. The dashboard, the profile and search each rendered this
+  three different ways.
+-->
+<li th:fragment="repoRow(ownerName, repo)" class="list-item">
+  <svg class="octicon color-fg-muted mt-1" width="16" height="16" aria-hidden="true">
+    <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
+  </svg>
+  <div class="flex-auto">
+    <div class="d-flex flex-items-center flex-wrap gap-2">
+      <a class="f4 text-bold" th:href="@{'/' + ${ownerName} + '/' + ${repo.name}}"
+         th:text="${repo.name}">repo</a>
+      <span class="Label Label--secondary" th:text="${#strings.toLowerCase(repo.visibility)}">public</span>
+    </div>
+    <p class="color-fg-muted mb-0 mt-1" th:if="${repo.description}" th:text="${repo.description}">description</p>
+  </div>
+  <span class="color-fg-muted f6 d-flex flex-items-center gap-1 no-wrap">
+    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
+    <span th:text="${repo.defaultBranch}">main</span>
+  </span>
+</li>
+
+</body>
+</html>

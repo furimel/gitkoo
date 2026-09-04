@@ -33,14 +33,18 @@ public class CommitController {
 
     private final RepositoryPermissionService permissionService;
 
+    private final com.furimeo.gitkoo.repository.RepoChrome repoChrome;
+
     public CommitController(RepositoryService repositoryService, UserService userService,
                             GitService gitService, com.furimeo.gitkoo.git.DiffParser diffParser,
-                            RepositoryPermissionService permissionService) {
+                            RepositoryPermissionService permissionService,
+                                com.furimeo.gitkoo.repository.RepoChrome repoChrome) {
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.gitService = gitService;
         this.diffParser = diffParser;
         this.permissionService = permissionService;
+            this.repoChrome = repoChrome;
     }
 
     /**
@@ -79,7 +83,7 @@ public class CommitController {
         var files = diffParser.parse(gitService.diff(storagePath, sha));
         int[] totals = diffParser.totals(files);
 
-        addRepoHeader(model, username, repo);
+        addRepoHeader(model, username, repo, principal);
         model.addAttribute("commit", commit);
         model.addAttribute("sha", sha);
         model.addAttribute("diffFiles", files);
@@ -117,9 +121,9 @@ public class CommitController {
                 .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("Repository not found: " + username + "/" + name));
     }
 
-    private void addRepoHeader(Model model, String username, Repository repo) {
-        model.addAttribute("title", "Commit \u00b7 " + username + "/" + repo.getName());
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+    private void addRepoHeader(Model model, String username, Repository repo,
+                               org.springframework.security.core.userdetails.User principal) {
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
     }
 }

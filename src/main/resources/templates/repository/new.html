@@ -4,59 +4,40 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-md px-3 mt-5">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">Create a new repository</h1>
-    <p class="Subhead-description">
-      A repository contains all project files, including the revision history.
-    </p>
-  </div>
+<main th:replace="~{fragments/layout :: page('form', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+    <div th:replace="~{fragments/ui :: subhead('Create a new repository',
+                       'A repository contains all project files, including the revision history.',
+                       null)}"></div>
 
-  <form th:action="@{/new}" method="post">
-    <div class="form-group">
-      <label for="name">Repository name</label>
-      <input type="text" id="name" name="name" class="form-control" th:value="${name}" required
-             placeholder="my-project" autocomplete="off" autofocus style="max-width:340px">
-      <p class="note">Great repository names are short and memorable.</p>
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+    <div th:replace="~{fragments/form :: card(null, @{/new}, ~{::fields}, 'Create repository')}">
+      <th:block th:fragment="fields">
+        <div th:replace="~{fragments/form :: field('name', 'name', 'Repository name', ${name},
+                           'my-project', 'Great repository names are short and memorable.',
+                           'field-w-md', true, true)}"></div>
+        <div th:replace="~{fragments/form :: field('description', 'description',
+                           'Description (optional)', ${description},
+                           'A short description of this repository', null, null, false, false)}"></div>
+
+        <hr>
+
+        <div th:replace="~{fragments/form :: radioOption('vis-public', 'visibility', 'PUBLIC',
+                           true, 'repo', 'Public',
+                           'Anyone on this server can see this repository.')}"></div>
+        <div th:replace="~{fragments/form :: radioOption('vis-private', 'visibility', 'PRIVATE',
+                           false, 'lock', 'Private',
+                           'You choose who can see and commit to this repository.')}"></div>
+
+        <hr>
+
+        <div th:replace="~{fragments/form :: field('defaultBranch', 'defaultBranch',
+                           'Default branch', 'main', null, null, 'field-w-sm', false, false)}"></div>
+      </th:block>
     </div>
-
-    <div class="form-group">
-      <label for="description">Description <span class="color-fg-muted text-normal">(optional)</span></label>
-      <input type="text" id="description" name="description" class="form-control"
-             th:value="${description}" placeholder="A short description of this repository">
-    </div>
-
-    <hr>
-
-    <div class="form-checkbox">
-      <label for="vis-public">
-        <input type="radio" id="vis-public" name="visibility" value="PUBLIC" checked>
-        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
-        Public
-      </label>
-      <p class="note">Anyone on this server can see this repository.</p>
-    </div>
-    <div class="form-checkbox">
-      <label for="vis-private">
-        <input type="radio" id="vis-private" name="visibility" value="PRIVATE">
-        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-lock"></use></svg>
-        Private
-      </label>
-      <p class="note">You choose who can see and commit to this repository.</p>
-    </div>
-
-    <hr>
-
-    <div class="form-group">
-      <label for="defaultBranch">Default branch</label>
-      <input type="text" id="defaultBranch" name="defaultBranch" class="form-control"
-             value="main" style="max-width:200px">
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create repository</button>
-  </form>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

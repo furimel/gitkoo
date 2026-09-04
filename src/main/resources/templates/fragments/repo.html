@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Repository chrome: the pieces that only appear on a repository page.
+-->
+<body>
+
+<!--
+  Branch picker.
+
+  A plain dropdown-menu cannot be searched, which stops being a detail at about
+  twenty branches. SelectMenu gives a filter box, a proper header, and a full-screen
+  sheet on phones - and its modal is already 300px wide, so the three hand-written
+  `width:300px` inline styles are gone with it. gitkoo.js wires the filter.
+-->
+<details th:fragment="branchPicker(owner, repo, ref, branches, hrefPrefix)"
+         class="details-reset details-overlay position-relative">
+  <summary class="btn" role="button" aria-haspopup="menu">
+    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
+    <strong th:text="${ref}">main</strong>
+    <span class="dropdown-caret"></span>
+  </summary>
+  <div class="SelectMenu">
+    <div class="SelectMenu-modal">
+      <header class="SelectMenu-header">
+        <h3 class="SelectMenu-title">Switch branches</h3>
+      </header>
+      <div class="SelectMenu-filter" th:if="${#lists.size(branches) > 8}">
+        <input class="SelectMenu-input form-control" type="text" placeholder="Filter branches"
+               aria-label="Filter branches" autocomplete="off">
+      </div>
+      <div class="SelectMenu-list">
+        <a th:each="b : ${branches}" class="SelectMenu-item" role="menuitem"
+           th:aria-checked="${b == ref} ? 'true' : 'false'"
+           th:href="@{${hrefPrefix} + ${b}}">
+          <svg class="octicon SelectMenu-icon SelectMenu-icon--check" width="16" height="16" aria-hidden="true">
+            <use href="#octicon-check"></use>
+          </svg>
+          <span th:text="${b}">main</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</details>
+
+<!-- The green Code button and its clone URLs. -->
+<details th:fragment="cloneMenu(cloneUrl, sshCloneUrl)"
+         class="details-reset details-overlay position-relative">
+  <summary class="btn btn-primary" role="button" aria-haspopup="menu">
+    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
+    Code
+    <span class="dropdown-caret"></span>
+  </summary>
+  <div class="dropdown-menu dropdown-menu-sw p-3 clone-menu" role="menu">
+    <h4 class="f5 mb-2">Clone</h4>
+    <div class="input-group mb-2">
+      <input type="text" id="clone-https" class="form-control input-monospace input-sm"
+             readonly th:value="${cloneUrl}" aria-label="HTTPS clone URL">
+      <span class="input-group-button">
+        <button type="button" class="btn btn-sm" data-copy-target="#clone-https"
+                aria-label="Copy HTTPS clone URL">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-copy"></use></svg>
+        </button>
+      </span>
+    </div>
+    <div class="input-group" th:if="${sshCloneUrl != null}">
+      <input type="text" id="clone-ssh" class="form-control input-monospace input-sm"
+             readonly th:value="${sshCloneUrl}" aria-label="SSH clone URL">
+      <span class="input-group-button">
+        <button type="button" class="btn btn-sm" data-copy-target="#clone-ssh"
+                aria-label="Copy SSH clone URL">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-copy"></use></svg>
+        </button>
+      </span>
+    </div>
+  </div>
+</details>
+
+<!--
+  Watch / Fork / Star, on the right of the title band.
+
+  Each is a real POST to a real route; a signed-out visitor gets a link to sign in
+  rather than a button that would only bounce them. The counter half of each pair is
+  a link, exactly as GitHub splits them.
+-->
+<div th:fragment="repoActions(owner, repo, starCount, watcherCount, starred, watching)"
+     class="d-flex flex-items-center gap-2">
+
+  <form method="post" sec:authorize="isAuthenticated()"
+        th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/watch'}">
+    <button type="submit" class="btn btn-sm">
+      <svg class="octicon" width="16" height="16" aria-hidden="true">
+        <use th:href="${watching} ? '#octicon-eye-closed' : '#octicon-eye'"></use>
+      </svg>
+      <span th:text="${watching} ? 'Unwatch' : 'Watch'">Watch</span>
+      <span class="Counter" th:text="${watcherCount}">0</span>
+    </button>
+  </form>
+
+  <form method="post" sec:authorize="isAuthenticated()"
+        th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/fork'}">
+    <button type="submit" class="btn btn-sm">
+      <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-repo-forked"></use></svg>
+      Fork
+    </button>
+  </form>
+
+  <form method="post" sec:authorize="isAuthenticated()"
+        th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/star'}">
+    <button type="submit" class="btn btn-sm">
+      <svg class="octicon" width="16" height="16" aria-hidden="true"
+           th:classappend="${starred} ? ' color-fg-attention'">
+        <use th:href="${starred} ? '#octicon-star-fill' : '#octicon-star'"></use>
+      </svg>
+      <span th:text="${starred} ? 'Starred' : 'Star'">Star</span>
+      <span class="Counter" th:text="${starCount}">0</span>
+    </button>
+  </form>
+
+  <a class="btn btn-sm" sec:authorize="!isAuthenticated()" th:href="@{/login}">
+    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-star"></use></svg>
+    Star
+    <span class="Counter" th:text="${starCount}">0</span>
+  </a>
+</div>
+
+<!--
+  The language bar. Widths are data, so they are the one legitimate inline style
+  here; the colours come from Linguist by way of Languages.color.
+-->
+<div th:fragment="languageBar(languages)" th:if="${!languages.isEmpty()}">
+  <span class="Progress mb-2">
+    <span class="Progress-item" th:each="l : ${languages}"
+          th:style="'width:' + ${l.percentLabel()} + ';background-color:' + ${l.color()}"
+          th:title="${l.name()} + ' ' + ${l.percentLabel()}"></span>
+  </span>
+  <ul class="list-style-none d-flex flex-wrap gap-2 f6">
+    <li th:each="l : ${languages}" class="d-flex flex-items-center gap-1">
+      <span class="lang-dot" th:style="'background-color:' + ${l.color()}"></span>
+      <span class="text-bold" th:text="${l.name()}">Java</span>
+      <span class="color-fg-muted" th:text="${l.percentLabel()}">0%</span>
+    </li>
+  </ul>
+</div>
+
+<!--
+  Contributors, as an avatar stack. Primer sizes the stack from the modifier, and
+  hides everything past the third avatar until the stack is hovered.
+-->
+<div th:fragment="contributors(people)" th:if="${!people.isEmpty()}"
+     class="AvatarStack"
+     th:classappend="${#lists.size(people) == 2} ? ' AvatarStack--two'
+                     : (${#lists.size(people) > 2} ? ' AvatarStack--three-plus' : '')">
+  <div class="AvatarStack-body">
+    <img th:each="c : ${people}" class="avatar"
+         th:src="@{'/avatars/' + ${c.name()}}" th:alt="${c.name()}"
+         th:title="${c.name()} + ' - ' + ${c.commits()} + ' commits'"
+         width="20" height="20" loading="lazy" decoding="async">
+  </div>
+</div>
+
+</body>
+</html>

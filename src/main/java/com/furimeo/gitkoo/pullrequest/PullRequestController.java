@@ -33,11 +33,14 @@ public class PullRequestController {
     private final com.furimeo.gitkoo.git.GitService gitService;
     private final com.furimeo.gitkoo.git.DiffParser diffParser;
 
+    private final com.furimeo.gitkoo.repository.RepoChrome repoChrome;
+
     public PullRequestController(PullRequestService prService, RepositoryService repositoryService,
                                 UserService userService, MarkdownService markdownService,
                                 RepositoryPermissionService permissionService,
                                 com.furimeo.gitkoo.git.GitService gitService,
-                                com.furimeo.gitkoo.git.DiffParser diffParser) {
+                                com.furimeo.gitkoo.git.DiffParser diffParser,
+                                com.furimeo.gitkoo.repository.RepoChrome repoChrome) {
         this.prService = prService;
         this.repositoryService = repositoryService;
         this.userService = userService;
@@ -45,6 +48,7 @@ public class PullRequestController {
         this.permissionService = permissionService;
         this.gitService = gitService;
         this.diffParser = diffParser;
+            this.repoChrome = repoChrome;
     }
 
     @GetMapping("/pulls")
@@ -62,9 +66,8 @@ public class PullRequestController {
                 .toList();
         var pageOfPulls = com.furimeo.gitkoo.web.Page.of(matching, page);
 
-        model.addAttribute("title", "Pull Requests \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         model.addAttribute("pulls", pageOfPulls.items());
         model.addAttribute("page", pageOfPulls);
         model.addAttribute("filter", showClosed ? "closed" : "open");
@@ -78,9 +81,11 @@ public class PullRequestController {
                               @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
         requireWrite(principal, repo);
-        model.addAttribute("title", "New pull request \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
+        // Two free-text branch inputs were a typo waiting to happen; the form picks
+        // from what the repository actually has.
+        model.addAttribute("branches", gitService.branches(Path.of(repo.getStoragePath())));
         return "pr/new";
     }
 
@@ -109,9 +114,8 @@ public class PullRequestController {
         }
         var author = userService.findById(pr.getAuthorId());
         List<PullRequestReview> reviews = prService.listReviews(pr.getId());
-        model.addAttribute("title", "PR #" + number + " \u00b7 " + username + "/" + name);
-        model.addAttribute("owner", username);
-        model.addAttribute("repo", repo);
+        repoChrome.apply(model, username, repo,
+                principal == null ? null : principal.getUsername());
         model.addAttribute("pr", pr);
         model.addAttribute("prBodyHtml", markdownService.render(pr.getBody()));
         model.addAttribute("author", author.orElse(null));

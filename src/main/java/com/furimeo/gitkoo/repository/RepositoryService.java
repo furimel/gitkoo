@@ -124,6 +124,69 @@ public class RepositoryService {
     }
 
     /**
+     * Forks a repository into another account: a new metadata row plus a real
+     * {@code git clone --bare} of the source, so the fork has the full history and
+     * can be cloned, pushed to, and opened pull requests from immediately.
+     *
+     * <p>The caller is responsible for checking that the actor may read the source;
+     * this method only enforces the naming rules.
+     *
+     * @param sourceId the repository being forked
+     * @param ownerType owner type of the new fork
+     * @param ownerId owner of the new fork
+     * @return the newly created fork
+     * @throws IllegalArgumentException if the owner already has a repository by that name
+     */
+    public Repository fork(Long sourceId, String ownerType, Long ownerId) {
+        Repository source = repositoryRepository.findById(sourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+
+        if (findByOwnerAndName(ownerType, ownerId, source.getName()).isPresent()) {
+            throw new IllegalArgumentException(
+                    "You already have a repository named '" + source.getName() + "'");
+        }
+
+        Repository fork = new Repository();
+        fork.setOwnerType(ownerType);
+        fork.setOwnerId(ownerId);
+        fork.setName(source.getName());
+        fork.setDescription(source.getDescription());
+        // A fork of a private repository stays private; a fork of a public one is public.
+        fork.setVisibility(source.getVisibility());
+        fork.setDefaultBranch(source.getDefaultBranch());
+        fork.setForkOfId(source.getId());
+        fork.setArchived(false);
+        OffsetDateTime now = OffsetDateTime.now();
+        fork.setCreatedAt(now);
+        fork.setUpdatedAt(now);
+        fork = repositoryRepository.save(fork);
+
+        Path storagePath = resolveStoragePath(fork.getId());
+        fork.setStoragePath(storagePath.toString());
+        repositoryRepository.save(fork);
+
+        try {
+            Files.createDirectories(storagePath.getParent());
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to create fork directory " + storagePath.getParent(), e);
+        }
+
+        // clone --bare runs from the parent, since the target must not exist yet.
+        GitService.GitResult result = gitService.run(storagePath.getParent(),
+                "clone", "--bare", source.getStoragePath(), storagePath.toString());
+        if (!result.success()) {
+            repositoryRepository.delete(fork);
+            throw new IllegalStateException("Failed to clone " + source.getName() + ": " + result.stderr());
+        }
+
+        activityService.record(fork.getId(), ownerId, "REPOSITORY_FORKED",
+                "forked repository " + source.getName());
+        auditService.record(ownerId, "REPOSITORY_FORKED", "repository", fork.getId(), null);
+
+        return fork;
+    }
+
+    /**
      * Returns the absolute filesystem path for a repository's bare Git data:
      * {@code <data>/git/repositories/{id}.git} (DESIGN.md §70).
      */

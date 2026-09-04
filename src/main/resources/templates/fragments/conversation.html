@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Issue and pull request conversation.
+
+  The two pages shared an identical skeleton and drifted anyway. They share these
+  fragments now.
+
+  A comment is a Box, but it hangs off the TimelineItem rail, and that rail is what
+  stops a column of comments reading as a stack of loose rectangles. The pull
+  request page had five free-floating cards for exactly this reason - the merge
+  panel and the review form had escaped the rail.
+-->
+<body>
+
+<!-- Title, number, state pill and the byline underneath. -->
+<div th:fragment="header(title, number, kind, status, byline)" class="section">
+  <h1 class="f1 text-normal lh-condensed">
+    <span th:text="${title}">Title</span>
+    <span class="color-fg-muted text-light">#<span th:text="${number}">1</span></span>
+  </h1>
+  <div class="d-flex flex-items-center flex-wrap gap-2">
+    <span th:replace="~{fragments/ui :: stateBadge(${kind}, ${status})}"></span>
+    <span class="color-fg-muted"><th:block th:replace="${byline}"></th:block></span>
+  </div>
+</div>
+
+<!-- A comment bubble on the rail. -->
+<div th:fragment="comment(username, displayName, verb, at, bodyHtml)" class="TimelineItem">
+  <div class="TimelineItem-avatar">
+    <span th:replace="~{fragments/common :: avatar(${username ?: 'ghost'}, 40)}"></span>
+  </div>
+  <div class="TimelineItem-body">
+    <div class="Box">
+      <div class="Box-header d-flex flex-items-center flex-wrap gap-1 color-fg-muted">
+        <strong class="color-fg-default" th:text="${displayName ?: username ?: 'Unknown'}">author</strong>
+        <span th:text="${verb}">commented</span>
+        <span th:replace="~{fragments/ui :: timeAgo(${at})}"></span>
+      </div>
+      <div class="Box-body markdown-body" th:utext="${bodyHtml}"></div>
+    </div>
+  </div>
+</div>
+
+<!-- A state change on the rail: closed, merged, reviewed. Not a card. -->
+<div th:fragment="event(icon, tone, detail)" class="TimelineItem">
+  <div class="TimelineItem-badge" th:classappend="${tone}">
+    <svg class="octicon" width="16" height="16" aria-hidden="true"><use th:href="'#octicon-' + ${icon}"></use></svg>
+  </div>
+  <div class="TimelineItem-body color-fg-muted"><th:block th:replace="${detail}"></th:block></div>
+</div>
+
+<!--
+  The comment box, as the last item on the rail. On GitHub the form is part of the
+  conversation, not a separate panel below it.
+-->
+<div th:fragment="commentForm(username, action, placeholder, rows, extra, submitLabel)"
+     class="TimelineItem" sec:authorize="isAuthenticated()">
+  <div class="TimelineItem-avatar">
+    <span th:replace="~{fragments/common :: avatar(${username}, 40)}"></span>
+  </div>
+  <div class="TimelineItem-body">
+    <form th:action="${action}" method="post" class="Box">
+      <div class="Box-body">
+        <textarea id="body" name="body" class="form-control width-full" th:rows="${rows}"
+                  th:placeholder="${placeholder}"></textarea>
+        <th:block th:replace="${extra} ?: ~{}"></th:block>
+      </div>
+      <div class="Box-footer d-flex flex-justify-end gap-2">
+        <button type="submit" class="btn btn-primary" th:text="${submitLabel}">Comment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- One metadata block in the right-hand rail. -->
+<div th:fragment="sidebarSection(title, control, content)" class="section">
+  <div class="section-title">
+    <span th:text="${title}">Title</span>
+    <th:block th:replace="${control} ?: ~{}"></th:block>
+  </div>
+  <th:block th:replace="${content}"></th:block>
+</div>
+
+</body>
+</html>

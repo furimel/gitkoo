@@ -3,57 +3,45 @@
 <head th:replace="~{fragments/common :: head('Settings - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'settings')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'settings')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div th:if="${success}" class="flash flash-success" th:text="${success}"></div>
+<main th:replace="~{fragments/layout :: page('form', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div class="Subhead">
-    <h2 class="Subhead-heading">General</h2>
-  </div>
+    <div th:if="${success}" class="flash flash-success" th:text="${success}"></div>
 
-  <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}" method="post" style="max-width:640px">
-    <div class="form-group">
-      <label for="name">Repository name</label>
-      <input type="text" id="name" name="name" class="form-control" th:value="${repo.name}" disabled>
-      <p class="note">The repository name cannot be changed.</p>
+    <div th:replace="~{fragments/ui :: subhead('General', null, null)}"></div>
+
+    <div th:replace="~{fragments/form :: card(null,
+                       @{'/' + ${owner} + '/' + ${repo.name} + '/settings'},
+                       ~{::fields}, 'Save changes')}">
+      <th:block th:fragment="fields">
+        <div class="form-group">
+          <label for="name">Repository name</label>
+          <input type="text" id="name" name="name" class="form-control width-full field-w-md"
+                 th:value="${repo.name}" disabled>
+          <p class="note">The repository name cannot be changed.</p>
+        </div>
+
+        <div th:replace="~{fragments/form :: field('description', 'description',
+                           'Description (optional)', ${repo.description},
+                           'A short description', null, null, false, false)}"></div>
+
+        <div th:replace="~{fragments/form :: field('defaultBranch', 'defaultBranch',
+                           'Default branch', ${repo.defaultBranch}, null,
+                           'The branch shown when someone opens this repository.',
+                           'field-w-sm', false, false)}"></div>
+
+        <h3 class="f5">Visibility</h3>
+        <div th:replace="~{fragments/form :: radioOption('vis-public', 'visibility', 'PUBLIC',
+                           ${repo.visibility == 'PUBLIC'}, 'repo', 'Public',
+                           'Anyone on this server can see this repository.')}"></div>
+        <div th:replace="~{fragments/form :: radioOption('vis-private', 'visibility', 'PRIVATE',
+                           ${repo.visibility == 'PRIVATE'}, 'lock', 'Private',
+                           'You choose who can see and commit to this repository.')}"></div>
+      </th:block>
     </div>
-
-    <div class="form-group">
-      <label for="description">Description <span class="color-fg-muted text-normal">(optional)</span></label>
-      <input type="text" id="description" name="description" class="form-control"
-             th:value="${repo.description}" placeholder="A short description">
-    </div>
-
-    <div class="form-group">
-      <label for="defaultBranch">Default branch</label>
-      <input type="text" id="defaultBranch" name="defaultBranch" class="form-control"
-             th:value="${repo.defaultBranch}" style="max-width:240px">
-      <p class="note">The branch shown when someone opens this repository.</p>
-    </div>
-
-    <h3 class="f5 mt-4 mb-2">Visibility</h3>
-    <div class="form-checkbox">
-      <label for="vis-public">
-        <input type="radio" id="vis-public" name="visibility" value="PUBLIC"
-               th:checked="${repo.visibility == 'PUBLIC'}">
-        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
-        Public
-      </label>
-      <p class="note">Anyone on this server can see this repository.</p>
-    </div>
-    <div class="form-checkbox">
-      <label for="vis-private">
-        <input type="radio" id="vis-private" name="visibility" value="PRIVATE"
-               th:checked="${repo.visibility == 'PRIVATE'}">
-        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-lock"></use></svg>
-        Private
-      </label>
-      <p class="note">You choose who can see and commit to this repository.</p>
-    </div>
-
-    <button type="submit" class="btn btn-primary mt-3">Save changes</button>
-  </form>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

@@ -3,32 +3,29 @@
 <head th:replace="~{fragments/common :: head('Activity - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'activity')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'activity')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h2 class="Subhead-heading">Activity</h2>
-  </div>
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:unless="${activities.isEmpty()}" class="Box">
-    <div class="Box-row d-flex flex-items-center gap-3" th:each="a : ${activities}">
-      <svg class="octicon color-fg-muted flex-shrink-0" width="16" height="16" aria-hidden="true">
-        <use href="#octicon-git-commit"></use>
-      </svg>
-      <span class="flex-auto" th:text="${a.message}">message</span>
-      <time class="color-fg-muted f6 no-wrap" th:if="${a.createdAt != null}"
-            th:datetime="${a.createdAt}" th:text="${a.createdAt}">time</time>
-    </div>
-  </div>
+    <div th:replace="~{fragments/ui :: subhead('Activity', null, null)}"></div>
 
-  <div th:if="${activities.isEmpty()}" class="blankslate border rounded-2">
-    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-history"></use></svg>
-    <h3 class="blankslate-heading">No activity yet</h3>
-    <p>Activity appears when someone pushes, opens issues, or merges pull requests.</p>
-  </div>
+    <ul class="list" th:unless="${activities.isEmpty()}">
+      <li class="list-item flex-items-center" th:each="a : ${activities}">
+        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true">
+          <use href="#octicon-git-commit"></use>
+        </svg>
+        <span class="flex-auto" th:text="${a.message}">message</span>
+        <span class="color-fg-muted f6 no-wrap" th:replace="~{fragments/ui :: timeAgo(${a.createdAt})}"></span>
+      </li>
+    </ul>
 
-  <div th:replace="~{fragments/common :: pagination(${page},
-       @{'/' + ${owner} + '/' + ${repo.name} + '/activity'})}"></div>
+    <div th:if="${activities.isEmpty()}"
+         th:replace="~{fragments/ui :: emptyState('history', 'No activity yet',
+                       'Activity appears when someone pushes, opens issues, or merges pull requests.', null)}"></div>
+
+    <div th:replace="~{fragments/common :: pagination(${page}, @{'/' + ${owner} + '/' + ${repo.name} + '/activity'})}"></div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

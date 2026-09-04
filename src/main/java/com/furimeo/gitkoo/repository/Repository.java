@@ -42,6 +42,9 @@ public class Repository {
     private String defaultBranch;
     private String storagePath;
     private boolean archived;
+    /** The repository this one was forked from, or null for an original. */
+    private Long forkOfId;
+    private String homepage;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -70,6 +73,22 @@ public class Repository {
 
     public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public Long getForkOfId() {
+        return forkOfId;
+    }
+
+    public void setForkOfId(Long forkOfId) {
+        this.forkOfId = forkOfId;
+    }
+
+    public String getHomepage() {
+        return homepage;
+    }
+
+    public void setHomepage(String homepage) {
+        this.homepage = homepage;
     }
 
     public String getName() {

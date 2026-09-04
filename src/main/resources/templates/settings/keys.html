@@ -4,53 +4,47 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h1 class="Subhead-heading">SSH keys</h1>
-    <p class="Subhead-description">Public keys that may push and pull over SSH.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('form', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
-  <div th:if="${success}" class="flash flash-success" th:text="${success}"></div>
+    <div th:replace="~{fragments/ui :: subhead('SSH keys',
+                       'Public keys that may push and pull over SSH.', null)}"></div>
 
-  <div th:if="${keys != null and !keys.isEmpty()}" class="Box mb-4">
-    <div class="Box-row d-flex flex-items-start gap-3" th:each="key : ${keys}">
-      <svg class="octicon color-fg-muted mt-1 flex-shrink-0" width="16" height="16" aria-hidden="true">
-        <use href="#octicon-key"></use>
-      </svg>
-      <div class="flex-auto">
-        <strong th:text="${key.title ?: '(untitled)'}">title</strong>
-        <div class="color-fg-muted f6 text-mono mt-1" th:text="${key.fingerprint}">fingerprint</div>
-        <div class="color-fg-muted f6 mt-1">
-          <span th:if="${key.keyType}" th:text="${key.keyType}">ed25519</span>
-          <span th:if="${key.keyType}" class="mx-1">&middot;</span>
-          Added <time th:datetime="${key.createdAt}" th:text="${key.createdAt}">date</time>
-        </div>
-      </div>
-      <form th:action="@{'/settings/keys/' + ${key.id} + '/delete'}" method="post"
-            data-confirm="Delete this SSH key? Anything using it will lose access.">
-        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-      </form>
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+    <div th:if="${success}" class="flash flash-success" th:text="${success}"></div>
+
+    <div class="section">
+      <ul class="list" th:if="${keys != null and !keys.isEmpty()}">
+        <li class="list-item" th:each="key : ${keys}">
+          <svg class="octicon color-fg-muted mt-1 flex-shrink-0" width="16" height="16" aria-hidden="true">
+            <use href="#octicon-key"></use>
+          </svg>
+          <div class="flex-auto">
+            <strong th:text="${key.title ?: '(untitled)'}">title</strong>
+            <div class="color-fg-muted f6 text-mono mt-1" th:text="${key.fingerprint}">fingerprint</div>
+            <div class="color-fg-muted f6 mt-1">
+              <span th:if="${key.keyType}" th:text="${key.keyType}">ed25519</span>
+              <span th:if="${key.keyType}" class="mx-1">&middot;</span>
+              Added <time th:datetime="${key.createdAt}" th:text="${key.createdAt}">date</time>
+            </div>
+          </div>
+          <form th:action="@{'/settings/keys/' + ${key.id} + '/delete'}" method="post"
+                data-confirm="Delete this SSH key? Anything using it will lose access.">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </li>
+      </ul>
+
+      <div th:if="${keys == null or keys.isEmpty()}"
+           th:replace="~{fragments/ui :: emptyState('key', 'No SSH keys yet',
+                         'Add a public key below to push and pull over SSH.', null)}"></div>
     </div>
-  </div>
 
-  <div th:if="${keys == null or keys.isEmpty()}" class="blankslate border rounded-2 mb-4">
-    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-key"></use></svg>
-    <h3 class="blankslate-heading">No SSH keys yet</h3>
-    <p>Add a public key below to push and pull over SSH.</p>
-  </div>
-
-  <div class="Box">
-    <div class="Box-header">
-      <h2 class="Box-title">Add a new SSH key</h2>
-    </div>
-    <form th:action="@{/settings/keys}" method="post">
-      <div class="Box-body">
-        <div class="form-group">
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" class="form-control" th:value="${title}"
-                 placeholder="My laptop" autocomplete="off" style="max-width:340px">
-        </div>
+    <div th:replace="~{fragments/form :: card('Add a new SSH key', @{/settings/keys},
+                       ~{::newKey}, 'Add SSH key')}">
+      <th:block th:fragment="newKey">
+        <div th:replace="~{fragments/form :: field('title', 'title', 'Title', ${title},
+                           'My laptop', null, 'field-w-md', false, false)}"></div>
         <div class="form-group mb-0">
           <label for="publicKey">Key</label>
           <textarea id="publicKey" name="publicKey" class="form-control width-full text-mono" rows="6"
@@ -58,12 +52,9 @@
                     th:text="${publicKey}"></textarea>
           <p class="note">Paste the contents of your <code>~/.ssh/id_*.pub</code> file.</p>
         </div>
-      </div>
-      <div class="Box-footer">
-        <button type="submit" class="btn btn-primary">Add SSH key</button>
-      </div>
-    </form>
-  </div>
+      </th:block>
+    </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

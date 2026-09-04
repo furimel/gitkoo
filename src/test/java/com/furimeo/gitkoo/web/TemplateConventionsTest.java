@@ -85,7 +85,7 @@ class TemplateConventionsTest {
             if (rel(template).equals(SPRITE)) {
                 continue;
             }
-            Matcher m = literalStyle.matcher(Files.readString(template));
+            Matcher m = literalStyle.matcher(withoutComments(Files.readString(template)));
             while (m.find()) {
                 offenders.add(rel(template) + ": style=\"" + m.group(1) + "\"");
             }
@@ -93,7 +93,18 @@ class TemplateConventionsTest {
         assertThat(offenders)
                 .as("literal style attributes (budget only ever falls):\n%s",
                         String.join("\n", offenders))
-                .hasSizeLessThanOrEqualTo(17);
+                .isEmpty();
+    }
+
+    /**
+     * Strips HTML comments before scanning.
+     *
+     * <p>Every one of these rules is documented in a comment beside the markup it
+     * governs, and those comments necessarily name the thing being banned. Counting
+     * them would make the explanation a violation of itself.
+     */
+    private static String withoutComments(String html) {
+        return html.replaceAll("(?s)<!--.*?-->", "");
     }
 
     // ── Rule 3: containers live in one place (ratchet) ────────────────────
@@ -108,21 +119,27 @@ class TemplateConventionsTest {
         Pattern container = Pattern.compile("\\bcontainer-(sm|md|lg|xl)\\b");
 
         for (Path template : templates()) {
-            Matcher m = container.matcher(Files.readString(template));
+            Matcher m = container.matcher(withoutComments(Files.readString(template)));
             while (m.find()) {
                 offenders.add(rel(template) + ": " + m.group());
             }
         }
         assertThat(offenders)
-                .as("pages naming their own container (budget only ever falls)")
-                .hasSizeLessThanOrEqualTo(30);
+                .as("pages naming their own container (budget only ever falls):\n%s",
+                        String.join("\n", offenders))
+                .isEmpty();
     }
 
     // ── Rule 4: no stacked cards (ratchet) ────────────────────────────────
 
     /**
-     * Two sibling cards is a smell and three is a bug: the pull request page stacks
-     * five, which reads as a ladder of identical rectangles rather than a page.
+     * Three sibling cards is a bug. The pull request page stacked five, which read as
+     * a ladder of identical rectangles rather than as a page.
+     *
+     * <p>Two is allowed, because two is what GitHub itself draws in the two places
+     * that survive here: the sign-in form above its "create an account" callout, and
+     * the file tree above the README. Banning those would be the rule overruling the
+     * design it exists to protect.
      */
     @Test
     void siblingBoxesDoNotIncrease() throws IOException {
@@ -134,7 +151,7 @@ class TemplateConventionsTest {
                 int boxes = parent.children().stream()
                         .filter(child -> child.hasClass("Box"))
                         .toList().size();
-                if (boxes > 1) {
+                if (boxes > 2) {
                     offenders.add(rel(template) + ": " + boxes + " sibling Box elements under <"
                             + parent.tagName() + ">");
                 }
@@ -143,7 +160,7 @@ class TemplateConventionsTest {
         assertThat(offenders)
                 .as("stacked sibling cards (budget only ever falls):\n%s",
                         String.join("\n", offenders))
-                .hasSizeLessThanOrEqualTo(7);
+                .isEmpty();
     }
 
     // ── Rule 5: icons are hidden from assistive technology (absolute) ─────

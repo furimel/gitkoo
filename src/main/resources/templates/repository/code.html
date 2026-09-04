@@ -3,86 +3,49 @@
 <head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'code')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'code')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Layout Layout--sidebarPosition-end Layout--sidebar-wide">
-    <div class="Layout-main">
+<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
+  <th:block th:fragment="content">
 
-      <!-- Branch picker, commit count, clone -->
-      <div class="file-navigation" th:unless="${empty}">
-        <details class="details-overlay details-reset position-relative">
-          <summary class="btn" role="button">
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+    <div th:replace="~{fragments/layout :: withSidebar('end', ~{::tree}, ~{::about})}">
+
+      <!-- ══ Tree ══════════════════════════════════════════════════════ -->
+      <th:block th:fragment="tree">
+
+        <div class="file-navigation" th:unless="${empty}">
+          <div th:replace="~{fragments/repo :: branchPicker(${owner}, ${repo}, ${ref}, ${branches},
+                             '/' + ${owner} + '/' + ${repo.name} + '/tree/')}"></div>
+
+          <a class="btn-link color-fg-muted d-flex flex-items-center gap-1"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}">
             <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
-            <strong th:text="${ref}">main</strong>
-            <span class="dropdown-caret"></span>
-          </summary>
-          <div class="dropdown-menu dropdown-menu-se" role="menu" style="width:300px">
-            <div class="dropdown-header">Switch branches</div>
-            <div class="dropdown-divider"></div>
-            <a th:each="b : ${branches}" class="dropdown-item d-flex flex-items-center gap-2" role="menuitem"
-               th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${b}}">
-              <svg class="octicon" width="16" height="16" aria-hidden="true"
-                   th:style="${b == ref} ? '' : 'visibility:hidden'"><use href="#octicon-check"></use></svg>
-              <span th:text="${b}">main</span>
-            </a>
-          </div>
-        </details>
-
-        <a class="btn-link color-fg-muted d-flex flex-items-center gap-1 ml-2"
-           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}">
-          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
-          <strong th:text="${#lists.size(branches)}">1</strong>
-          <span th:text="${#lists.size(branches) == 1} ? 'Branch' : 'Branches'">Branches</span>
-        </a>
-
-        <div class="ml-auto d-flex gap-2">
-          <a class="btn" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
-            <strong th:text="${totalCommits}">0</strong>
-            <span class="color-fg-muted"
-                  th:text="${totalCommits == 1} ? 'commit' : 'commits'">commits</span>
+            <strong th:text="${#lists.size(branches)}">1</strong>
+            <span th:text="${#lists.size(branches) == 1} ? 'Branch' : 'Branches'">Branches</span>
           </a>
-          <details class="details-overlay details-reset position-relative">
-            <summary class="btn btn-primary" role="button">
-              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
-              Code
-              <span class="dropdown-caret"></span>
-            </summary>
-            <div class="dropdown-menu dropdown-menu-sw p-3" role="menu" style="width:340px">
-              <h4 class="f5 mb-2">Clone</h4>
-              <div class="input-group mb-2">
-                <input type="text" id="clone-https" class="form-control input-monospace input-sm"
-                       readonly th:value="${cloneUrl}" aria-label="HTTPS clone URL">
-                <span class="input-group-button">
-                  <button type="button" class="btn btn-sm" data-copy-target="#clone-https"
-                          aria-label="Copy HTTPS clone URL">
-                    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-copy"></use></svg>
-                  </button>
-                </span>
-              </div>
-              <div class="input-group" th:if="${sshCloneUrl != null}">
-                <input type="text" id="clone-ssh" class="form-control input-monospace input-sm"
-                       readonly th:value="${sshCloneUrl}" aria-label="SSH clone URL">
-                <span class="input-group-button">
-                  <button type="button" class="btn btn-sm" data-copy-target="#clone-ssh"
-                          aria-label="Copy SSH clone URL">
-                    <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-copy"></use></svg>
-                  </button>
-                </span>
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
 
-      <!-- Empty repository -->
-      <div th:if="${empty}" class="Box">
-        <div class="blankslate">
+          <div class="ml-auto d-flex gap-2">
+            <a class="btn" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}">
+              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
+              <strong th:text="${totalCommits}">0</strong>
+              <span class="color-fg-muted"
+                    th:text="${totalCommits == 1} ? 'commit' : 'commits'">commits</span>
+            </a>
+            <div th:replace="~{fragments/repo :: cloneMenu(${cloneUrl}, ${sshCloneUrl})}"></div>
+          </div>
+        </div>
+
+        <!--
+          An empty repository is the empty state - it does not go inside a Box, and
+          the clone URL is the one thing the visitor actually needs.
+        -->
+        <div th:if="${empty}" class="blankslate border rounded-2">
           <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-repo"></use></svg>
           <h3 class="blankslate-heading">This repository is empty</h3>
           <p>Push your first commit to get started.</p>
-          <div class="input-group mx-auto mt-3" style="max-width:420px">
+          <div class="input-group mx-auto field-w-lg">
             <input type="text" id="clone-empty" class="form-control input-monospace input-sm"
                    readonly th:value="${cloneUrl}" aria-label="Clone URL">
             <span class="input-group-button">
@@ -92,121 +55,148 @@
             </span>
           </div>
         </div>
-      </div>
 
-      <!-- File tree -->
-      <th:block th:unless="${empty}">
-        <div class="Box mb-3">
-          <div class="commit-tease" th:if="${latestCommit != null}">
-            <span th:replace="~{fragments/common :: avatar(${latestCommit.authorName}, 20)}"></span>
-            <strong th:text="${latestCommit.authorName}">author</strong>
-            <a class="Link--secondary commit-tease-subject"
-               th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${latestCommit.sha}}"
-               th:text="${latestCommit.subject}">subject</a>
-            <span class="ml-auto d-flex flex-items-center gap-2 color-fg-muted no-wrap">
-              <a class="text-mono Link--secondary"
+        <th:block th:unless="${empty}">
+          <div class="Box">
+            <div class="commit-tease" th:if="${latestCommit != null}">
+              <span th:replace="~{fragments/common :: avatar(${latestCommit.authorName}, 20)}"></span>
+              <strong th:text="${latestCommit.authorName}">author</strong>
+              <a class="Link--secondary commit-tease-subject"
                  th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${latestCommit.sha}}"
-                 th:text="${#strings.substring(latestCommit.sha, 0, 7)}">0000000</a>
-              <time th:if="${latestCommit.committerDateIso != null}"
-                    th:datetime="${latestCommit.committerDateIso}"
-                    th:text="${latestCommit.committerDateIso}">date</time>
-            </span>
+                 th:text="${latestCommit.subject}">subject</a>
+              <span class="ml-auto d-flex flex-items-center gap-2 color-fg-muted no-wrap">
+                <a class="text-mono Link--secondary"
+                   th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${latestCommit.sha}}"
+                   th:text="${#strings.substring(latestCommit.sha, 0, 7)}">0000000</a>
+                <span th:replace="~{fragments/ui :: timeAgo(${latestCommit.committerDateIso})}"></span>
+              </span>
+            </div>
+
+            <!--
+              ".." row when browsing inside a directory. The href is built with th:with
+              first: a trailing (...) inside @{...} is parsed as a URL parameter list,
+              not as grouping, so inlining the conditional there fails at render time.
+            -->
+            <div class="tree-row" th:if="${path != null and !path.isEmpty()}"
+                 th:with="parentHref=${'/' + owner + '/' + repo.name + '/tree/' + ref
+                                       + (parentPath.isEmpty() ? '' : '/' + parentPath)}">
+              <div class="tree-row-name">
+                <svg class="octicon tree-row-icon--dir" width="16" height="16" aria-hidden="true">
+                  <use href="#octicon-file-directory-fill"></use>
+                </svg>
+                <a th:href="@{${parentHref}}">..</a>
+              </div>
+              <div class="tree-row-commit"></div>
+              <div class="tree-row-age"></div>
+            </div>
+
+            <!-- entryCommits comes from a single history walk, not a git log per row. -->
+            <div class="tree-row" th:each="entry : ${entries}"
+                 th:with="entryCommit=${entryCommits.get(entry.name)}">
+              <div class="tree-row-name">
+                <svg class="octicon" width="16" height="16" aria-hidden="true"
+                     th:classappend="${entry.directory} ? ' tree-row-icon--dir' : ' tree-row-icon--file'">
+                  <use th:href="${entry.directory} ? '#octicon-file-directory-fill' : '#octicon-file'"></use>
+                </svg>
+                <a class="Link--primary" th:text="${entry.name}"
+                   th:href="@{'/' + ${owner} + '/' + ${repo.name}
+                             + (${entry.directory} ? '/tree/' : '/blob/') + ${ref} + '/'
+                             + (${path != null and !path.isEmpty()} ? ${path} + '/' : '') + ${entry.name}}">name</a>
+              </div>
+              <div class="tree-row-commit">
+                <a th:if="${entryCommit != null}" class="Link--secondary"
+                   th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${entryCommit.sha}}"
+                   th:title="${entryCommit.subject}" th:text="${entryCommit.subject}">subject</a>
+              </div>
+              <div class="tree-row-age">
+                <span th:if="${entryCommit != null}"
+                      th:replace="~{fragments/ui :: timeAgo(${entryCommit.committerDateIso})}"></span>
+              </div>
+            </div>
           </div>
 
-          <!--
-            ".." row when browsing inside a directory. The href is built with th:with
-            first: a trailing (...) inside @{...} is parsed as a URL parameter list,
-            not as grouping, so inlining the conditional there fails at render time.
-          -->
-          <div class="tree-row" th:if="${path != null and !path.isEmpty()}"
-               th:with="parentHref=${'/' + owner + '/' + repo.name + '/tree/' + ref
-                                     + (parentPath.isEmpty() ? '' : '/' + parentPath)}">
-            <div class="tree-row-name">
-              <svg class="octicon tree-row-icon--dir" width="16" height="16" aria-hidden="true">
-                <use href="#octicon-file-directory-fill"></use>
-              </svg>
-              <a th:href="@{${parentHref}}">..</a>
+          <!-- README, rendered like GitHub's -->
+          <div class="Box" id="readme" th:if="${readmeHtml != null}">
+            <div class="Box-header d-flex flex-items-center gap-2">
+              <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-book"></use></svg>
+              <h2 class="Box-title f5" th:text="${readmeName}">README.md</h2>
             </div>
-            <div class="tree-row-commit"></div>
-            <div class="tree-row-age"></div>
+            <article class="Box-body markdown-body markdown-pane" th:utext="${readmeHtml}"></article>
+          </div>
+        </th:block>
+      </th:block>
+
+      <!-- ══ About ═════════════════════════════════════════════════════ -->
+      <th:block th:fragment="about">
+        <div class="section">
+          <div class="section-title">
+            <span>About</span>
+            <a sec:authorize="isAuthenticated()" class="btn-octicon" aria-label="Edit repository details"
+               th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}">
+              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
+            </a>
           </div>
 
-          <!-- entryCommits comes from a single history walk, not a git log per row. -->
-          <div class="tree-row" th:each="entry : ${entries}"
-               th:with="entryCommit=${entryCommits.get(entry.name)}">
-            <div class="tree-row-name">
-              <svg class="octicon" width="16" height="16" aria-hidden="true"
-                   th:classappend="${entry.directory} ? ' tree-row-icon--dir' : ' tree-row-icon--file'">
-                <use th:href="${entry.directory} ? '#octicon-file-directory-fill' : '#octicon-file'"></use>
-              </svg>
-              <a class="Link--primary" th:text="${entry.name}"
-                 th:href="@{'/' + ${owner} + '/' + ${repo.name}
-                           + (${entry.directory} ? '/tree/' : '/blob/') + ${ref} + '/'
-                           + (${path != null and !path.isEmpty()} ? ${path} + '/' : '') + ${entry.name}}">name</a>
-            </div>
-            <div class="tree-row-commit">
-              <a th:if="${entryCommit != null}" class="Link--secondary"
-                 th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${entryCommit.sha}}"
-                 th:title="${entryCommit.subject}" th:text="${entryCommit.subject}">subject</a>
-            </div>
-            <div class="tree-row-age">
-              <time th:if="${entryCommit != null}"
-                    th:datetime="${entryCommit.committerDateIso}"
-                    th:text="${entryCommit.committerDateIso}">date</time>
-            </div>
+          <p th:if="${repo.description}" th:text="${repo.description}">description</p>
+          <p th:unless="${repo.description}" class="color-fg-muted">
+            <em>No description provided.</em>
+          </p>
+
+          <div class="d-flex flex-wrap gap-1 mb-2" th:if="${topics != null and !topics.isEmpty()}">
+            <span th:each="t : ${topics}" class="topic-tag" th:text="${t}">topic</span>
           </div>
+
+          <ul class="list-style-none d-flex flex-column gap-2 color-fg-muted">
+            <li class="d-flex flex-items-center gap-2" th:if="${readmeName != null}">
+              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-book"></use></svg>
+              <a class="Link--secondary" href="#readme" th:text="${readmeName}">README</a>
+            </li>
+            <li class="d-flex flex-items-center gap-2" th:if="${insight != null and insight.license() != null}">
+              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-law"></use></svg>
+              <span th:text="${insight.license()} + ' license'">MIT license</span>
+            </li>
+            <li class="d-flex flex-items-center gap-2">
+              <svg class="octicon" width="16" height="16" aria-hidden="true">
+                <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
+              </svg>
+              <span th:text="${#strings.capitalize(#strings.toLowerCase(repo.visibility))}">Public</span>
+            </li>
+            <li class="d-flex flex-items-center gap-2" th:if="${insight != null and insight.sizeBytes() > 0}">
+              <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-database"></use></svg>
+              <span th:text="${insight.sizeLabel()}">0 B</span>
+            </li>
+          </ul>
         </div>
 
-        <!-- README, rendered like GitHub's -->
-        <div class="Box" id="readme" th:if="${readmeHtml != null}">
-          <div class="Box-header d-flex flex-items-center gap-2">
-            <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-book"></use></svg>
-            <h2 class="Box-title f5" th:text="${readmeName}">README.md</h2>
+        <div class="section" th:if="${insight != null and !insight.contributors().isEmpty()}">
+          <div class="section-title">
+            <span>Contributors</span>
+            <span class="Counter" th:text="${#lists.size(insight.contributors())}">0</span>
           </div>
-          <article class="Box-body markdown-body p-5" th:utext="${readmeHtml}"></article>
+          <div th:replace="~{fragments/repo :: contributors(${insight.contributors()})}"></div>
+        </div>
+
+        <div class="section" th:if="${insight != null and !insight.tags().isEmpty()}">
+          <div class="section-title">
+            <span>Tags</span>
+            <span class="Counter" th:text="${#lists.size(insight.tags())}">0</span>
+          </div>
+          <ul class="list-style-none d-flex flex-column gap-1">
+            <li th:each="t : ${insight.tags()}" class="d-flex flex-items-center gap-2">
+              <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-tag"></use></svg>
+              <a class="Link--secondary" th:text="${t.name()}"
+                 th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${t.name()}}">v1.0.0</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="section" th:if="${insight != null and !insight.languages().isEmpty()}">
+          <div class="section-title">Languages</div>
+          <div th:replace="~{fragments/repo :: languageBar(${insight.languages()})}"></div>
         </div>
       </th:block>
     </div>
-
-    <!-- Sidebar -->
-    <div class="Layout-sidebar">
-      <div class="border-bottom pb-3 mb-3">
-        <h2 class="f5 mb-2">About</h2>
-        <p th:if="${repo.description}" th:text="${repo.description}" class="f4 mb-3">description</p>
-        <p th:unless="${repo.description}" class="color-fg-muted mb-3">
-          <em>No description provided.</em>
-        </p>
-        <div class="d-flex flex-column gap-2 color-fg-muted">
-          <span class="d-flex flex-items-center gap-2" th:if="${readmeName != null}">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-book"></use></svg>
-            <a class="Link--secondary" href="#readme" th:text="${readmeName}">README</a>
-          </span>
-          <span class="d-flex flex-items-center gap-2">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
-            <span>Default branch <code th:text="${repo.defaultBranch}">main</code></span>
-          </span>
-          <span class="d-flex flex-items-center gap-2">
-            <svg class="octicon" width="16" height="16" aria-hidden="true">
-              <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
-            </svg>
-            <span th:text="${#strings.capitalize(#strings.toLowerCase(repo.visibility))}">Public</span>
-          </span>
-        </div>
-      </div>
-
-      <div th:unless="${empty}">
-        <h2 class="f5 mb-2">
-          Branches
-          <span class="Counter" th:text="${#lists.size(branches)}">1</span>
-        </h2>
-        <div class="d-flex flex-wrap gap-1">
-          <a th:each="b : ${branches}" class="branch-name"
-             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${b}}"
-             th:text="${b}">main</a>
-        </div>
-      </div>
-    </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

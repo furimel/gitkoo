@@ -351,6 +351,207 @@ public class GitService {
         }
     }
 
+    // ── tags ────────────────────────────────────────────────────────────
+
+    /** Tags, newest first. */
+    public List<TagInfo> tags(Path storagePath, int limit) {
+        GitResult result = run(storagePath, "for-each-ref",
+                "--sort=-creatordate",
+                "--count=" + limit,
+                // Same unit separator as log(): a control character cannot
+                // appear in a ref name or a commit SHA.
+                "--format=%(refname:short)%1f%(objectname)%1f%(creatordate:iso-strict)",
+                "refs/tags");
+        if (!result.success()) {
+            return List.of();
+        }
+        List<TagInfo> tags = new ArrayList<>();
+        for (String line : result.stdout().lines().toList()) {
+            if (line.isBlank()) {
+                continue;
+            }
+            String[] parts = line.split("\u001F", -1);
+            if (parts.length == 3) {
+                tags.add(new TagInfo(parts[0], parts[1], parts[2]));
+            }
+        }
+        return tags;
+    }
+
+    // ── contributors ────────────────────────────────────────────────────
+
+    /**
+     * Authors by commit count, most prolific first.
+     *
+     * <p>{@code git shortlog} reads from stdin when it is not given a ref, and this
+     * process has no stdin to give it, so it would hang forever. The ref is therefore
+     * mandatory, and an unresolvable one returns empty without running the command.
+     */
+    public List<Contributor> contributors(Path storagePath, String ref, int limit) {
+        if (ref == null || ref.isBlank() || resolveRef(storagePath, ref).isEmpty()) {
+            return List.of();
+        }
+        GitResult result = run(storagePath, "shortlog", "-sne", "--no-merges", ref);
+        if (!result.success()) {
+            return List.of();
+        }
+        List<Contributor> out = new ArrayList<>();
+        for (String line : result.stdout().lines().toList()) {
+            // "    42\tAda Lovelace <ada@example.com>"
+            String trimmed = line.strip();
+            int tab = trimmed.indexOf('\t');
+            if (tab < 0) {
+                continue;
+            }
+            int count;
+            try {
+                count = Integer.parseInt(trimmed.substring(0, tab).strip());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            String rest = trimmed.substring(tab + 1).strip();
+            String name = rest;
+            String email = "";
+            int lt = rest.lastIndexOf('<');
+            int gt = rest.lastIndexOf('>');
+            if (lt > 0 && gt > lt) {
+                name = rest.substring(0, lt).strip();
+                email = rest.substring(lt + 1, gt);
+            }
+            out.add(new Contributor(name, email, count));
+            if (out.size() >= limit) {
+                break;
+            }
+        }
+        return out;
+    }
+
+    // ── size and language breakdown ─────────────────────────────────────
+
+    /**
+     * On-disk size of the object database, in bytes.
+     *
+     * <p>Uses {@code -v} rather than {@code -vH}: the human-readable form returns
+     * strings like "1.20 MiB" that would only have to be parsed back into a number.
+     */
+    public long sizeBytes(Path storagePath) {
+        GitResult result = run(storagePath, "count-objects", "-v");
+        if (!result.success()) {
+            return 0L;
+        }
+        long total = 0L;
+        for (String line : result.stdout().lines().toList()) {
+            // size and size-pack are both reported in KiB.
+            if (line.startsWith("size:") || line.startsWith("size-pack:")) {
+                try {
+                    total += Long.parseLong(line.substring(line.indexOf(':') + 1).strip()) * 1024L;
+                } catch (NumberFormatException e) {
+                    // A malformed line is not worth failing the page over.
+                }
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Bytes of source per language at {@code ref}, largest first.
+     *
+     * <p>Files whose extension maps to no known language are left out entirely rather
+     * than lumped into an "Other" bucket, which on most repositories would dwarf every
+     * real language while saying nothing.
+     *
+     * <p>This walks the whole tree, so callers must cache the result against the head
+     * SHA rather than calling it once per request.
+     */
+    public Map<String, Long> languageBytes(Path storagePath, String ref) {
+        if (ref == null || ref.isBlank()) {
+            return Map.of();
+        }
+        GitResult result = run(storagePath, "-c", "core.quotepath=false",
+                "ls-tree", "-r", "-l", "--full-name", ref);
+        if (!result.success()) {
+            return Map.of();
+        }
+        Map<String, Long> bytes = new HashMap<>();
+        for (String line : result.stdout().lines().toList()) {
+            // "100644 blob <sha> <size>\t<path>"
+            int tab = line.indexOf('\t');
+            if (tab < 0) {
+                continue;
+            }
+            String path = line.substring(tab + 1);
+            String[] meta = line.substring(0, tab).strip().split("\\s+");
+            if (meta.length < 4 || !"blob".equals(meta[1])) {
+                continue;
+            }
+            long size;
+            try {
+                size = Long.parseLong(meta[3]);
+            } catch (NumberFormatException e) {
+                continue; // "-" is reported for submodules
+            }
+            String language = com.furimeo.gitkoo.web.Languages.displayName(path);
+            if (language != null) {
+                bytes.merge(language, size, Long::sum);
+            }
+        }
+        return bytes.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (a, b) -> a, java.util.LinkedHashMap::new));
+    }
+
+    // ── licence ─────────────────────────────────────────────────────────
+
+    private static final List<String> LICENSE_FILES = List.of(
+            "LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING", "COPYING.md");
+
+    /**
+     * Best-effort licence name from the repository's LICENSE file.
+     *
+     * <p>Matches the title line of the handful of licences that cover almost every
+     * repository. Anything else reports the generic "License": naming a licence
+     * wrongly is worse than not naming it.
+     *
+     * @return the licence name, or null when the repository has no licence file
+     */
+    public String licenseName(Path storagePath, String ref) {
+        for (String candidate : LICENSE_FILES) {
+            String text = catFile(storagePath, ref, candidate);
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            String head = text.length() > 2000 ? text.substring(0, 2000) : text;
+            String upper = head.toUpperCase(java.util.Locale.ROOT);
+            if (upper.contains("MIT LICENSE")) {
+                return "MIT";
+            }
+            if (upper.contains("APACHE LICENSE")) {
+                return "Apache-2.0";
+            }
+            if (upper.contains("GNU AFFERO GENERAL PUBLIC LICENSE")) {
+                return "AGPL-3.0";
+            }
+            if (upper.contains("GNU LESSER GENERAL PUBLIC LICENSE")) {
+                return "LGPL-3.0";
+            }
+            if (upper.contains("GNU GENERAL PUBLIC LICENSE")) {
+                return "GPL-3.0";
+            }
+            if (upper.contains("MOZILLA PUBLIC LICENSE")) {
+                return "MPL-2.0";
+            }
+            if (upper.contains("BSD 3-CLAUSE") || upper.contains("BSD 2-CLAUSE")) {
+                return "BSD";
+            }
+            if (upper.contains("THE UNLICENSE")) {
+                return "Unlicense";
+            }
+            return "License";
+        }
+        return null;
+    }
+
     // ── ref resolution ──────────────────────────────────────────────────
 
     /** Resolves a ref (branch/tag/HEAD) to a commit SHA, or empty if it does not resolve. */
@@ -388,6 +589,14 @@ public class GitService {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Failed to run git " + String.join(" ", args), e);
         }
+    }
+
+    /** A tag: its short name, the object it points at, and when it was created. */
+    public record TagInfo(String name, String sha, String createdAtIso) {
+    }
+
+    /** An author and how many commits they landed. */
+    public record Contributor(String name, String email, int commits) {
     }
 
     /** A parsed entry from {@code git ls-tree}. */

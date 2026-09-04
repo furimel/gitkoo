@@ -4,19 +4,17 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-sm mt-6">
-  <div class="text-center mb-4">
-    <svg class="octicon" width="48" height="48" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
-    <h1 class="f2 text-normal mt-3">Sign in to GitKoo</h1>
-  </div>
+<main th:replace="~{fragments/layout :: page('auth', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${param.logout}" class="flash flash-success">You have been signed out.</div>
-  <div th:if="${param.error}" class="flash flash-error">Invalid username or password.</div>
-  <div th:if="${success}" class="flash" th:text="${success}"></div>
+    <div th:if="${param.logout}" class="flash flash-success">You have been signed out.</div>
+    <div th:if="${param.error}" class="flash flash-error">Invalid username or password.</div>
+    <div th:if="${success}" class="flash" th:text="${success}"></div>
 
-  <div class="Box Box--spacious">
-    <div class="Box-body">
-      <form th:action="@{/login}" method="post">
+    <div th:replace="~{fragments/form :: authCard('Sign in to GitKoo', null, @{/login},
+                       ~{::fields}, 'Sign in',
+                       'New to GitKoo?', @{/register}, 'Create an account')}">
+      <th:block th:fragment="fields">
         <div class="form-group">
           <label for="username">Username</label>
           <input type="text" id="username" name="username" class="form-control width-full"
@@ -27,16 +25,9 @@
           <input type="password" id="password" name="password" class="form-control width-full"
                  required autocomplete="current-password">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
-      </form>
+      </th:block>
     </div>
-  </div>
-
-  <div class="Box mt-3 text-center">
-    <div class="Box-body">
-      New to GitKoo? <a th:href="@{/register}">Create an account</a>
-    </div>
-  </div>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

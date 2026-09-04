@@ -3,31 +3,34 @@
 <head th:replace="~{fragments/common :: head('New pull request - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
-<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
+<div th:replace="~{fragments/layout :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
-  <div class="Subhead">
-    <h2 class="Subhead-heading">Open a pull request</h2>
-    <p class="Subhead-description">Propose the commits on one branch for merging into another.</p>
-  </div>
+<main th:replace="~{fragments/layout :: page('form', ~{::content})}">
+  <th:block th:fragment="content">
 
-  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+    <div th:replace="~{fragments/ui :: subhead('Open a pull request',
+                       'Propose the commits on one branch for merging into another.', null)}"></div>
 
-  <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" method="post">
-    <div class="Box mb-3">
-      <div class="Box-body d-flex flex-items-center flex-wrap gap-2">
+    <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+    <!--
+      One card, not two. The branch pair is the card header - which is where GitHub
+      puts it too - so the page no longer reads as two unrelated panels.
+    -->
+    <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" method="post" class="Box">
+      <div class="Box-header d-flex flex-items-center flex-wrap gap-2">
         <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
         <label class="text-bold" for="targetBranch">base:</label>
-        <input type="text" id="targetBranch" name="targetBranch" class="form-control input-sm"
-               th:value="${repo.defaultBranch}" required style="width:180px">
+        <select id="targetBranch" name="targetBranch" class="form-select select-sm" required>
+          <option th:each="b : ${branches}" th:value="${b}" th:text="${b}"
+                  th:selected="${b == repo.defaultBranch}">main</option>
+        </select>
         <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-arrow-right"></use></svg>
         <label class="text-bold" for="sourceBranch">compare:</label>
-        <input type="text" id="sourceBranch" name="sourceBranch" class="form-control input-sm"
-               required placeholder="feature-branch" style="width:180px">
+        <select id="sourceBranch" name="sourceBranch" class="form-select select-sm" required>
+          <option th:each="b : ${branches}" th:value="${b}" th:text="${b}">feature</option>
+        </select>
       </div>
-    </div>
-
-    <div class="Box">
       <div class="Box-body">
         <input type="text" id="title" name="title" class="form-control input-lg width-full mb-3"
                required placeholder="Title" aria-label="Pull request title">
@@ -37,8 +40,8 @@
       <div class="Box-footer d-flex flex-justify-end">
         <button type="submit" class="btn btn-primary">Create pull request</button>
       </div>
-    </div>
-  </form>
+    </form>
+  </th:block>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>
