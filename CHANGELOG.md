@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — MVP (0.1.0)
+### Added - MVP (0.1.0)
 
 #### Foundation
 - Zero-config boot: `java -jar gitkoo.jar` → SQLite + filesystem + embedded web server
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `doctor` CLI command (Java, Git, DB, data dir, SSH checks)
 
 #### Authentication & Users
-- First-run setup page (`/setup`) — create administrator account
+- First-run setup page (`/setup`) - create administrator account
 - Session-based login (Spring Security, BCrypt password hashing)
 - Personal access tokens (Bearer auth for `/api/**`, `gitkoo_`-prefixed, hashed)
 - SSH key management UI (add/list/delete keys with fingerprint)
@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wired into all controllers + git transport (HTTP + SSH)
 
 #### Workflow DSL & CI
-- Custom `.koo` workflow DSL (not YAML) — line-oriented, no indentation magic
+- Custom `.koo` workflow DSL (not YAML) - line-oriented, no indentation magic
 - Lexer → Parser → AST (sealed interface) → Validator → Executor
 - Keywords: `workflow`, `on`, `run`, `shell`, `env`, `secret`, `artifact`,
   `parallel`, `if`/`else`/`end`, `timeout`
@@ -84,18 +84,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Primer-inspired design system (light + dark mode)
 - CSS custom properties, hand-written utility classes, component classes
 - Theme toggle (persisted to localStorage, respects `prefers-color-scheme`)
-- Vanilla JS (no Node/npm/build) — theme toggle, clipboard copy
+- Vanilla JS (no Node/npm/build) - theme toggle, clipboard copy
 - Responsive layout
 
 #### Infrastructure
-- DIY migration runner (no Flyway/Liquibase) — `V{n}__name.sql`, `schema_version` table
+- DIY migration runner (no Flyway/Liquibase) - `V{n}__name.sql`, `schema_version` table
 - SQLite dialect for Spring Data JDBC (custom `JdbcDialectProvider` SPI)
 - Directional JDBC converters (`@ReadingConverter`/`@WritingConverter`)
 
 #### Documentation
-- `README.md` — quick start, configuration, workflow DSL, doctor CLI
-- `DESIGN.md` — public design reference
-- `AGENTS.md` — locked stack and coding rules
+- `README.md` - quick start, configuration, workflow DSL, doctor CLI
+- `DESIGN.md` - public design reference
+- `AGENTS.md` - locked stack and coding rules
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`
 
 ### Tests

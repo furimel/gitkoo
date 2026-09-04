@@ -1,4 +1,4 @@
-# GitKoo — AI Coding Rules
+# GitKoo - AI Coding Rules
 
 Read the project design doc before editing code. It is the source of truth
 for the design. (The design doc is private and intentionally not committed.)

@@ -1,4 +1,4 @@
-/* GitKoo client script — vanilla JS, no build step.
+/* GitKoo client script - vanilla JS, no build step.
  *
  * Only handles things HTMX is a poor fit for (DESIGN.md §4):
  *   - theme toggle (persisted to localStorage)
@@ -38,7 +38,7 @@
     applyTheme(next);
   }
 
-  // Copy text to clipboard — used by clone box copy buttons.
+  // Copy text to clipboard - used by clone box copy buttons.
   function copyText(text) {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(function () {});

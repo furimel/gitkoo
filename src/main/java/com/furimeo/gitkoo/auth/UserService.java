@@ -35,7 +35,7 @@ public class UserService {
     }
 
     /**
-     * Returns true when no admin user exists yet — the instance needs first-run setup
+     * Returns true when no admin user exists yet - the instance needs first-run setup
      * (DESIGN.md §68).
      */
     public boolean needsSetup() {

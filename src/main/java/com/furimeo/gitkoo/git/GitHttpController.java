@@ -47,9 +47,9 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * <p>Routes (matching both {@code /{owner}/{name}} and {@code /{owner}/{name}.git}):
  * <ul>
- *   <li>{@code GET  info/refs?service=git-upload-pack|git-receive-pack} — advertise refs</li>
- *   <li>{@code POST git-upload-pack} — fetch</li>
- *   <li>{@code POST git-receive-pack} — push</li>
+ *   <li>{@code GET  info/refs?service=git-upload-pack|git-receive-pack} - advertise refs</li>
+ *   <li>{@code POST git-upload-pack} - fetch</li>
+ *   <li>{@code POST git-receive-pack} - push</li>
  * </ul>
  *
  * @see DESIGN.md §6, §118
@@ -94,7 +94,7 @@ public class GitHttpController {
                         HttpServletRequest request, HttpServletResponse response) throws IOException {
         String service = request.getParameter("service");
         if (service == null) {
-            // Dumb HTTP — not supported; direct clients to use smart protocol.
+            // Dumb HTTP - not supported; direct clients to use smart protocol.
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Only smart HTTP is supported");
             return;
         }
@@ -128,7 +128,7 @@ public class GitHttpController {
 
         String contentType = "application/x-" + service + "-advertisement";
         response.setContentType(contentType);
-        // No charset — git protocol is binary.
+        // No charset - git protocol is binary.
 
         // Smart protocol: write service announcement line, then git's ref advertisement.
         OutputStream out = response.getOutputStream();
@@ -199,7 +199,7 @@ public class GitHttpController {
             Map<String, String> before = branchHeads(storagePath);
             runStatelessRpc("git-receive-pack", storagePath, request.getInputStream(), out);
             // After a successful push, fire post-receive hooks (activity, workflow trigger).
-            // This is best-effort — the push already succeeded.
+            // This is best-effort - the push already succeeded.
             try {
                 Map<String, String> after = branchHeads(storagePath);
                 List<RefUpdate> pushed = pushedRefs(before, after);

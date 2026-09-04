@@ -7,9 +7,9 @@ and we welcome improvements that fit the design philosophy.
 
 Read these files first:
 
-- **[README.md](README.md)** — what GitKoo is and how to run it
-- **[DESIGN.md](DESIGN.md)** — design decisions and architecture
-- **[AGENTS.md](AGENTS.md)** — locked stack and coding rules (applies to all
+- **[README.md](README.md)** - what GitKoo is and how to run it
+- **[DESIGN.md](DESIGN.md)** - design decisions and architecture
+- **[AGENTS.md](AGENTS.md)** - locked stack and coding rules (applies to all
   contributors, not just AI)
 
 The short version: GitKoo is intentionally minimal. Don't add abstractions,
@@ -58,7 +58,7 @@ src/main/java/com/furimeo/gitkoo/
 
 1. Create a branch: `git checkout -b feat/your-feature`
 2. Write code following the existing style (match the surrounding code).
-3. Add tests. Run `./gradlew test` — all tests must pass.
+3. Add tests. Run `./gradlew test` - all tests must pass.
 4. Commit with clear messages: `feat: ...`, `fix: ...`, `docs: ...`, `test: ...`
 5. Push and open a pull request.
 

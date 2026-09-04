@@ -34,7 +34,7 @@ import com.furimeo.gitkoo.workflow.ast.Workflow;
  *
  * <p>MVP runs in the same process as the web server (Phase 1 runner architecture,
  * DESIGN.md §32). A fixed thread pool executes parallel blocks. Environment is
- * whitelisted (DESIGN.md §34) — only GITKOO_* vars plus declared env/secret values
+ * whitelisted (DESIGN.md §34) - only GITKOO_* vars plus declared env/secret values
  * are passed to child processes.
  */
 @Service

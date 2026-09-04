@@ -1,4 +1,4 @@
-# GitKoo — Design (public)
+# GitKoo - Design (public)
 
 GitKoo is a self-hosted Git forge: a place to store and work on your own code that
 runs as soon as you launch it. It is **not** a GitHub/GitLab clone, an enterprise DevOps
@@ -105,7 +105,7 @@ access tokens. No plaintext passwords. CSRF protection on.
 ## §58 Health check
 
 `/health` returns a small JSON status document covering application, database, and
-storage. Kept intentionally simple — no observability platform.
+storage. Kept intentionally simple - no observability platform.
 
 ## §78 Security baseline
 
@@ -134,7 +134,7 @@ activities, audit_events
 ```
 
 Key decisions:
-- Repository owner is polymorphic (`owner_type` ∈ USER|TEAM, `owner_id` with no FK —
+- Repository owner is polymorphic (`owner_type` ∈ USER|TEAM, `owner_id` with no FK -
   app-enforced) so a repository can belong to a user or a team.
 - Issue and PR numbers are per-repository sequences (`UNIQUE (repository_id, number)`).
 - Workflow secrets are encrypted at rest (AES-GCM); the key lives outside the repo.

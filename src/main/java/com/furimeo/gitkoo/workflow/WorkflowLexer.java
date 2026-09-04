@@ -84,7 +84,7 @@ public class WorkflowLexer {
 
             // Identifier, keyword, or rest-of-line (after run).
             if (Character.isLetter(c) || c == '_' || c == '.' || c == '/' || c == '*' || c == '-') {
-                // Check if this is after "run" — if so, capture the rest of line as REST.
+                // Check if this is after "run" - if so, capture the rest of line as REST.
                 Token prev = tokens.isEmpty() ? null : tokens.get(tokens.size() - 1);
                 boolean afterRun = prev != null && (prev.type() == TokenType.RUN || prev.type() == TokenType.SHELL);
                 if (afterRun) {
@@ -109,7 +109,7 @@ public class WorkflowLexer {
                 continue;
             }
 
-            // Numbers (for timeout durations like 30m) — treat as IDENT.
+            // Numbers (for timeout durations like 30m) - treat as IDENT.
             if (Character.isDigit(c)) {
                 tokens.add(readNumber());
                 continue;

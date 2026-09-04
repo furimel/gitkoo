@@ -6,7 +6,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-green)](https://spring.io/projects/spring-boot)
 
 A self-hosted Git forge: a place to store and work on your own code that runs
-as soon as you launch it. Not a GitHub/GitLab clone — a Git forge plus teamwork
+as soon as you launch it. Not a GitHub/GitLab clone - a Git forge plus teamwork
 tools plus a lightweight CI, with extremely simple deployment.
 
 > **Have a place to store and work on your own code. Run it and use it.**
@@ -94,7 +94,7 @@ SSH runs on port 2222 by default.
 
 ## Workflow DSL
 
-GitKoo uses a custom, human-readable DSL — not YAML. Create
+GitKoo uses a custom, human-readable DSL - not YAML. Create
 `.gitkoo/workflows/build.koo` in your repository:
 
 ```text
@@ -145,11 +145,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Read
 
 ## Documentation
 
-- [DESIGN.md](DESIGN.md) — design decisions and architecture
-- [CHANGELOG.md](CHANGELOG.md) — version history
-- [SECURITY.md](SECURITY.md) — reporting vulnerabilities
-- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards
+- [DESIGN.md](DESIGN.md) - design decisions and architecture
+- [CHANGELOG.md](CHANGELOG.md) - version history
+- [SECURITY.md](SECURITY.md) - reporting vulnerabilities
+- [CONTRIBUTING.md](CONTRIBUTING.md) - how to contribute
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - community standards
 
 ## License
 

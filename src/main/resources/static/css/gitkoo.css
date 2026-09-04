@@ -1,11 +1,11 @@
 /*
- * GitKoo stylesheet — GitHub Primer-inspired design system.
+ * GitKoo stylesheet - GitHub Primer-inspired design system.
  *
  * Organized in 4 layers, each with a single responsibility:
- *   1. Design tokens — colors, spacing, radius, typography (light + dark).
+ *   1. Design tokens - colors, spacing, radius, typography (light + dark).
  *   2. Base reset & element defaults.
- *   3. Utility classes — single-purpose, composable (Tailwind-like syntax, hand-written).
- *   4. Component classes — cohesive UI patterns (.btn, .card, .nav, .tree, .alert).
+ *   3. Utility classes - single-purpose, composable (Tailwind-like syntax, hand-written).
+ *   4. Component classes - cohesive UI patterns (.btn, .card, .nav, .tree, .alert).
  *
  * No build step. Dark mode via [data-theme="dark"] on <html>.
  * Colors mirror GitHub Primer light/dark palettes so the UI reads as familiar.
@@ -219,14 +219,14 @@ h2 { font-size: var(--font-size-lg); }
 
 /* ── 4. Component classes ─────────────────────────────────────────────── */
 
-/* Layout container — centered, max width like GitHub content area */
+/* Layout container - centered, max width like GitHub content area */
 .container-app {
   max-width: 1280px;
   margin: 0 auto;
   padding: var(--sp-4) var(--sp-3);
 }
 
-/* App header (top nav) — sticky, full-width bar */
+/* App header (top nav) - sticky, full-width bar */
 .app-header {
   background: var(--canvas-default);
   border-bottom: 1px solid var(--border-default);
@@ -246,7 +246,7 @@ h2 { font-size: var(--font-size-lg); }
 .app-header .brand:hover { text-decoration: none; }
 .app-header .nav-spacer { flex: 1; }
 
-/* Button — GitHub Primer button styles */
+/* Button - GitHub Primer button styles */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -281,7 +281,7 @@ h2 { font-size: var(--font-size-lg); }
 
 .btn-sm { padding: 0.1875rem 0.5rem; font-size: 0.75rem; }
 
-/* Form inputs — GitHub style */
+/* Form inputs - GitHub style */
 .input, .select, textarea.input {
   width: 100%;
   padding: var(--sp-1) var(--sp-2);
@@ -300,7 +300,7 @@ h2 { font-size: var(--font-size-lg); }
 }
 .input::placeholder { color: var(--fg-subtle); }
 
-/* Field wrapper — label + input + hint stack */
+/* Field wrapper - label + input + hint stack */
 .field { margin-bottom: var(--sp-3); }
 .field > label {
   display: block;
@@ -315,7 +315,7 @@ h2 { font-size: var(--font-size-lg); }
   margin-top: var(--sp-1);
 }
 
-/* Flash / alert — GitHub Primer flash component */
+/* Flash / alert - GitHub Primer flash component */
 .alert {
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-md);
@@ -327,7 +327,7 @@ h2 { font-size: var(--font-size-lg); }
 .alert-success { color: var(--success-fg);  background: var(--success-subtle);  border-color: var(--success-fg); }
 .alert-info    { color: var(--accent-fg);   background: var(--accent-subtle); }
 
-/* Card — bordered surface */
+/* Card - bordered surface */
 .card {
   background: var(--canvas-default);
   border: 1px solid var(--border-default);
@@ -335,7 +335,7 @@ h2 { font-size: var(--font-size-lg); }
   padding: var(--sp-4);
 }
 
-/* Repo header — title + meta + clone box (DESIGN.md §12) */
+/* Repo header - title + meta + clone box (DESIGN.md §12) */
 .repo-header { margin-bottom: var(--sp-3); }
 .repo-header .repo-title {
   display: flex;
@@ -347,7 +347,7 @@ h2 { font-size: var(--font-size-lg); }
 .repo-header .repo-title .sep { color: var(--fg-muted); }
 .repo-header .repo-desc { color: var(--fg-muted); margin-top: var(--sp-1); }
 
-/* Repo tabs — Code / Issues / PR / Actions / Settings */
+/* Repo tabs - Code / Issues / PR / Actions / Settings */
 .repo-tabs {
   display: flex;
   gap: var(--sp-3);
@@ -373,7 +373,7 @@ h2 { font-size: var(--font-size-lg); }
   font-weight: 600;
 }
 
-/* File tree — GitHub code browser list */
+/* File tree - GitHub code browser list */
 .tree { border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden; }
 .tree-row {
   display: flex;
@@ -388,7 +388,7 @@ h2 { font-size: var(--font-size-lg); }
 .tree-row .icon { width: 16px; text-align: center; color: var(--fg-muted); }
 .tree-row.is-dir .name { font-weight: 600; }
 
-/* Clone box — HTTPS/SSH URL + copy */
+/* Clone box - HTTPS/SSH URL + copy */
 .clone-box {
   display: flex;
   align-items: center;
@@ -403,7 +403,7 @@ h2 { font-size: var(--font-size-lg); }
 }
 .clone-box code { color: var(--fg-default); }
 
-/* Commit list item — for recent commits on repo overview */
+/* Commit list item - for recent commits on repo overview */
 .commit-item {
   display: flex;
   align-items: center;
@@ -419,7 +419,7 @@ h2 { font-size: var(--font-size-lg); }
 }
 .commit-item .title { flex: 1; min-width: 0; }
 
-/* Empty state — when a repo has no commits */
+/* Empty state - when a repo has no commits */
 .empty-state {
   text-align: center;
   padding: var(--sp-6) var(--sp-3);
@@ -427,7 +427,7 @@ h2 { font-size: var(--font-size-lg); }
 }
 .empty-state h2 { color: var(--fg-default); margin-bottom: var(--sp-2); }
 
-/* Auth card — centered narrow form for login/setup */
+/* Auth card - centered narrow form for login/setup */
 .auth-card {
   max-width: 340px;
   margin: var(--sp-6) auto;
@@ -437,7 +437,7 @@ h2 { font-size: var(--font-size-lg); }
   border-radius: var(--radius-lg);
 }
 
-/* Theme toggle — small button in header */
+/* Theme toggle - small button in header */
 .theme-toggle {
   background: transparent;
   border: 1px solid var(--border-default);
@@ -448,7 +448,7 @@ h2 { font-size: var(--font-size-lg); }
   line-height: 1;
 }
 
-/* Code block — file viewer */
+/* Code block - file viewer */
 .code-view {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);

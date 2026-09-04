@@ -26,17 +26,17 @@ GitKoo is pre-1.0; only the latest `main` is supported.
 GitKoo implements the following security baseline (DESIGN.md §78):
 
 - **CSRF protection** on all form POSTs (Spring Security default)
-- **XSS protection** — Markdown rendered through CommonMark + Jsoup sanitization
-- **SQL injection** — Spring Data JDBC uses parameterized queries
-- **Password hashing** — BCrypt (Argon2 planned for Phase 3)
-- **Session security** — server-side sessions, no plaintext passwords stored
-- **SSH key verification** — public key fingerprints checked against database
-- **Path traversal** — repository paths are ID-based, not user-controlled
-- **Command injection** — `ProcessBuilder` with argument lists, never shell
+- **XSS protection** - Markdown rendered through CommonMark + Jsoup sanitization
+- **SQL injection** - Spring Data JDBC uses parameterized queries
+- **Password hashing** - BCrypt (Argon2 planned for Phase 3)
+- **Session security** - server-side sessions, no plaintext passwords stored
+- **SSH key verification** - public key fingerprints checked against database
+- **Path traversal** - repository paths are ID-based, not user-controlled
+- **Command injection** - `ProcessBuilder` with argument lists, never shell
   string concatenation (unless workflow DSL explicitly requests `run shell`)
-- **Workflow isolation** — environment whitelist, secret masking in logs,
+- **Workflow isolation** - environment whitelist, secret masking in logs,
   TRUSTED/UNTRUSTED execution modes (DESIGN.md §33)
-- **Secret encryption** — workflow secrets encrypted at rest (AES-GCM)
+- **Secret encryption** - workflow secrets encrypted at rest (AES-GCM)
 
 ## Known limitations (MVP)
 

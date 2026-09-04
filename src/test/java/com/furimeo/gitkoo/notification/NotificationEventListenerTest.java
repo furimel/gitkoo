@@ -44,11 +44,11 @@ class NotificationEventListenerTest {
                 Repository.OwnerType.USER.name(), owner.getId(), "notif-repo",
                 null, "PUBLIC", "main");
 
-        // The owner opens their own issue — no self-notification.
+        // The owner opens their own issue - no self-notification.
         issueService.create(repo.getId(), "self issue", "body", owner.getId());
         assertThat(notificationService.listByUser(owner.getId())).isEmpty();
 
-        // Another user opens an issue — the owner is notified.
+        // Another user opens an issue - the owner is notified.
         issueService.create(repo.getId(), "incoming issue", "body", author.getId());
 
         var ownerNotifications = notificationService.listByUser(owner.getId());
