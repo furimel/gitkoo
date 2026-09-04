@@ -6,10 +6,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import com.furimeo.gitkoo.config.GitKooProperties;
 import com.furimeo.gitkoo.git.GitService;
@@ -32,12 +40,82 @@ public class WorkflowService {
     private final GitService gitService;
     private final GitKooProperties properties;
 
+    /** Queue of runs waiting to be executed by a worker thread. */
+    private final BlockingQueue<QueuedRun> queue = new LinkedBlockingQueue<>();
+    /** Worker pool sized by {@code gitkoo.ci.workers} (DESIGN.md §37). */
+    private ExecutorService workers;
+
     public WorkflowService(WorkflowRunRepository runRepository, WorkflowExecutor executor,
                           GitService gitService, GitKooProperties properties) {
         this.runRepository = runRepository;
         this.executor = executor;
         this.gitService = gitService;
         this.properties = properties;
+    }
+
+    /** Starts the worker threads that drain the run queue. */
+    @PostConstruct
+    void startWorkers() {
+        int n = Math.max(1, properties.getCi().getWorkers());
+        workers = Executors.newFixedThreadPool(n, r -> {
+            Thread t = new Thread(r, "gitkoo-workflow-worker");
+            t.setDaemon(true);
+            return t;
+        });
+        for (int i = 0; i < n; i++) {
+            workers.submit(this::workerLoop);
+        }
+        log.info("Started {} workflow worker(s)", n);
+    }
+
+    /** Stops the workers and drains the queue on shutdown. */
+    @PreDestroy
+    void stopWorkers() {
+        if (workers == null) {
+            return;
+        }
+        workers.shutdownNow();
+        try {
+            if (!workers.awaitTermination(5, TimeUnit.SECONDS)) {
+                log.warn("Workflow workers did not terminate cleanly within 5s");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /** Worker loop: dequeue a run, execute it, and record the final status. */
+    private void workerLoop() {
+        while (!Thread.currentThread().isInterrupted()) {
+            QueuedRun job;
+            try {
+                job = queue.take();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            runQueued(job);
+        }
+    }
+
+    /** Executes a single dequeued run and persists its final status. */
+    private void runQueued(QueuedRun job) {
+        WorkflowRun run = job.run();
+        try {
+            run.setStatus(WorkflowRun.Status.RUNNING.name());
+            run.setStartedAt(OffsetDateTime.now());
+            run = runRepository.save(run);
+
+            boolean success = executor.execute(run.getId(), job.workflow(), job.workspace(),
+                    job.context(), job.secrets());
+            run.setStatus(success ? WorkflowRun.Status.SUCCESS.name() : WorkflowRun.Status.FAILED.name());
+        } catch (Exception e) {
+            log.error("Workflow execution failed for run {}", run.getId(), e);
+            run.setStatus(WorkflowRun.Status.FAILED.name());
+        } finally {
+            run.setFinishedAt(OffsetDateTime.now());
+            runRepository.save(run);
+        }
     }
 
     /**
@@ -73,25 +151,12 @@ public class WorkflowService {
         context.put("GITKOO_REF", ref != null ? ref : "");
         context.put("GITKOO_RUN_ID", String.valueOf(run.getId()));
 
-        // Execute.
-        run.setStatus(WorkflowRun.Status.RUNNING.name());
-        run.setStartedAt(OffsetDateTime.now());
-        run = runRepository.save(run);
+        // For MVP, use the repo storage path's parent as workspace (no separate checkout).
+        Path workspace = Path.of(repo.getStoragePath()).getParent();
 
-        // MVP: run synchronously in the caller thread. A queue + worker thread
-        // can be added later (DESIGN.md §31, §32, §63).
-        boolean success = false;
-        try {
-            // For MVP, use the repo storage path as workspace (no separate checkout).
-            Path workspace = Path.of(repo.getStoragePath()).getParent();
-            success = executor.execute(run.getId(), workflow, workspace, context, Map.of());
-        } catch (Exception e) {
-            log.error("Workflow execution failed", e);
-        } finally {
-            run.setStatus(success ? WorkflowRun.Status.SUCCESS.name() : WorkflowRun.Status.FAILED.name());
-            run.setFinishedAt(OffsetDateTime.now());
-            runRepository.save(run);
-        }
+        // Enqueue for a worker thread; return immediately (DESIGN.md §31, §32, §63).
+        // Secrets resolution is not wired in MVP, so none are passed.
+        queue.add(new QueuedRun(run, workflow, workspace, context, Map.of()));
         return run;
     }
 
@@ -116,5 +181,10 @@ public class WorkflowService {
         Workflow workflow = new WorkflowParser(tokens).parse();
         WorkflowValidator.validate(workflow);
         return workflow;
+    }
+
+    /** A queued workflow run plus everything a worker needs to execute it. */
+    private record QueuedRun(WorkflowRun run, Workflow workflow, Path workspace,
+                            Map<String, String> context, Map<String, String> secrets) {
     }
 }
