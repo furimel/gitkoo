@@ -42,12 +42,13 @@
 /* == File tree ========================================================== */
 
 /*
- * One column, not three. GitHub also shows the last commit and its age per file,
- * which costs a `git log` per entry; until that is worth the subprocess budget,
- * reserving the space would just leave two thirds of every row blank.
+ * Name, last commit, age - the three columns GitHub shows. The commit data comes
+ * from a single history walk in GitService.lastCommits, so the extra columns cost
+ * one subprocess for the whole listing rather than one per row.
  */
 .tree-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
   align-items: center;
   gap: var(--base-size-16);
   padding: var(--base-size-4) var(--base-size-16);
@@ -66,6 +67,34 @@
 .tree-row-name .octicon { flex-shrink: 0; margin-right: 0; }
 .tree-row-icon--dir  { color: var(--fgColor-accent, var(--color-accent-fg)); }
 .tree-row-icon--file { color: var(--fgColor-muted, var(--color-fg-muted)); }
+
+.tree-row-commit,
+.tree-row-age {
+  font-size: 14px;
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+.tree-row-age { text-align: right; white-space: nowrap; }
+
+/*
+ * Truncate to the grid cell, not to a fixed width. Primer's .css-truncate-target
+ * caps at 125px, which cut commit subjects off long before the column ran out.
+ */
+.tree-row-name a,
+.tree-row-commit a,
+.commit-tease-subject {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.commit-tease-subject { max-width: 50ch; }
+
+/* Below the fold the commit column is the first thing worth dropping. */
+@media (max-width: 767px) {
+  .tree-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .tree-row-commit { display: none; }
+}
 
 /* == Blob viewer: code with line numbers ================================ */
 
@@ -276,3 +305,78 @@
 .notification-row--unread {
   background: var(--bgColor-accent-muted, var(--color-accent-subtle));
 }
+
+/* == Syntax highlighting ================================================ */
+/*
+ * highlight.js token classes mapped onto Primer's own syntax palette
+ * (--color-prettylights-syntax-*), which is the exact set GitHub renders code
+ * with. Because these are Primer variables, the colours follow every theme,
+ * including dark_dimmed and the colourblind variants, with no extra work.
+ *
+ * A highlight.js stock theme would have hardcoded one palette and broken the
+ * moment the reader switched themes.
+ */
+
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ { color: var(--color-prettylights-syntax-keyword); }
+
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ { color: var(--color-prettylights-syntax-entity); }
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id,
+.hljs-variable { color: var(--color-prettylights-syntax-constant); }
+
+.hljs-meta .hljs-string,
+.hljs-regexp,
+.hljs-string { color: var(--color-prettylights-syntax-string); }
+
+.hljs-built_in,
+.hljs-symbol { color: var(--color-prettylights-syntax-variable); }
+
+.hljs-code,
+.hljs-comment,
+.hljs-formula { color: var(--color-prettylights-syntax-comment); }
+
+.hljs-name,
+.hljs-quote,
+.hljs-selector-pseudo,
+.hljs-selector-tag { color: var(--color-prettylights-syntax-entity-tag); }
+
+.hljs-subst { color: var(--color-prettylights-syntax-storage-modifier-import); }
+.hljs-section {
+  color: var(--color-prettylights-syntax-markup-heading);
+  font-weight: 600;
+}
+.hljs-bullet { color: var(--color-prettylights-syntax-markup-list); }
+.hljs-emphasis {
+  color: var(--color-prettylights-syntax-markup-italic);
+  font-style: italic;
+}
+.hljs-strong {
+  color: var(--color-prettylights-syntax-markup-bold);
+  font-weight: 600;
+}
+.hljs-addition {
+  color: var(--color-prettylights-syntax-markup-inserted-text);
+  background: var(--color-prettylights-syntax-markup-inserted-bg);
+}
+.hljs-deletion {
+  color: var(--color-prettylights-syntax-markup-deleted-text);
+  background: var(--color-prettylights-syntax-markup-deleted-bg);
+}
+

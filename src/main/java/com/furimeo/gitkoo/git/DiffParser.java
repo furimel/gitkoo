@@ -36,8 +36,13 @@ public class DiffParser {
         }
     }
 
-    /** A single file's worth of diff, with counts for the "+N -M" summary. */
-    public record FileDiff(String path, boolean binary, int additions, int deletions, List<Line> lines) {
+    /**
+     * A single file's worth of diff, with counts for the "+N -M" summary.
+     *
+     * @param language highlight.js language id for this path, or null for plain text
+     */
+    public record FileDiff(String path, boolean binary, int additions, int deletions,
+                           String language, List<Line> lines) {
     }
 
     /**
@@ -127,7 +132,8 @@ public class DiffParser {
                 deletions++;
             }
         }
-        files.add(new FileDiff(path, binary, additions, deletions, List.copyOf(lines)));
+        files.add(new FileDiff(path, binary, additions, deletions,
+                com.furimeo.gitkoo.web.Languages.forPath(path), List.copyOf(lines)));
     }
 
     /** Pulls the b-side path out of {@code diff --git a/foo b/foo}. */

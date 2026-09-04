@@ -147,11 +147,151 @@
     });
   }
 
+  /* ── Syntax highlighting ───────────────────────────────────────────── */
+
+  /*
+   * Both the blob viewer and the diff render one <td> per line, but highlighting
+   * has to see the whole file at once or a block comment, a template literal or a
+   * multi-line string ends on the line it started on. So: highlight the joined
+   * text, then cut the result back into lines, re-opening whatever spans were
+   * still open at each line break.
+   *
+   * highlight.js output only ever contains <span class="..."> and </span> around
+   * escaped text, which is what makes this scan safe.
+   */
+  function splitHighlightedLines(html) {
+    var lines = html.split("\n");
+    var open = [];
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var prefix = open.join("");
+      var tags = /<span [^>]*>|<\/span>/g;
+      var match;
+      while ((match = tags.exec(lines[i])) !== null) {
+        if (match[0] === "</span>") {
+          open.pop();
+        } else {
+          open.push(match[0]);
+        }
+      }
+      out.push(prefix + lines[i] + new Array(open.length + 1).join("</span>"));
+    }
+    return out;
+  }
+
+  function languageAvailable(language) {
+    return !!(language && window.hljs && window.hljs.getLanguage(language));
+  }
+
+  /* The blob viewer: one table, one language, full-file context. */
+  function highlightBlob(table) {
+    var language = table.getAttribute("data-language");
+    if (!languageAvailable(language)) {
+      return;
+    }
+    var cells = table.querySelectorAll(".blob-code");
+    if (!cells.length) {
+      return;
+    }
+    var source = Array.prototype.map.call(cells, function (cell) {
+      return cell.textContent;
+    }).join("\n");
+
+    var highlighted = window.hljs.highlight(source, {
+      language: language,
+      ignoreIllegals: true
+    }).value;
+    var lines = splitHighlightedLines(highlighted);
+    if (lines.length !== cells.length) {
+      // Line counts disagreeing means the split is unsafe; plain text is correct.
+      return;
+    }
+    for (var i = 0; i < cells.length; i++) {
+      cells[i].innerHTML = lines[i];
+    }
+    table.classList.add("hljs-ready");
+  }
+
+  /*
+   * A diff shows the two sides interleaved, so neither side is contiguous text.
+   * Each side is reassembled separately, highlighted as a whole, then written back
+   * to the rows it came from. That keeps multi-line constructs intact on both
+   * sides, which per-line highlighting cannot do.
+   */
+  function highlightDiff(table) {
+    var language = table.getAttribute("data-language");
+    if (!languageAvailable(language)) {
+      return;
+    }
+    var rows = table.querySelectorAll("tr");
+    var sides = {old: [], new: []};
+
+    Array.prototype.forEach.call(rows, function (row) {
+      var cell = row.querySelector(".diff-code");
+      if (!cell || row.classList.contains("diff-line--hunk")) {
+        return;
+      }
+      // Context lines belong to both sides; each change belongs to one.
+      if (!row.classList.contains("diff-line--add")) {
+        sides.old.push(cell);
+      }
+      if (!row.classList.contains("diff-line--del")) {
+        sides.new.push(cell);
+      }
+    });
+
+    Object.keys(sides).forEach(function (side) {
+      var cells = sides[side];
+      if (!cells.length) {
+        return;
+      }
+      var source = cells.map(function (cell) { return cell.textContent; }).join("\n");
+      var lines = splitHighlightedLines(window.hljs.highlight(source, {
+        language: language,
+        ignoreIllegals: true
+      }).value);
+      if (lines.length !== cells.length) {
+        return;
+      }
+      cells.forEach(function (cell, i) {
+        // A context line is written twice, once per side; the result is identical.
+        cell.innerHTML = lines[i];
+      });
+    });
+    table.classList.add("hljs-ready");
+  }
+
+  /* Fenced code blocks in rendered Markdown: commonmark tags them language-*. */
+  function highlightMarkdownBlocks(scope) {
+    scope.querySelectorAll(".markdown-body pre > code[class*='language-']").forEach(function (block) {
+      var language = (block.className.match(/language-([\w-]+)/) || [])[1];
+      if (!languageAvailable(language) || block.dataset.highlighted) {
+        return;
+      }
+      block.innerHTML = window.hljs.highlight(block.textContent, {
+        language: language,
+        ignoreIllegals: true
+      }).value;
+      block.dataset.highlighted = "true";
+    });
+  }
+
+  function highlightAll(root) {
+    if (!window.hljs) {
+      return;
+    }
+    var scope = root || document;
+    scope.querySelectorAll(".blob-table[data-language]").forEach(highlightBlob);
+    scope.querySelectorAll(".diff-table[data-language]").forEach(highlightDiff);
+    highlightMarkdownBlocks(scope);
+  }
+
   /* ── Wiring ────────────────────────────────────────────────────────── */
 
   document.addEventListener("DOMContentLoaded", function () {
     syncToggleIcons();
     applyRelativeTimes(document);
+    highlightAll(document);
 
     /* Repaint the toggle when the OS flips while we are on "auto". */
     if (window.matchMedia) {
@@ -198,6 +338,7 @@
     /* Re-apply to markup HTMX swaps in. */
     document.body.addEventListener("htmx:afterSwap", function (event) {
       applyRelativeTimes(event.target);
+      highlightAll(event.target);
     });
   });
 })();
