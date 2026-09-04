@@ -3,6 +3,7 @@ package com.furimeo.gitkoo.activity;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
@@ -10,14 +11,19 @@ import org.springframework.stereotype.Service;
  *
  * <p>Activity is work-oriented: pushed commits, opened PRs, closed issues.
  * Not a social feed (no trending, followers, or viral posts, DESIGN.md §55).
+ *
+ * <p>After recording, an {@link ActivityCreatedEvent} is published so other domains (e.g.
+ * notifications) can react without being wired into every call site.
  */
 @Service
 public class ActivityService {
 
     private final ActivityRepository repository;
+    private final ApplicationEventPublisher publisher;
 
-    public ActivityService(ActivityRepository repository) {
+    public ActivityService(ActivityRepository repository, ApplicationEventPublisher publisher) {
         this.repository = repository;
+        this.publisher = publisher;
     }
 
     /** Records an activity event. */
@@ -28,7 +34,9 @@ public class ActivityService {
         activity.setType(type);
         activity.setMessage(message);
         activity.setCreatedAt(OffsetDateTime.now());
-        return repository.save(activity);
+        activity = repository.save(activity);
+        publisher.publishEvent(new ActivityCreatedEvent(this, activity));
+        return activity;
     }
 
     /** Lists recent activities for a repository. */

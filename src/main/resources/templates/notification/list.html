@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title} + ' \u00b7 GitKoo'">GitKoo</title>
+  <link rel="stylesheet" th:href="@{/assets/css/gitkoo.css}">
+  <script th:src="@{/assets/js/gitkoo.js}" defer></script>
+</head>
+<body>
+  <header th:replace="~{fragments/common :: header}"></header>
+  <div class="container-app">
+    <div class="flex items-center justify-between mb-3">
+      <h1>Notifications</h1>
+      <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" class="inline-flex"
+            hx-post="@{/notifications/read-all}" hx-target="#notification-panel" hx-swap="outerHTML">
+        <button type="submit" class="btn btn-sm">Mark all as read</button>
+      </form>
+    </div>
+
+    <!-- The panel polls every 30s and is the swap target for read/read-all actions. -->
+    <div id="notification-panel" th:fragment="panel"
+         th:hx-get="@{/notifications}" hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
+      <div class="flex items-center gap-2 mb-3" th:if="${unreadCount > 0}">
+        <span class="text-sm px-2 rounded-full"
+              style="background:var(--success-subtle);color:var(--success-fg)"
+              th:text="${unreadCount} + ' unread'">0 unread</span>
+      </div>
+
+      <div th:if="${notifications.isEmpty()}" class="empty-state">
+        <h2>No notifications</h2>
+        <p>You're all caught up.</p>
+      </div>
+
+      <div th:unless="${notifications.isEmpty()}" class="card p-0">
+        <div class="commit-item" th:each="n : ${notifications}"
+             th:style="${n.read ? '' : 'background:var(--canvas-subtle)'}">
+          <span class="text-sm px-2 rounded-full" th:if="${!n.read}"
+                style="background:var(--success-subtle);color:var(--success-fg)">Unread</span>
+          <span class="text-sm px-2 rounded-full" th:if="${n.read}"
+                style="background:var(--canvas-subtle);color:var(--fg-muted)">Read</span>
+          <span class="title font-medium" th:text="${n.message}">message</span>
+          <span class="text-sm" style="color:var(--fg-muted)"
+                th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+          <form th:if="${!n.read}" th:action="@{'/notifications/' + ${n.id} + '/read'}" method="post" class="inline-flex"
+                th:hx-post="@{'/notifications/' + ${n.id} + '/read'}" hx-target="#notification-panel" hx-swap="outerHTML">
+            <button type="submit" class="btn btn-sm">Mark read</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
