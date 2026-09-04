@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'GitKoo',
   description: 'A self-hosted Git forge - simple, fast, yours.',
   lang: 'en-US',
+  base: '/gitkoo/',
   cleanUrls: true,
   lastUpdated: true,
 
