@@ -7,14 +7,12 @@
 <main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
   <div class="Subhead">
     <h1 class="Subhead-heading">Users</h1>
-    <p class="Subhead-description"><span th:text="${#lists.size(users)}">0</span> accounts on this instance.</p>
+    <p class="Subhead-description"><span th:text="${totalUsers}">0</span> accounts on this instance.</p>
   </div>
 
   <div class="Box">
     <div class="Box-row d-flex flex-items-center gap-3" th:each="u : ${users}">
-      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold flex-shrink-0"
-            style="width:32px;height:32px"
-            th:text="${#strings.toUpperCase(#strings.substring(u.username, 0, 1))}">U</span>
+      <span th:replace="~{fragments/common :: avatar(${u.username}, 32)}"></span>
       <div class="flex-auto">
         <a class="text-bold" th:href="@{'/@/' + ${u.username}}"
            th:text="${u.displayName ?: u.username}">user</a>
@@ -26,6 +24,8 @@
             th:text="${#strings.toLowerCase(u.status)}">active</span>
     </div>
   </div>
+
+  <div th:replace="~{fragments/common :: pagination(${page}, @{/admin/users})}"></div>
 </main>
 
 <footer th:replace="~{fragments/common :: footer}"></footer>

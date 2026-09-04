@@ -13,9 +13,7 @@
       <h1 class="f3 mb-2" th:text="${commit.message}">message</h1>
     </div>
     <div class="Box-row d-flex flex-items-center flex-wrap gap-2 color-fg-muted">
-      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-            style="width:20px;height:20px;font-size:11px"
-            th:text="${#strings.toUpperCase(#strings.substring(commit.authorName, 0, 1))}">A</span>
+      <span th:replace="~{fragments/common :: avatar(${commit.authorName}, 20)}"></span>
       <strong class="color-fg-default" th:text="${commit.authorName}">author</strong>
       <span>committed</span>
       <time th:if="${commit.authorDateIso != null}" th:datetime="${commit.authorDateIso}"
@@ -62,7 +60,7 @@
     <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
       Binary file not shown.
     </p>
-    <table class="diff-table" th:unless="${file.binary}">
+    <table class="diff-table" th:unless="${file.binary}" th:attr="data-language=${file.language}">
       <tbody>
         <tr th:each="line : ${file.lines}"
             th:classappend="${line.isHunk()} ? ' diff-line--hunk'

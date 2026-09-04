@@ -19,9 +19,7 @@
       <span class="Counter" th:text="${#lists.size(members)}">0</span>
     </div>
     <div class="Box-row d-flex flex-items-center gap-3" th:each="m,iter : ${members}">
-      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold flex-shrink-0"
-            style="width:32px;height:32px"
-            th:text="${#strings.toUpperCase(#strings.substring(users[iter.index]?.username ?: 'U', 0, 1))}">U</span>
+      <span th:replace="~{fragments/common :: avatar(${users[iter.index]?.username ?: 'ghost'}, 32)}"></span>
       <a class="flex-auto text-bold" th:href="@{'/@/' + ${users[iter.index]?.username}}"
          th:text="${users[iter.index]?.displayName ?: users[iter.index]?.username ?: 'Unknown'}">user</a>
       <span class="Label"
