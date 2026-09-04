@@ -5,11 +5,11 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4"
-      th:with="openCount=${#lists.size(pulls.?[status == 'OPEN'])},
-               closedCount=${#lists.size(pulls.?[status != 'OPEN'])}">
+<!-- openCount and closedCount come from the controller: counting `pulls` here
+     would only count the current page. -->
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
 
-  <div class="d-flex flex-justify-end mb-3">
+  <div class="d-flex flex-justify-end mb-3" sec:authorize="isAuthenticated()">
     <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
   </div>
 
@@ -59,7 +59,7 @@
       <th:block th:unless="${filter == 'closed'}">
         <h3 class="blankslate-heading">No open pull requests</h3>
         <p>Push a branch, then open a pull request to propose changes.</p>
-        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
       </th:block>
     </div>
   </div>

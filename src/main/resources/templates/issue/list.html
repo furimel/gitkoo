@@ -7,7 +7,7 @@
 
 <main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
 
-  <div class="d-flex flex-justify-end mb-3">
+  <div class="d-flex flex-justify-end mb-3" sec:authorize="isAuthenticated()">
     <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
   </div>
 
@@ -60,7 +60,7 @@
       <th:block th:unless="${filter == 'closed'}">
         <h3 class="blankslate-heading">No open issues</h3>
         <p>Issues are a good way to track bugs and tasks.</p>
-        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
       </th:block>
     </div>
   </div>

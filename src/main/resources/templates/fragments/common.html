@@ -195,7 +195,8 @@
             <span>Activity</span>
           </a>
         </li>
-        <li class="d-inline-flex">
+        <!-- Hidden from anonymous visitors, for whom it only leads to the login page. -->
+        <li class="d-inline-flex" sec:authorize="isAuthenticated()">
           <a class="UnderlineNav-item" th:classappend="${tab == 'settings'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}"
              th:aria-current="${tab == 'settings'} ? 'page' : null">
@@ -258,7 +259,7 @@
     <svg class="octicon color-fg-subtle" width="20" height="20" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
     <span>GitKoo &mdash; self-hosted Git forge</span>
     <span class="ml-auto d-flex gap-3">
-      <a class="Link--secondary" th:href="@{/healthz}">Status</a>
+      <a class="Link--secondary" th:href="@{/health}">Status</a>
       <a class="Link--secondary" href="https://github.com/furimeo/gitkoo" rel="noopener">Source</a>
     </span>
   </div>
