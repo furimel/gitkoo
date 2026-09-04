@@ -113,14 +113,19 @@
             </span>
           </div>
 
-          <!-- ".." row when browsing inside a directory -->
-          <div class="tree-row" th:if="${path != null and !path.isEmpty()}">
+          <!--
+            ".." row when browsing inside a directory. The href is built with th:with
+            first: a trailing (...) inside @{...} is parsed as a URL parameter list,
+            not as grouping, so inlining the conditional there fails at render time.
+          -->
+          <div class="tree-row" th:if="${path != null and !path.isEmpty()}"
+               th:with="parentHref=${'/' + owner + '/' + repo.name + '/tree/' + ref
+                                     + (parentPath.isEmpty() ? '' : '/' + parentPath)}">
             <div class="tree-row-name">
               <svg class="octicon tree-row-icon--dir" width="16" height="16" aria-hidden="true">
                 <use href="#octicon-file-directory-fill"></use>
               </svg>
-              <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${ref}
-                          + (${parentPath.isEmpty()} ? '' : '/' + ${parentPath})}">..</a>
+              <a th:href="@{${parentHref}}">..</a>
             </div>
             <div class="tree-row-commit"></div>
             <div class="tree-row-age"></div>
