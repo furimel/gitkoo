@@ -24,10 +24,15 @@
   <div th:if="${results != null and !results.isEmpty()}" class="Box">
     <div class="Box-row d-flex flex-items-start" th:each="r : ${results}">
       <svg class="octicon color-fg-muted mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true">
-        <use href="#octicon-repo"></use>
+        <use th:href="${r.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
       </svg>
       <div class="flex-auto">
-        <span class="f4 text-bold" th:text="${r.name}">name</span>
+        <a class="f4 text-bold" th:if="${r.owner != null}"
+           th:href="@{'/' + ${r.owner} + '/' + ${r.name}}">
+          <span th:text="${r.owner}">owner</span><span class="color-fg-muted">/</span><span th:text="${r.name}">name</span>
+        </a>
+        <span class="f4 text-bold" th:if="${r.owner == null}" th:text="${r.name}">name</span>
+        <span class="Label Label--secondary ml-1" th:text="${#strings.toLowerCase(r.visibility)}">public</span>
         <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
       </div>
     </div>

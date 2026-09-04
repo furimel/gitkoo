@@ -3,55 +3,100 @@ package com.furimeo.gitkoo.web;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.furimeo.gitkoo.auth.User;
+import com.furimeo.gitkoo.auth.UserService;
 import com.furimeo.gitkoo.repository.Repository;
+import com.furimeo.gitkoo.repository.RepositoryRepository;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService;
+import com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission;
 
 /**
- * Basic SQL-based search for repositories and users (DESIGN.md §48).
+ * Repository search (DESIGN.md §48).
  *
- * <p>MVP uses database LIKE queries \u2014 no Elasticsearch, OpenSearch, or vector
- * search (DESIGN.md §48). This is sufficient for the expected instance scale
- * (5-100 users, 10-5000 repos, DESIGN.md §97).
+ * <p>MVP uses a simple name match, no Elasticsearch or vector search, which is
+ * enough at the expected instance scale.
+ *
+ * <p>Results are filtered through {@link RepositoryPermissionService}. The previous
+ * implementation ran a bare {@code LIKE} over the whole table, so any signed-in
+ * user could enumerate the names and descriptions of every private repository on
+ * the instance just by guessing substrings.
  */
 @Controller
 public class SearchController {
 
-    private final JdbcTemplate jdbc;
+    private final RepositoryRepository repositoryRepository;
+    private final UserService userService;
+    private final RepositoryPermissionService permissionService;
 
-    public SearchController(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public SearchController(RepositoryRepository repositoryRepository, UserService userService,
+                            RepositoryPermissionService permissionService) {
+        this.repositoryRepository = repositoryRepository;
+        this.userService = userService;
+        this.permissionService = permissionService;
     }
 
+    /** Cap on results returned, before permission filtering. */
+    private static final int LIMIT = 50;
+
     @GetMapping("/search")
-    public String search(@RequestParam(required = false) String q, Model model) {
+    public String search(@RequestParam(required = false) String q, Model model,
+                         @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         model.addAttribute("title", "Search");
+        model.addAttribute("query", q);
+
         if (q == null || q.isBlank()) {
             model.addAttribute("results", List.of());
             return "search";
         }
-        String pattern = "%" + q.toLowerCase() + "%";
+
+        User actor = principal == null || "anonymousUser".equals(principal.getUsername())
+                ? null
+                : userService.findByUsername(principal.getUsername()).orElse(null);
+        String needle = q.toLowerCase(java.util.Locale.ROOT);
+
         List<SearchResult> results = new ArrayList<>();
-        // Search repositories by name.
-        jdbc.query("SELECT id, owner_type, owner_id, name, description FROM repositories WHERE LOWER(name) LIKE ? LIMIT 20",
-                rs -> {
-                    results.add(new SearchResult(
-                            "repository",
-                            rs.getString("owner_type") + ":" + rs.getLong("owner_id"),
-                            rs.getString("name"),
-                            rs.getString("description")
-                    ));
-                },
-                pattern);
+        for (Repository repo : repositoryRepository.findAll()) {
+            if (results.size() >= LIMIT) {
+                break;
+            }
+            if (!matches(repo, needle)) {
+                continue;
+            }
+            // The permission service owns the visibility rules; do not restate them here.
+            if (!permissionService.hasPermission(actor, repo, Permission.READ)) {
+                continue;
+            }
+            results.add(new SearchResult(repo.getName(), repo.getDescription(),
+                    ownerName(repo), repo.getVisibility()));
+        }
+
         model.addAttribute("results", results);
-        model.addAttribute("query", q);
         return "search";
     }
 
+    private boolean matches(Repository repo, String needle) {
+        if (repo.getName() != null && repo.getName().toLowerCase(java.util.Locale.ROOT).contains(needle)) {
+            return true;
+        }
+        return repo.getDescription() != null
+                && repo.getDescription().toLowerCase(java.util.Locale.ROOT).contains(needle);
+    }
+
+    /** Owner username, so a result can link to the repository. */
+    private String ownerName(Repository repo) {
+        if (!Repository.OwnerType.USER.name().equals(repo.getOwnerType())) {
+            return null;
+        }
+        return userService.findById(repo.getOwnerId()).map(User::getUsername).orElse(null);
+    }
+
     /** A single search result entry. */
-    public record SearchResult(String type, String owner, String name, String description) {}
+    public record SearchResult(String name, String description, String owner, String visibility) {
+    }
 }
