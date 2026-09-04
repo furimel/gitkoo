@@ -10,7 +10,7 @@ import com.furimeo.gitkoo.repository.RepositoryService;
 
 /**
  * Shows the login page and the dashboard. Spring Security handles actual
- * authentication at {@code POST /login} (DESIGN.md §43).
+ * authentication at {@code POST /login} (see docs/).
  */
 @Controller
 public class LoginController {

@@ -9,7 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
- * Generates and validates personal access tokens (DESIGN.md §43).
+ * Generates and validates personal access tokens (see docs/).
  *
  * <p>A token has the form {@code gitkoo_<random>}. The random part is 32 bytes hex-encoded.
  * Only a hash of the token is stored (BCrypt), so a leaked database does not expose usable
@@ -55,7 +55,7 @@ public class AccessTokenService {
     /**
      * Looks up a raw token by hashing candidate tokens and matching. Since the stored hash
      * is BCrypt (non-reversible), we cannot query by hash directly; instead the API filter
-     * must iterate. For the MVP scale (DESIGN.md §97) this is fine, and tokens can later be
+     * must iterate. For the MVP scale (see docs/) this is fine, and tokens can later be
      * looked up via a non-secret index if needed.
      *
      * <p>Returns the token plus the resolved user when the raw token matches a stored hash.

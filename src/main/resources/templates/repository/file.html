@@ -1,34 +1,72 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<head th:replace="~{fragments/common :: head(${filePath + ' - ' + owner + '/' + repo.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}">repo</strong>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'code')}"></div>
+
+<main class="container-lg px-3 mt-4">
+
+  <!-- Branch + breadcrumb, the way GitHub stacks them above a blob -->
+  <div class="file-navigation">
+    <details class="details-overlay details-reset position-relative">
+      <summary class="btn" role="button">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
+        <strong th:text="${ref}">main</strong>
+        <span class="dropdown-caret"></span>
+      </summary>
+      <div class="dropdown-menu dropdown-menu-se" role="menu" style="width:300px">
+        <div class="dropdown-header">Switch branches</div>
+        <div class="dropdown-divider"></div>
+        <a th:each="b : ${branches}" class="dropdown-item" role="menuitem"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${b}}" th:text="${b}">main</a>
+      </div>
+    </details>
+
+    <nav class="breadcrumb f4 ml-2" aria-label="File path">
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${ref}}" th:text="${repo.name}">repo</a>
+      <!-- Each crumb carries its own path prefix, so parent directories are clickable. -->
+      <th:block th:each="crumb : ${breadcrumbs}">
+        <span class="separator">/</span>
+        <a th:unless="${crumb.last}"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${ref} + '/' + ${crumb.path}}"
+           th:text="${crumb.name}">dir</a>
+        <strong th:if="${crumb.last}" class="final-path" th:text="${crumb.name}">file</strong>
+      </th:block>
+    </nav>
+  </div>
+
+  <div class="Box mb-3">
+    <div class="Box-header d-flex flex-items-center flex-wrap gap-2">
+      <span class="color-fg-muted f6">
+        <span th:text="${#lists.size(lines)}">0</span> lines
+        <span class="mx-1">&middot;</span>
+        <span th:text="${byteSize}">0</span> Bytes
+      </span>
+      <div class="ml-auto d-flex gap-2">
+        <a class="btn btn-sm" th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/raw/' + ${ref} + '/' + ${filePath}}">Raw</a>
+        <button type="button" class="btn btn-sm" th:attr="data-copy=${content}" aria-label="Copy file contents">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-copy"></use></svg>
+        </button>
       </div>
     </div>
 
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" class="active">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
-    </nav>
+    <!-- Markdown files render; everything else shows source with a line gutter. -->
+    <article th:if="${renderedHtml != null}" class="Box-body markdown-body p-5" th:utext="${renderedHtml}"></article>
 
-    <!-- Breadcrumb: ref / path/to/file -->
-    <div class="flex items-center gap-1 mb-3 text-sm text-muted">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" th:text="${ref}">ref</a>
-      <th:block th:each="part,iter : ${#strings.arraySplit(filePath, '/')}">
-        <span>/</span>
-        <span th:text="${part}" th:classappend="${iter.last ? ' font-semibold text-muted' : ''}">part</span>
-      </th:block>
+    <div th:unless="${renderedHtml != null}" class="blob-wrapper">
+      <table class="blob-table">
+        <tbody>
+          <tr th:each="line,iter : ${lines}">
+            <td class="blob-num" th:id="'L' + ${iter.count}" th:text="${iter.count}">1</td>
+            <td class="blob-code" th:text="${line}">code</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-
-    <pre class="code-view" th:text="${content}">file content</pre>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

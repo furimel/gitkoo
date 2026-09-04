@@ -1,41 +1,63 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('Team')}"></head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head(${team.displayName ?: team.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 th:text="${team.displayName ?: team.name}">Team</h1>
-    <p class="text-muted mb-4" th:if="${team.description}" th:text="${team.description}"></p>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
 
-    <div class="card mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-lg">Members</h2>
-      </div>
-      <div th:each="m,iter : ${members}" class="flex items-center justify-between py-2 border-t">
-        <a th:href="@{'/@/' + ${users[iter.index]?.username}}" th:text="${users[iter.index]?.displayName ?: users[iter.index]?.username ?: 'Unknown'}">user</a>
-        <span class="text-sm px-3 py-1 rounded-full" th:text="${m.role}"
-              th:style="${m.role == 'OWNER' ? 'background:var(--accent-subtle);color:var(--accent-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)'}">role</span>
-      </div>
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading d-flex flex-items-center gap-2">
+      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-people"></use></svg>
+      <span th:text="${team.displayName ?: team.name}">Team</span>
+    </h1>
+    <p class="Subhead-description" th:if="${team.description}" th:text="${team.description}">description</p>
+  </div>
+
+  <div class="Box mb-4">
+    <div class="Box-header d-flex flex-items-center">
+      <h2 class="Box-title flex-auto">Members</h2>
+      <span class="Counter" th:text="${#lists.size(members)}">0</span>
     </div>
+    <div class="Box-row d-flex flex-items-center gap-3" th:each="m,iter : ${members}">
+      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold flex-shrink-0"
+            style="width:32px;height:32px"
+            th:text="${#strings.toUpperCase(#strings.substring(users[iter.index]?.username ?: 'U', 0, 1))}">U</span>
+      <a class="flex-auto text-bold" th:href="@{'/@/' + ${users[iter.index]?.username}}"
+         th:text="${users[iter.index]?.displayName ?: users[iter.index]?.username ?: 'Unknown'}">user</a>
+      <span class="Label"
+            th:classappend="${m.role == 'OWNER'} ? ' Label--accent' : ' Label--secondary'"
+            th:text="${#strings.toLowerCase(m.role)}">member</span>
+    </div>
+    <div th:if="${members.isEmpty()}" class="blankslate">
+      <h3 class="blankslate-heading">No members yet</h3>
+      <p>Add someone below to get started.</p>
+    </div>
+  </div>
 
-    <div class="card">
-      <h2 class="text-lg mb-2">Add member</h2>
-      <form th:action="@{'/teams/' + ${team.name} + '/members'}" method="post" class="flex gap-2 items-end">
-        <div class="field flex-1 mb-0">
+  <div class="Box">
+    <div class="Box-header">
+      <h2 class="Box-title">Add a member</h2>
+    </div>
+    <form th:action="@{'/teams/' + ${team.name} + '/members'}" method="post">
+      <div class="Box-body d-flex flex-items-end flex-wrap gap-2">
+        <div class="form-group mb-0 flex-auto">
           <label for="username">Username</label>
-          <input type="text" id="username" name="username" class="input" required placeholder="username">
+          <input type="text" id="username" name="username" class="form-control" required placeholder="username">
         </div>
-        <div class="field mb-0">
+        <div class="form-group mb-0">
           <label for="role">Role</label>
-          <select id="role" name="role" class="select">
+          <select id="role" name="role" class="form-select">
             <option value="MEMBER">Member</option>
             <option value="MAINTAINER">Maintainer</option>
             <option value="OWNER">Owner</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary">Add</button>
-      </form>
-    </div>
+        <button type="submit" class="btn btn-primary">Add member</button>
+      </div>
+    </form>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

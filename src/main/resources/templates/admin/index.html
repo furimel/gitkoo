@@ -1,19 +1,38 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Admin')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 class="mb-4">Admin</h1>
-    <div class="card mb-3">
-      <h2 class="text-lg mb-2">Overview</h2>
-      <p class="text-muted"><span th:text="${userCount}">0</span> registered users</p>
-    </div>
-    <div class="flex gap-2">
-      <a th:href="@{/admin/users}" class="btn">Users</a>
-      <a th:href="@{/admin/system}" class="btn">System</a>
-      <a th:href="@{/admin/audit}" class="btn">Audit log</a>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Site administration</h1>
+  </div>
+
+  <div class="Box mb-4">
+    <div class="Box-row d-flex flex-items-center gap-3">
+      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-people"></use></svg>
+      <span class="flex-auto">Registered users</span>
+      <span class="Counter Counter--primary" th:text="${userCount}">0</span>
     </div>
   </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <a th:href="@{/admin/users}" class="btn">
+      <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-people"></use></svg>
+      Users
+    </a>
+    <a th:href="@{/admin/system}" class="btn">
+      <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
+      System
+    </a>
+    <a th:href="@{/admin/audit}" class="btn">
+      <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
+      Audit log
+    </a>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

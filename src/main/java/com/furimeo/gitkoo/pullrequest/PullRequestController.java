@@ -30,15 +30,21 @@ public class PullRequestController {
     private final UserService userService;
     private final MarkdownService markdownService;
     private final RepositoryPermissionService permissionService;
+    private final com.furimeo.gitkoo.git.GitService gitService;
+    private final com.furimeo.gitkoo.git.DiffParser diffParser;
 
     public PullRequestController(PullRequestService prService, RepositoryService repositoryService,
                                 UserService userService, MarkdownService markdownService,
-                                RepositoryPermissionService permissionService) {
+                                RepositoryPermissionService permissionService,
+                                com.furimeo.gitkoo.git.GitService gitService,
+                                com.furimeo.gitkoo.git.DiffParser diffParser) {
         this.prService = prService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.markdownService = markdownService;
         this.permissionService = permissionService;
+        this.gitService = gitService;
+        this.diffParser = diffParser;
     }
 
     @GetMapping("/pulls")
@@ -101,6 +107,17 @@ public class PullRequestController {
                 .map(r -> userService.findById(r.getReviewerId()).orElse(null))
                 .toList());
         model.addAttribute("markdown", markdownService);
+
+        // The changes the PR proposes, so the page can actually be reviewed.
+        var storagePath = java.nio.file.Path.of(repo.getStoragePath());
+        var files = diffParser.parse(
+                gitService.diff(storagePath, pr.getTargetBranch(), pr.getSourceBranch()));
+        int[] totals = diffParser.totals(files);
+        model.addAttribute("diffFiles", files);
+        model.addAttribute("additions", totals[0]);
+        model.addAttribute("deletions", totals[1]);
+        model.addAttribute("commits",
+                gitService.log(storagePath, pr.getTargetBranch() + ".." + pr.getSourceBranch(), 50));
         return "pr/view";
     }
 

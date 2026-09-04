@@ -1,26 +1,45 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Search')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 class="mb-4">Search</h1>
-    <form th:action="@{/search}" method="get" class="mb-4">
-      <div class="flex gap-2">
-        <input type="text" name="q" class="input" th:value="${query}" placeholder="Search repositories..." required>
-        <button type="submit" class="btn btn-primary">Search</button>
-      </div>
-    </form>
-    <div th:if="${results != null and !results.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="r : ${results}">
-        <span class="title font-medium" th:text="${r.name}">name</span>
-        <span class="text-muted text-sm" th:if="${r.description}" th:text="${r.description}">desc</span>
-      </div>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Search results</h1>
+    <p class="Subhead-description" th:if="${query != null}">
+      <span th:text="${results != null ? #lists.size(results) : 0}">0</span> repositories matching
+      <strong th:text="${query}">query</strong>
+    </p>
+  </div>
+
+  <form th:action="@{/search}" method="get" class="mb-4">
+    <div class="d-flex gap-2">
+      <input type="text" name="q" class="form-control flex-auto" th:value="${query}"
+             placeholder="Search repositories..." required aria-label="Search query">
+      <button type="submit" class="btn btn-primary">Search</button>
     </div>
-    <div th:if="${results != null and results.isEmpty() and query != null}" class="empty-state">
-      <h2>No results</h2>
-      <p>No repositories found for "<span th:text="${query}">q</span>".</p>
+  </form>
+
+  <div th:if="${results != null and !results.isEmpty()}" class="Box">
+    <div class="Box-row d-flex flex-items-start" th:each="r : ${results}">
+      <svg class="octicon color-fg-muted mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true">
+        <use href="#octicon-repo"></use>
+      </svg>
+      <div class="flex-auto">
+        <span class="f4 text-bold" th:text="${r.name}">name</span>
+        <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
+      </div>
     </div>
   </div>
+
+  <div th:if="${results != null and results.isEmpty() and query != null}" class="blankslate border rounded-2">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-search"></use></svg>
+    <h3 class="blankslate-heading">No results</h3>
+    <p>No repositories match <strong th:text="${query}">query</strong>.</p>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

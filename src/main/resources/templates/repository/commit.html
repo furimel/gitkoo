@@ -1,48 +1,87 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{fragments/common :: head(${owner + '/' + repo.name})}"></head>
+<head th:replace="~{fragments/common :: head('Commit ' + ${#strings.substring(sha, 0, 7)})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <!-- Repository header: owner / name (DESIGN.md §12) -->
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}">owner</a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}">repo</strong>
-      </div>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'code')}"></div>
+
+<main class="container-lg px-3 mt-4">
+
+  <!-- Commit message and metadata -->
+  <div class="Box mb-4">
+    <div class="Box-body">
+      <h1 class="f3 mb-2" th:text="${commit.message}">message</h1>
     </div>
-
-    <!-- Tabs: Code / Issues / Pull Requests / Actions / Settings -->
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" class="active">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}">Settings</a>
-    </nav>
-
-    <!-- Commit metadata: SHA, author, date, message, parent (DESIGN.md §13) -->
-    <div class="card mb-3">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="sha" th:text="${#strings.substring(sha, 0, 7)}">sha</span>
-        <span class="text-muted text-sm" th:text="${commit.authorName}">author</span>
-        <span class="text-muted text-sm" th:text="${commit.authorDateIso}">date</span>
-      </div>
-      <pre class="commit-message" th:text="${commit.message}">message</pre>
-      <div class="text-sm text-muted mt-2" th:if="${commit.parent != null and !commit.parent.isEmpty()}">
-        Parent:
-        <a class="sha"
-           th:each="p : ${commit.parent.split(' ')}"
-           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${p}}"
-           th:text="${#strings.substring(p, 0, 7)}">parent</a>
-      </div>
+    <div class="Box-row d-flex flex-items-center flex-wrap gap-2 color-fg-muted">
+      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
+            style="width:20px;height:20px;font-size:11px"
+            th:text="${#strings.toUpperCase(#strings.substring(commit.authorName, 0, 1))}">A</span>
+      <strong class="color-fg-default" th:text="${commit.authorName}">author</strong>
+      <span>committed</span>
+      <time th:if="${commit.authorDateIso != null}" th:datetime="${commit.authorDateIso}"
+            th:text="${commit.authorDateIso}">date</time>
+      <span class="ml-auto d-flex flex-items-center flex-wrap gap-2">
+        <span th:if="${commit.parent != null and !commit.parent.isEmpty()}">
+          parent
+          <a class="text-mono" th:each="p : ${commit.parent.split(' ')}"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${p}}"
+             th:text="${#strings.substring(p, 0, 7)}">0000000</a>
+        </span>
+        <span class="text-mono color-fg-muted">commit <span th:text="${#strings.substring(sha, 0, 7)}">0000000</span></span>
+      </span>
     </div>
-
-    <!-- Diff (DESIGN.md §13) -->
-    <h2 class="text-sm text-muted mb-2">Changes</h2>
-    <pre class="code-view" th:if="${diff != null and !diff.isEmpty()}" th:text="${diff}">diff</pre>
-    <p class="text-muted" th:if="${diff == null or diff.isEmpty()}">No changes</p>
   </div>
+
+  <!-- Diff -->
+  <h2 class="f4 mb-3 d-flex flex-items-center flex-wrap gap-2">
+    <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
+    Showing
+    <span class="Counter" th:text="${#lists.size(diffFiles)}">0</span>
+    <span th:text="${#lists.size(diffFiles) == 1} ? 'changed file' : 'changed files'">changed files</span>
+    <span class="f6 text-normal">
+      <span class="color-fg-success text-bold">+<span th:text="${additions}">0</span></span>
+      <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${deletions}">0</span></span>
+    </span>
+  </h2>
+
+  <div th:if="${diffFiles.isEmpty()}" class="blankslate border rounded-2">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-file"></use></svg>
+    <h3 class="blankslate-heading">No changes</h3>
+    <p>This commit does not modify any files.</p>
+  </div>
+
+  <div class="diff-file" th:each="file : ${diffFiles}">
+    <div class="diff-file-header">
+      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
+      <strong th:text="${file.path}">path</strong>
+      <span class="ml-auto">
+        <span class="color-fg-success text-bold">+<span th:text="${file.additions}">0</span></span>
+        <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${file.deletions}">0</span></span>
+      </span>
+    </div>
+    <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
+      Binary file not shown.
+    </p>
+    <table class="diff-table" th:unless="${file.binary}">
+      <tbody>
+        <tr th:each="line : ${file.lines}"
+            th:classappend="${line.isHunk()} ? ' diff-line--hunk'
+                            : (${line.isAddition()} ? ' diff-line--add'
+                            : (${line.isDeletion()} ? ' diff-line--del' : ''))">
+          <th:block th:if="${line.isHunk()}">
+            <td colspan="3" th:text="${line.content}">@@</td>
+          </th:block>
+          <th:block th:unless="${line.isHunk()}">
+            <td class="diff-num" th:text="${line.oldNumber}"></td>
+            <td class="diff-num" th:text="${line.newNumber}"></td>
+            <td class="diff-code" th:text="${line.content}">code</td>
+          </th:block>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

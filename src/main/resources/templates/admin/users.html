@@ -1,20 +1,33 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Users')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 class="mb-4">Users</h1>
-    <div class="card p-0">
-      <div class="commit-item" th:each="u : ${users}">
-        <a th:href="@{'/@/' + ${u.username}}" th:text="${u.displayName ?: u.username}">user</a>
-        <span class="text-muted text-sm" th:text="${u.email}">email</span>
-        <span th:if="${u.admin}" class="text-sm px-2 rounded-full"
-              style="background:var(--accent-subtle);color:var(--accent-fg)">admin</span>
-        <span class="text-sm px-2 rounded-full" th:text="${u.status}"
-              th:style="${u.status == 'ACTIVE' ? 'background:var(--success-subtle);color:var(--success-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)'}">status</span>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Users</h1>
+    <p class="Subhead-description"><span th:text="${#lists.size(users)}">0</span> accounts on this instance.</p>
+  </div>
+
+  <div class="Box">
+    <div class="Box-row d-flex flex-items-center gap-3" th:each="u : ${users}">
+      <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold flex-shrink-0"
+            style="width:32px;height:32px"
+            th:text="${#strings.toUpperCase(#strings.substring(u.username, 0, 1))}">U</span>
+      <div class="flex-auto">
+        <a class="text-bold" th:href="@{'/@/' + ${u.username}}"
+           th:text="${u.displayName ?: u.username}">user</a>
+        <div class="color-fg-muted f6" th:text="${u.email}">email</div>
       </div>
+      <span th:if="${u.admin}" class="Label Label--accent">admin</span>
+      <span class="Label"
+            th:classappend="${u.status == 'ACTIVE'} ? ' Label--success' : ' Label--secondary'"
+            th:text="${#strings.toLowerCase(u.status)}">active</span>
     </div>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

@@ -2,54 +2,70 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('SSH keys')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app max-w-xl">
-    <h1 class="mb-4">SSH keys</h1>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
 
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
-    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">SSH keys</h1>
+    <p class="Subhead-description">Public keys that may push and pull over SSH.</p>
+  </div>
 
-    <!-- Existing keys -->
-    <div th:if="${keys != null and !keys.isEmpty()}" class="card p-0 mb-4">
-      <div class="commit-item" th:each="key : ${keys}">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="title font-medium" th:text="${key.title ?: '(untitled)'}">title</span>
-            <div class="text-muted text-sm" th:text="'fingerprint: ' + ${key.fingerprint}">fingerprint</div>
-            <div class="text-muted text-sm" th:if="${key.keyType}" th:text="'type: ' + ${key.keyType}">type</div>
-            <div class="text-muted text-sm" th:text="'added ' + ${key.createdAt}">added</div>
-          </div>
-          <form th:action="@{'/settings/keys/' + ${key.id} + '/delete'}" method="post"
-                class="inline-flex"
-                onsubmit="return confirm('Delete this SSH key?');">
-            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-          </form>
+  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+  <div th:if="${success}" class="flash flash-success" th:text="${success}"></div>
+
+  <div th:if="${keys != null and !keys.isEmpty()}" class="Box mb-4">
+    <div class="Box-row d-flex flex-items-start gap-3" th:each="key : ${keys}">
+      <svg class="octicon color-fg-muted mt-1 flex-shrink-0" width="16" height="16" aria-hidden="true">
+        <use href="#octicon-key"></use>
+      </svg>
+      <div class="flex-auto">
+        <strong th:text="${key.title ?: '(untitled)'}">title</strong>
+        <div class="color-fg-muted f6 text-mono mt-1" th:text="${key.fingerprint}">fingerprint</div>
+        <div class="color-fg-muted f6 mt-1">
+          <span th:if="${key.keyType}" th:text="${key.keyType}">ed25519</span>
+          <span th:if="${key.keyType}" class="mx-1">&middot;</span>
+          Added <time th:datetime="${key.createdAt}" th:text="${key.createdAt}">date</time>
         </div>
       </div>
+      <form th:action="@{'/settings/keys/' + ${key.id} + '/delete'}" method="post"
+            data-confirm="Delete this SSH key? Anything using it will lose access.">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+      </form>
     </div>
+  </div>
 
-    <div th:if="${keys == null or keys.isEmpty()}" class="empty-state">
-      <h2>No SSH keys yet</h2>
-      <p>Add a public key below to push and pull repositories over SSH.</p>
+  <div th:if="${keys == null or keys.isEmpty()}" class="blankslate border rounded-2 mb-4">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-key"></use></svg>
+    <h3 class="blankslate-heading">No SSH keys yet</h3>
+    <p>Add a public key below to push and pull over SSH.</p>
+  </div>
+
+  <div class="Box">
+    <div class="Box-header">
+      <h2 class="Box-title">Add a new SSH key</h2>
     </div>
-
-    <!-- Add key form -->
-    <h2 class="text-md font-semibold mb-2">Add a new SSH key</h2>
     <form th:action="@{/settings/keys}" method="post">
-      <div class="field">
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" class="input" th:value="${title}"
-               placeholder="My laptop" autocomplete="off">
+      <div class="Box-body">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" class="form-control" th:value="${title}"
+                 placeholder="My laptop" autocomplete="off" style="max-width:340px">
+        </div>
+        <div class="form-group mb-0">
+          <label for="publicKey">Key</label>
+          <textarea id="publicKey" name="publicKey" class="form-control text-mono" rows="6"
+                    placeholder="ssh-ed25519 AAAA..." autocomplete="off"
+                    th:text="${publicKey}"></textarea>
+          <p class="note">Paste the contents of your <code>~/.ssh/id_*.pub</code> file.</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="publicKey">Public key</label>
-        <textarea id="publicKey" name="publicKey" class="input" rows="5"
-                  placeholder="ssh-ed25519 AAAA..." autocomplete="off"
-                  th:text="${publicKey}"></textarea>
-        <div class="hint">Paste the contents of your <code>~/.ssh/id_*.pub</code> file.</div>
+      <div class="Box-footer">
+        <button type="submit" class="btn btn-primary">Add SSH key</button>
       </div>
-      <button type="submit" class="btn btn-primary">Add key</button>
     </form>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

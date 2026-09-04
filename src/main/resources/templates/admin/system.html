@@ -1,22 +1,47 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('System')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 class="mb-4">System</h1>
-    <div class="card">
-      <table class="w-full text-sm">
-        <tr class="border-b"><td class="py-2 font-medium">GitKoo version</td><td th:text="${gitkooVersion}">0.0.1</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">Java version</td><td th:text="${javaVersion}">21</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">Git binary</td><td th:text="${gitBinary}">git</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">Data path</td><td th:text="${dataPath}">./data</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">CI enabled</td><td th:text="${ciEnabled} ? 'yes' : 'no'">yes</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">CI workers</td><td th:text="${ciWorkers}">2</td></tr>
-        <tr class="border-b"><td class="py-2 font-medium">SSH enabled</td><td th:text="${sshEnabled} ? 'yes' : 'no'">yes</td></tr>
-        <tr><td class="py-2 font-medium">SSH port</td><td th:text="${sshPort}">2222</td></tr>
-      </table>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">System</h1>
+    <p class="Subhead-description">Runtime configuration of this instance.</p>
+  </div>
+
+  <div class="Box">
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">GitKoo version</span>
+      <span class="text-mono color-fg-muted" th:text="${gitkooVersion}">0.0.1</span>
+    </div>
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">Java version</span>
+      <span class="text-mono color-fg-muted" th:text="${javaVersion}">21</span>
+    </div>
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">Git binary</span>
+      <span class="text-mono color-fg-muted" th:text="${gitBinary}">git</span>
+    </div>
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">Data path</span>
+      <span class="text-mono color-fg-muted" th:text="${dataPath}">./data</span>
+    </div>
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">CI</span>
+      <span class="Label" th:classappend="${ciEnabled} ? ' Label--success' : ' Label--secondary'"
+            th:text="${ciEnabled} ? 'enabled' : 'disabled'">enabled</span>
+      <span class="color-fg-muted ml-2"><span th:text="${ciWorkers}">2</span> workers</span>
+    </div>
+    <div class="Box-row d-flex flex-items-center">
+      <span class="flex-auto text-bold">SSH</span>
+      <span class="Label" th:classappend="${sshEnabled} ? ' Label--success' : ' Label--secondary'"
+            th:text="${sshEnabled} ? 'enabled' : 'disabled'">enabled</span>
+      <span class="color-fg-muted ml-2">port <span th:text="${sshPort}">2222</span></span>
     </div>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

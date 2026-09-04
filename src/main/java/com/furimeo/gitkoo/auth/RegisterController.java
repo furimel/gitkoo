@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Public registration page for new (non-admin) users (DESIGN.md §43).
+ * Public registration page for new (non-admin) users (see docs/).
  *
  * <p>Only available after first-run setup is complete (an admin exists). If no
  * admin exists yet, the setup redirect filter sends the user to /setup instead.

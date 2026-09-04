@@ -1,25 +1,227 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  Shared layout fragments, built on Primer CSS (@primer/css 21.5.1).
+
+    head(title)                 <head> contents: Primer, supplement, no-flash theme script.
+    header                      the dark Header bar plus the octicon sprite.
+    repoHead(owner, repo, tab)  repository title + UnderlineNav. `tab` selects the active
+                                item: code | issues | pulls | actions | activity | settings.
+    footer                      page footer.
+
+  Every page is:  head -> header -> <main> -> footer.
+
+  Theming uses Primer's own mechanism: data-color-mode / data-light-theme /
+  data-dark-theme on <html>, set inline before first paint by the script below.
+-->
 <head th:fragment="head(title)">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${title} + ' \u00b7 GitKoo'">GitKoo</title>
+  <title th:text="${title} + ' &middot; GitKoo'">GitKoo</title>
+  <meta name="theme-color" content="#24292f">
+  <link rel="icon" th:href="@{/assets/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/primer.css}">
   <link rel="stylesheet" th:href="@{/assets/css/gitkoo.css}">
+  <!--
+    Runs before first paint so a dark-mode reader never sees a white flash.
+    Stores one of: auto | light | dark | dark_dimmed. gitkoo.js cycles it.
+  -->
+  <script>
+    (function () {
+      var el = document.documentElement;
+      var pref = "auto";
+      try { pref = localStorage.getItem("gitkoo-theme") || "auto"; } catch (e) { /* private mode */ }
+      el.setAttribute("data-color-mode", pref === "auto" ? "auto" : "light");
+      el.setAttribute("data-light-theme", pref === "auto" ? "light" : pref);
+      el.setAttribute("data-dark-theme", "dark");
+    })();
+  </script>
+  <script th:src="@{/assets/js/htmx.min.js}" defer></script>
   <script th:src="@{/assets/js/gitkoo.js}" defer></script>
 </head>
+
 <body>
-  <header class="app-header" th:fragment="header">
-    <a th:href="@{/}" class="brand">GitKoo</a>
-    <div class="nav-spacer"></div>
-    <button class="theme-toggle" type="button" aria-label="Toggle theme"></button>
-    <nav class="flex items-center gap-3" sec:authorize="isAuthenticated()">
-      <a th:href="@{/settings/keys}" class="btn btn-sm">Settings</a>
-      <a th:href="@{/notifications}" class="btn btn-sm">Notifications</a>
-      <a th:href="@{/new}" class="btn btn-sm">New repository</a>
-      <form th:action="@{/logout}" method="post" class="inline-flex">
-        <button type="submit" class="btn btn-sm">Sign out</button>
+
+<!-- ══ Top bar ═════════════════════════════════════════════════════════ -->
+<th:block th:fragment="header">
+  <div th:replace="~{fragments/icons :: sprite}"></div>
+
+  <header class="Header">
+    <div class="Header-item">
+      <a th:href="@{/}" class="Header-link d-flex flex-items-center" aria-label="GitKoo home">
+        <svg class="octicon" width="32" height="32" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
+        <span class="ml-2 f4 text-bold">GitKoo</span>
+      </a>
+    </div>
+
+    <div class="Header-item Header-item--full">
+      <form class="Header-search" th:action="@{/search}" method="get" role="search">
+        <input type="search" name="q" th:value="${param.q}" class="form-control input-sm"
+               placeholder="Search or jump to..." aria-label="Search repositories" autocomplete="off">
       </form>
-    </nav>
+    </div>
+
+    <th:block sec:authorize="isAuthenticated()">
+      <!-- Create -->
+      <div class="Header-item mr-0 mr-md-3">
+        <details class="details-overlay details-reset">
+          <summary class="Header-link btn-octicon d-flex flex-items-center"
+                   role="button" aria-haspopup="menu" aria-label="Create new...">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-plus"></use></svg>
+            <span class="dropdown-caret"></span>
+          </summary>
+          <div class="dropdown-menu dropdown-menu-sw" role="menu">
+            <a class="dropdown-item" role="menuitem" th:href="@{/new}">New repository</a>
+            <a class="dropdown-item" role="menuitem" th:href="@{/teams/new}">New team</a>
+          </div>
+        </details>
+      </div>
+
+      <!-- Notifications -->
+      <div class="Header-item position-relative">
+        <a th:href="@{/notifications}" class="Header-link" aria-label="Notifications">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-bell"></use></svg>
+          <span th:if="${globalUnread != null and globalUnread > 0}" class="unread-indicator"></span>
+          <span th:if="${globalUnread != null and globalUnread > 0}" class="sr-only"
+                th:text="${globalUnread} + ' unread notifications'">unread</span>
+        </a>
+      </div>
+
+      <!-- Theme -->
+      <div class="Header-item">
+        <button type="button" class="Header-link btn-octicon theme-toggle" aria-label="Toggle theme">
+          <svg class="octicon theme-icon-light" width="16" height="16" aria-hidden="true"><use href="#octicon-sun"></use></svg>
+          <svg class="octicon theme-icon-dark" width="16" height="16" aria-hidden="true"><use href="#octicon-moon"></use></svg>
+        </button>
+      </div>
+
+      <!-- Account -->
+      <div class="Header-item mr-0">
+        <details class="details-overlay details-reset">
+          <summary class="Header-link d-flex flex-items-center" role="button" aria-haspopup="menu"
+                   th:aria-label="'Account menu for ' + ${#authentication.name}">
+            <span class="avatar avatar-small circle color-bg-emphasis d-flex flex-items-center flex-justify-center text-bold"
+                  style="width:20px;height:20px;font-size:11px"
+                  th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</span>
+            <span class="dropdown-caret"></span>
+          </summary>
+          <div class="dropdown-menu dropdown-menu-sw" role="menu">
+            <div class="dropdown-header">
+              Signed in as <strong th:text="${#authentication.name}">user</strong>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" role="menuitem" th:href="@{'/@/' + ${#authentication.name}}">Your profile</a>
+            <a class="dropdown-item" role="menuitem" th:href="@{/}">Your repositories</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" role="menuitem" th:href="@{/settings/keys}">Settings</a>
+            <a class="dropdown-item" role="menuitem" th:href="@{/admin}" sec:authorize="hasRole('ADMIN')">Site admin</a>
+            <div class="dropdown-divider"></div>
+            <form th:action="@{/logout}" method="post">
+              <button type="submit" class="dropdown-item btn-link width-full text-left" role="menuitem">Sign out</button>
+            </form>
+          </div>
+        </details>
+      </div>
+    </th:block>
+
+    <th:block sec:authorize="!isAuthenticated()">
+      <div class="Header-item">
+        <button type="button" class="Header-link btn-octicon theme-toggle" aria-label="Toggle theme">
+          <svg class="octicon theme-icon-light" width="16" height="16" aria-hidden="true"><use href="#octicon-sun"></use></svg>
+          <svg class="octicon theme-icon-dark" width="16" height="16" aria-hidden="true"><use href="#octicon-moon"></use></svg>
+        </button>
+      </div>
+      <div class="Header-item mr-0">
+        <a th:href="@{/login}" class="btn btn-sm mr-2">Sign in</a>
+        <a th:href="@{/register}" class="btn btn-sm btn-primary">Sign up</a>
+      </div>
+    </th:block>
   </header>
+</th:block>
+
+<!-- ══ Repository title + tab bar ══════════════════════════════════════ -->
+<div th:fragment="repoHead(owner, repo, tab)" class="repo-head">
+  <div class="container-lg px-3">
+    <div class="repo-title">
+      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true">
+        <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
+      </svg>
+      <a class="Link--primary" th:href="@{'/@/' + ${owner}}" th:text="${owner}">owner</a>
+      <span class="separator">/</span>
+      <strong><a th:href="@{'/' + ${owner} + '/' + ${repo.name}}" th:text="${repo.name}">repo</a></strong>
+      <span class="Label Label--secondary" th:text="${#strings.toLowerCase(repo.visibility)}">public</span>
+    </div>
+
+    <nav class="UnderlineNav" aria-label="Repository">
+      <ul class="UnderlineNav-body list-style-none">
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'code'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name}}"
+             th:aria-current="${tab == 'code'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
+            <span>Code</span>
+          </a>
+        </li>
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'issues'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}"
+             th:aria-current="${tab == 'issues'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
+            <span>Issues</span>
+            <span class="Counter" th:if="${openIssueCount != null and openIssueCount > 0}"
+                  th:text="${openIssueCount}">0</span>
+          </a>
+        </li>
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'pulls'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}"
+             th:aria-current="${tab == 'pulls'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+            <span>Pull requests</span>
+            <span class="Counter" th:if="${openPrCount != null and openPrCount > 0}"
+                  th:text="${openPrCount}">0</span>
+          </a>
+        </li>
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'actions'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}"
+             th:aria-current="${tab == 'actions'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-play"></use></svg>
+            <span>Actions</span>
+          </a>
+        </li>
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'activity'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}"
+             th:aria-current="${tab == 'activity'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
+            <span>Activity</span>
+          </a>
+        </li>
+        <li class="d-inline-flex">
+          <a class="UnderlineNav-item" th:classappend="${tab == 'settings'} ? ' selected'"
+             th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}"
+             th:aria-current="${tab == 'settings'} ? 'page' : null">
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- ══ Footer ══════════════════════════════════════════════════════════ -->
+<footer th:fragment="footer" class="container-lg px-3 mt-6 pt-4 pb-4 border-top color-fg-muted f6">
+  <div class="d-flex flex-wrap flex-items-center gap-3">
+    <svg class="octicon color-fg-subtle" width="20" height="20" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
+    <span>GitKoo &mdash; self-hosted Git forge</span>
+    <span class="ml-auto d-flex gap-3">
+      <a class="Link--secondary" th:href="@{/healthz}">Status</a>
+      <a class="Link--secondary" href="https://github.com/furimeo/gitkoo" rel="noopener">Source</a>
+    </span>
+  </div>
+</footer>
+
 </body>
 </html>

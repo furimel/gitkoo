@@ -1,37 +1,47 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('Actions')}"></head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('Actions - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}"></strong>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'actions')}"></div>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h2 class="Subhead-heading">Workflow runs</h2>
+  </div>
+
+  <div th:unless="${runs.isEmpty()}" class="Box">
+    <div class="Box-row d-flex flex-items-center gap-3" th:each="r : ${runs}">
+      <svg class="octicon flex-shrink-0" width="16" height="16" aria-hidden="true"
+           th:classappend="${r.status == 'SUCCESS'} ? ' color-fg-success'
+                           : (${r.status == 'FAILED'} ? ' color-fg-danger' : ' color-fg-attention')">
+        <use th:href="${r.status == 'SUCCESS'} ? '#octicon-check'
+                      : (${r.status == 'FAILED'} ? '#octicon-x' : '#octicon-clock')"></use>
+      </svg>
+      <div class="flex-auto">
+        <span class="text-bold" th:text="${r.event}">push</span>
+        <span class="color-fg-muted" th:if="${r.ref != null}" th:text="${r.ref}">ref</span>
+        <div class="color-fg-muted f6 mt-1">
+          Run #<span th:text="${r.id}">1</span>
+          <span class="mx-1">&middot;</span>
+          <span th:text="${#strings.capitalize(#strings.toLowerCase(r.status))}">Queued</span>
+        </div>
       </div>
-    </div>
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}" class="active">Actions</a>
-    </nav>
-    <h2 class="mb-3">Workflow runs</h2>
-    <div th:if="${runs.isEmpty()}" class="empty-state">
-      <h2>No workflow runs yet</h2>
-      <p>Add a <code>.gitkoo/workflows/build.koo</code> file and push to trigger a run.</p>
-    </div>
-    <div th:unless="${runs.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="r : ${runs}">
-        <span class="sha">#<span th:text="${r.id}"></span></span>
-        <span class="title" th:text="${r.event} + ' ' + (r.ref != null ? r.ref : '')">event</span>
-        <span class="text-sm px-2 rounded-full" th:text="${r.status}"
-              th:style="${r.status == 'SUCCESS' ? 'background:var(--success-subtle);color:var(--success-fg)' : (r.status == 'FAILED' ? 'background:var(--danger-subtle);color:var(--danger-fg)' : 'background:var(--canvas-subtle);color:var(--fg-muted)')}">status</span>
-        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions/' + ${r.id} + '/logs'}"
-           class="btn btn-sm" target="_blank">View logs</a>
-      </div>
+      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions/' + ${r.id} + '/logs'}"
+         class="btn btn-sm" target="_blank" rel="noopener">
+        View logs
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-link-external"></use></svg>
+      </a>
     </div>
   </div>
+
+  <div th:if="${runs.isEmpty()}" class="blankslate border rounded-2">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-play"></use></svg>
+    <h3 class="blankslate-heading">No workflow runs yet</h3>
+    <p>Add a <code>.gitkoo/workflows/build.koo</code> file and push to trigger a run.</p>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

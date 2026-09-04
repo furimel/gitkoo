@@ -7,10 +7,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
- * Records and lists human-readable activity events (DESIGN.md §23).
+ * Records and lists human-readable activity events (see docs/).
  *
  * <p>Activity is work-oriented: pushed commits, opened PRs, closed issues.
- * Not a social feed (no trending, followers, or viral posts, DESIGN.md §55).
+ * Not a social feed (no trending, followers, or viral posts, ).
  *
  * <p>After recording, an {@link ActivityCreatedEvent} is published so other domains (e.g.
  * notifications) can react without being wired into every call site.

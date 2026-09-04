@@ -2,24 +2,45 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Dashboard')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="flex items-center justify-between mb-4">
-      <h1>Dashboard</h1>
-      <a th:href="@{/new}" class="btn btn-primary">New repository</a>
-    </div>
-    <div th:if="${repos != null and !repos.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="r : ${repos}">
-        <a class="title font-medium" th:href="@{'/' + ${#authentication.name} + '/' + ${r.name}}" th:text="${r.name}">repo</a>
-        <span class="text-muted text-sm" th:if="${r.description}" th:text="${r.description}">desc</span>
-        <span class="text-sm px-2 rounded-full" th:text="${r.visibility}"
-              th:style="${r.visibility == 'PRIVATE' ? 'background:var(--canvas-subtle);color:var(--fg-muted)' : 'background:var(--success-subtle);color:var(--success-fg)'}">vis</span>
-      </div>
-    </div>
-    <div th:if="${repos == null or repos.isEmpty()}" class="empty-state">
-      <h2>No repositories yet</h2>
-      <p>Create your first repository to get started.</p>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Your repositories</h1>
+    <div class="Subhead-actions">
+      <a th:href="@{/new}" class="btn btn-primary btn-sm">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
+        New
+      </a>
     </div>
   </div>
+
+  <div th:if="${repos != null and !repos.isEmpty()}" class="Box">
+    <!-- Name and description stack, the way GitHub lists repositories. -->
+    <div class="Box-row d-flex flex-items-start" th:each="r : ${repos}">
+      <div class="flex-auto">
+        <div class="d-flex flex-items-center flex-wrap gap-2">
+          <a class="f4 text-bold"
+             th:href="@{'/' + ${#authentication.name} + '/' + ${r.name}}" th:text="${r.name}">repo</a>
+          <span class="Label Label--secondary" th:text="${#strings.toLowerCase(r.visibility)}">public</span>
+        </div>
+        <p class="color-fg-muted mb-0 mt-1" th:if="${r.description}" th:text="${r.description}">description</p>
+      </div>
+      <div class="color-fg-muted f6 d-flex flex-items-center gap-1 no-wrap ml-3">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-branch"></use></svg>
+        <span th:text="${r.defaultBranch}">main</span>
+      </div>
+    </div>
+  </div>
+
+  <div th:if="${repos == null or repos.isEmpty()}" class="blankslate blankslate-large">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-repo"></use></svg>
+    <h3 class="blankslate-heading">No repositories yet</h3>
+    <p>Repositories you create will show up here.</p>
+    <a th:href="@{/new}" class="btn btn-primary">Create a repository</a>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

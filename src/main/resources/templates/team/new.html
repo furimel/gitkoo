@@ -1,26 +1,37 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('New team')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app max-w-lg">
-    <h1 class="mb-4">Create a new team</h1>
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
-    <form th:action="@{/teams/new}" method="post">
-      <div class="field">
-        <label for="name">Team name</label>
-        <input type="text" id="name" name="name" class="input" required placeholder="e.g. pump-team">
-      </div>
-      <div class="field">
-        <label for="displayName">Display name (optional)</label>
-        <input type="text" id="displayName" name="displayName" class="input" placeholder="Pump Team">
-      </div>
-      <div class="field">
-        <label for="description">Description (optional)</label>
-        <input type="text" id="description" name="description" class="input">
-      </div>
-      <button type="submit" class="btn btn-primary">Create team</button>
-    </form>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-md px-3 mt-5">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Create a new team</h1>
+    <p class="Subhead-description">Teams group people so you can grant repository access once.</p>
   </div>
+
+  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+  <form th:action="@{/teams/new}" method="post">
+    <div class="form-group">
+      <label for="name">Team name</label>
+      <input type="text" id="name" name="name" class="form-control" required
+             placeholder="e.g. platform" style="max-width:340px" autofocus>
+      <p class="note">Used in URLs. Lowercase, no spaces.</p>
+    </div>
+    <div class="form-group">
+      <label for="displayName">Display name <span class="color-fg-muted text-normal">(optional)</span></label>
+      <input type="text" id="displayName" name="displayName" class="form-control" placeholder="Platform Team">
+    </div>
+    <div class="form-group">
+      <label for="description">Description <span class="color-fg-muted text-normal">(optional)</span></label>
+      <input type="text" id="description" name="description" class="form-control"
+             placeholder="What this team is responsible for">
+    </div>
+    <button type="submit" class="btn btn-primary">Create team</button>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

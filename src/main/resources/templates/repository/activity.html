@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('Activity')}"></head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('Activity - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}"></strong>
-      </div>
-    </div>
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}" class="active">Activity</a>
-    </nav>
-    <div th:if="${activities.isEmpty()}" class="empty-state">
-      <h2>No activity yet</h2>
-      <p>Activity appears when someone pushes, opens issues, or merges PRs.</p>
-    </div>
-    <div th:unless="${activities.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="a : ${activities}">
-        <span class="text-muted text-sm" th:text="${a.createdAt}">time</span>
-        <span class="title" th:text="${a.message}">message</span>
-      </div>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'activity')}"></div>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h2 class="Subhead-heading">Activity</h2>
+  </div>
+
+  <div th:unless="${activities.isEmpty()}" class="Box">
+    <div class="Box-row d-flex flex-items-center gap-3" th:each="a : ${activities}">
+      <svg class="octicon color-fg-muted flex-shrink-0" width="16" height="16" aria-hidden="true">
+        <use href="#octicon-git-commit"></use>
+      </svg>
+      <span class="flex-auto" th:text="${a.message}">message</span>
+      <time class="color-fg-muted f6 no-wrap" th:if="${a.createdAt != null}"
+            th:datetime="${a.createdAt}" th:text="${a.createdAt}">time</time>
     </div>
   </div>
+
+  <div th:if="${activities.isEmpty()}" class="blankslate border rounded-2">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-history"></use></svg>
+    <h3 class="blankslate-heading">No activity yet</h3>
+    <p>Activity appears when someone pushes, opens issues, or merges pull requests.</p>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

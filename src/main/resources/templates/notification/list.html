@@ -1,54 +1,62 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:fragment="head(title)">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${title} + ' \u00b7 GitKoo'">GitKoo</title>
-  <link rel="stylesheet" th:href="@{/assets/css/gitkoo.css}">
-  <script th:src="@{/assets/js/gitkoo.js}" defer></script>
-</head>
+<head th:replace="~{fragments/common :: head('Notifications')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="flex items-center justify-between mb-3">
-      <h1>Notifications</h1>
-      <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post" class="inline-flex"
-            hx-post="@{/notifications/read-all}" hx-target="#notification-panel" hx-swap="outerHTML">
-        <button type="submit" class="btn btn-sm">Mark all as read</button>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Notifications</h1>
+    <div class="Subhead-actions">
+      <form th:if="${unreadCount > 0}" th:action="@{/notifications/read-all}" method="post"
+            th:hx-post="@{/notifications/read-all}" hx-target="#notification-panel" hx-swap="outerHTML">
+        <button type="submit" class="btn btn-sm">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
+          Mark all as read
+        </button>
       </form>
     </div>
+  </div>
 
-    <!-- The panel polls every 30s and is the swap target for read/read-all actions. -->
-    <div id="notification-panel" th:fragment="panel"
-         th:hx-get="@{/notifications}" hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
-      <div class="flex items-center gap-2 mb-3" th:if="${unreadCount > 0}">
-        <span class="text-sm px-2 rounded-full"
-              style="background:var(--success-subtle);color:var(--success-fg)"
-              th:text="${unreadCount} + ' unread'">0 unread</span>
+  <!-- The panel polls every 30s and is the swap target for read/read-all actions. -->
+  <div id="notification-panel" th:fragment="panel"
+       th:hx-get="@{/notifications}" hx-trigger="every 30s" hx-target="this" hx-swap="outerHTML">
+
+    <div th:unless="${notifications.isEmpty()}" class="Box">
+      <div class="Box-header d-flex flex-items-center gap-2">
+        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-inbox"></use></svg>
+        <span class="text-bold"><span th:text="${unreadCount}">0</span> unread</span>
       </div>
 
-      <div th:if="${notifications.isEmpty()}" class="empty-state">
-        <h2>No notifications</h2>
-        <p>You're all caught up.</p>
-      </div>
-
-      <div th:unless="${notifications.isEmpty()}" class="card p-0">
-        <div class="commit-item" th:each="n : ${notifications}"
-             th:style="${n.read ? '' : 'background:var(--canvas-subtle)'}">
-          <span class="text-sm px-2 rounded-full" th:if="${!n.read}"
-                style="background:var(--success-subtle);color:var(--success-fg)">Unread</span>
-          <span class="text-sm px-2 rounded-full" th:if="${n.read}"
-                style="background:var(--canvas-subtle);color:var(--fg-muted)">Read</span>
-          <span class="title font-medium" th:text="${n.message}">message</span>
-          <span class="text-sm" style="color:var(--fg-muted)"
-                th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
-          <form th:if="${!n.read}" th:action="@{'/notifications/' + ${n.id} + '/read'}" method="post" class="inline-flex"
-                th:hx-post="@{'/notifications/' + ${n.id} + '/read'}" hx-target="#notification-panel" hx-swap="outerHTML">
-            <button type="submit" class="btn btn-sm">Mark read</button>
-          </form>
+      <div class="Box-row d-flex flex-items-center gap-3" th:each="n : ${notifications}"
+           th:classappend="${n.read} ? '' : ' notification-row--unread'">
+        <svg class="octicon flex-shrink-0" width="16" height="16" aria-hidden="true"
+             th:classappend="${n.read} ? ' color-fg-muted' : ' color-fg-accent'">
+          <use th:href="${n.read} ? '#octicon-inbox' : '#octicon-dot-fill'"></use>
+        </svg>
+        <div class="flex-auto">
+          <span th:classappend="${n.read} ? ' color-fg-muted' : ' text-bold'" th:text="${n.message}">message</span>
+          <div class="color-fg-muted f6 mt-1">
+            <time th:datetime="${n.createdAt}"
+                  th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">time</time>
+          </div>
         </div>
+        <form th:if="${!n.read}" th:action="@{'/notifications/' + ${n.id} + '/read'}" method="post"
+              th:hx-post="@{'/notifications/' + ${n.id} + '/read'}"
+              hx-target="#notification-panel" hx-swap="outerHTML">
+          <button type="submit" class="btn btn-sm">Mark read</button>
+        </form>
       </div>
     </div>
+
+    <div th:if="${notifications.isEmpty()}" class="blankslate border rounded-2">
+      <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-inbox"></use></svg>
+      <h3 class="blankslate-heading">All caught up</h3>
+      <p>You have no notifications.</p>
+    </div>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

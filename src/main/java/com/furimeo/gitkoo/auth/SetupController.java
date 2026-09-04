@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * First-run setup: creates the initial administrator account (DESIGN.md §68).
+ * First-run setup: creates the initial administrator account (see docs/).
  *
  * <p>The page is only useful when no admin exists yet. Once setup is complete, it
  * redirects to the dashboard.

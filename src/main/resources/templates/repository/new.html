@@ -2,45 +2,63 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('New repository')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app max-w-lg">
-    <h1 class="mb-4">Create a new repository</h1>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
 
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
-
-    <form th:action="@{/new}" method="post">
-      <div class="field">
-        <label for="name">Repository name</label>
-        <input type="text" id="name" name="name" class="input" th:value="${name}" required
-               placeholder="name" autocomplete="off">
-        <div class="hint">Great repository names are short and memorable.</div>
-      </div>
-
-      <div class="field">
-        <label for="description">Description <span class="text-subtle">(optional)</span></label>
-        <input type="text" id="description" name="description" class="input" th:value="${description}"
-               placeholder="A short description">
-      </div>
-
-      <fieldset class="field" style="border:0;padding:0">
-        <legend class="font-semibold text-sm mb-2">Visibility</legend>
-        <label class="flex items-center gap-2 mb-2 cursor-pointer">
-          <input type="radio" name="visibility" value="PUBLIC" checked>
-          <span><strong>Public</strong> \u2014 anyone can see this repository</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" name="visibility" value="PRIVATE">
-          <span><strong>Private</strong> \u2014 only you and collaborators can see it</span>
-        </label>
-      </fieldset>
-
-      <div class="field">
-        <label for="defaultBranch">Default branch</label>
-        <input type="text" id="defaultBranch" name="defaultBranch" class="input" value="main">
-      </div>
-
-      <button type="submit" class="btn btn-primary">Create repository</button>
-    </form>
+<main class="container-md px-3 mt-5">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Create a new repository</h1>
+    <p class="Subhead-description">
+      A repository contains all project files, including the revision history.
+    </p>
   </div>
+
+  <div th:if="${error}" class="flash flash-error" th:text="${error}"></div>
+
+  <form th:action="@{/new}" method="post">
+    <div class="form-group">
+      <label for="name">Repository name</label>
+      <input type="text" id="name" name="name" class="form-control" th:value="${name}" required
+             placeholder="my-project" autocomplete="off" autofocus style="max-width:340px">
+      <p class="note">Great repository names are short and memorable.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description <span class="color-fg-muted text-normal">(optional)</span></label>
+      <input type="text" id="description" name="description" class="form-control"
+             th:value="${description}" placeholder="A short description of this repository">
+    </div>
+
+    <hr>
+
+    <div class="form-checkbox">
+      <label for="vis-public">
+        <input type="radio" id="vis-public" name="visibility" value="PUBLIC" checked>
+        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-repo"></use></svg>
+        Public
+      </label>
+      <p class="note">Anyone on this server can see this repository.</p>
+    </div>
+    <div class="form-checkbox">
+      <label for="vis-private">
+        <input type="radio" id="vis-private" name="visibility" value="PRIVATE">
+        <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-lock"></use></svg>
+        Private
+      </label>
+      <p class="note">You choose who can see and commit to this repository.</p>
+    </div>
+
+    <hr>
+
+    <div class="form-group">
+      <label for="defaultBranch">Default branch</label>
+      <input type="text" id="defaultBranch" name="defaultBranch" class="form-control"
+             value="main" style="max-width:200px">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create repository</button>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

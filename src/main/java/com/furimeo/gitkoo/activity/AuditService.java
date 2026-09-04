@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-/** Records and lists security-oriented audit events (DESIGN.md §24). */
+/** Records and lists security-oriented audit events (see docs/). */
 @Service
 public class AuditService {
 

@@ -209,6 +209,21 @@ public class GitService {
         return result.stdout().lines().filter(s -> !s.isBlank()).toList();
     }
 
+    // ── counting ────────────────────────────────────────────────────────
+
+    /** Number of commits reachable from {@code ref}, or 0 when the ref does not resolve. */
+    public int commitCount(Path storagePath, String ref) {
+        GitResult result = run(storagePath, "rev-list", "--count", ref);
+        if (!result.success()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(result.stdout().trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     // ── ref resolution ──────────────────────────────────────────────────
 
     /** Resolves a ref (branch/tag/HEAD) to a commit SHA, or empty if it does not resolve. */

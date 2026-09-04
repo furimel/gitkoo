@@ -1,22 +1,40 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/common :: head('Audit log')}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <h1 class="mb-4">Audit log</h1>
-    <div th:if="${events.isEmpty()}" class="empty-state">
-      <h2>No audit events</h2>
-      <p>Audit events are recorded when security-relevant actions occur.</p>
-    </div>
-    <div th:unless="${events.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="e : ${events}">
-        <span class="text-muted text-sm" th:text="${e.createdAt}">time</span>
-        <span class="title font-medium" th:text="${e.action}">action</span>
-        <span class="text-muted text-sm" th:if="${e.targetType}" th:text="${e.targetType + ' #' + e.targetId}">target</span>
-        <span class="text-muted text-sm" th:if="${e.ip}" th:text="${e.ip}">ip</span>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+
+<main class="container-lg px-3 mt-4">
+  <div class="Subhead">
+    <h1 class="Subhead-heading">Audit log</h1>
+    <p class="Subhead-description">Security-relevant actions recorded on this instance.</p>
+  </div>
+
+  <div th:unless="${events.isEmpty()}" class="Box">
+    <div class="Box-row d-flex flex-items-center gap-3" th:each="e : ${events}">
+      <svg class="octicon color-fg-muted flex-shrink-0" width="16" height="16" aria-hidden="true">
+        <use href="#octicon-shield"></use>
+      </svg>
+      <div class="flex-auto">
+        <span class="text-bold" th:text="${e.action}">action</span>
+        <span class="color-fg-muted" th:if="${e.targetType}"
+              th:text="${e.targetType + ' #' + e.targetId}">target</span>
+        <div class="color-fg-muted f6 mt-1">
+          <time th:if="${e.createdAt != null}" th:datetime="${e.createdAt}" th:text="${e.createdAt}">time</time>
+          <span th:if="${e.ip}" class="mx-1">&middot;</span>
+          <span class="text-mono" th:if="${e.ip}" th:text="${e.ip}">ip</span>
+        </div>
       </div>
     </div>
   </div>
+
+  <div th:if="${events.isEmpty()}" class="blankslate border rounded-2">
+    <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-shield"></use></svg>
+    <h3 class="blankslate-heading">No audit events</h3>
+    <p>Events appear here when security-relevant actions occur.</p>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

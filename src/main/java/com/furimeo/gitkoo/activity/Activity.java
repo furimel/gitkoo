@@ -5,7 +5,7 @@ import java.time.OffsetDateTime;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-/** A human-readable activity event (DESIGN.md §23). */
+/** A human-readable activity event (see docs/). */
 @Table("activities")
 public class Activity {
 

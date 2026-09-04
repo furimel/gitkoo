@@ -1,40 +1,62 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{fragments/common :: head('Issues')}"></head>
+<head th:replace="~{fragments/common :: head('Issues - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}"></strong>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
+
+<main class="container-lg px-3 mt-4"
+      th:with="openCount=${#lists.size(issues.?[status == 'OPEN'])},
+               closedCount=${#lists.size(issues.?[status == 'CLOSED'])}">
+
+  <div class="d-flex flex-justify-end mb-3">
+    <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
+  </div>
+
+  <div class="Box">
+    <!-- Open / Closed filter bar, GitHub's issue list header -->
+    <div class="Box-header d-flex flex-items-center gap-3">
+      <a class="d-flex flex-items-center gap-1"
+         th:classappend="${filter != 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
+        <span th:text="${openCount}">0</span> Open
+      </a>
+      <a class="d-flex flex-items-center gap-1"
+         th:classappend="${filter == 'closed'} ? ' text-bold color-fg-default' : ' Link--secondary'"
+         th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues(state=closed)'}">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
+        <span th:text="${closedCount}">0</span> Closed
+      </a>
+    </div>
+
+    <div class="Box-row d-flex flex-items-start" th:each="i : ${issues}">
+      <svg class="octicon mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true"
+           th:classappend="${i.status == 'OPEN'} ? ' color-fg-success' : ' color-fg-done'">
+        <use th:href="${i.status == 'OPEN'} ? '#octicon-issue-opened' : '#octicon-issue-closed'"></use>
+      </svg>
+      <div class="flex-auto">
+        <a class="f4 text-bold Link--primary"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${i.number}}"
+           th:text="${i.title}">title</a>
+        <div class="color-fg-muted f6 mt-1">
+          #<span th:text="${i.number}">1</span>
+          <span th:if="${i.status == 'OPEN'}">opened</span>
+          <span th:unless="${i.status == 'OPEN'}">closed</span>
+          <time th:if="${i.createdAt != null}" th:datetime="${i.createdAt}" th:text="${i.createdAt}">date</time>
+        </div>
       </div>
     </div>
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}" class="active">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
-    </nav>
-    <div class="flex items-center justify-between mb-3">
-      <h2>Issues</h2>
+
+    <div th:if="${issues.isEmpty()}" class="blankslate">
+      <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
+      <h3 class="blankslate-heading">No issues yet</h3>
+      <p>Issues are a good way to track bugs and tasks.</p>
       <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" class="btn btn-primary">New issue</a>
     </div>
-    <div th:if="${issues.isEmpty()}" class="empty-state">
-      <h2>No issues yet</h2>
-      <p>Issues are a great way to track bugs and tasks.</p>
-    </div>
-    <div th:unless="${issues.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="i : ${issues}">
-        <span class="sha">#<span th:text="${i.number}">N</span></span>
-        <span class="title font-medium" th:text="${i.title}">title</span>
-        <span class="text-sm px-2 rounded-full" th:if="${i.status == 'OPEN'}"
-              style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
-        <span class="text-sm px-2 rounded-full" th:if="${i.status == 'CLOSED'}"
-              style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
-      </div>
-    </div>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

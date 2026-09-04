@@ -1,5 +1,43 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<!-- Diff fragment loaded via HTMX into PR view (DESIGN.md §15). Not a full page. -->
-<pre class="code-view" th:if="${diff != null and !diff.isEmpty()}" th:text="${diff}">diff</pre>
-<p class="text-muted" th:if="${diff == null or diff.isEmpty()}">No changes</p>
+<!-- Diff fragment, loadable on its own via HTMX (DESIGN.md §15). Not a full page. -->
+<body>
+<div th:fragment="diff">
+  <div th:if="${diffFiles.isEmpty()}" class="blankslate border rounded-2">
+    <h3 class="blankslate-heading">No changes</h3>
+    <p>These refs are identical.</p>
+  </div>
+
+  <div class="diff-file" th:each="file : ${diffFiles}">
+    <div class="diff-file-header">
+      <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
+      <strong th:text="${file.path}">path</strong>
+      <span class="ml-auto">
+        <span class="color-fg-success text-bold">+<span th:text="${file.additions}">0</span></span>
+        <span class="color-fg-danger text-bold ml-1">&minus;<span th:text="${file.deletions}">0</span></span>
+      </span>
+    </div>
+    <p th:if="${file.binary}" class="border border-top-0 rounded-bottom-2 p-3 color-fg-muted mb-0">
+      Binary file not shown.
+    </p>
+    <table class="diff-table" th:unless="${file.binary}">
+      <tbody>
+        <tr th:each="line : ${file.lines}"
+            th:classappend="${line.isHunk()} ? ' diff-line--hunk'
+                            : (${line.isAddition()} ? ' diff-line--add'
+                            : (${line.isDeletion()} ? ' diff-line--del' : ''))">
+          <th:block th:if="${line.isHunk()}">
+            <td colspan="3" th:text="${line.content}">@@</td>
+          </th:block>
+          <th:block th:unless="${line.isHunk()}">
+            <td class="diff-num" th:text="${line.oldNumber}"></td>
+            <td class="diff-num" th:text="${line.newNumber}"></td>
+            <td class="diff-code" th:text="${line.content}">code</td>
+          </th:block>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

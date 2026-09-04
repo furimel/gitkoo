@@ -7,7 +7,7 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 /**
- * A personal access token for API automation and Git clients (DESIGN.md §43).
+ * A personal access token for API automation and Git clients (see docs/).
  *
  * <p>The raw token is shown to the user only once at creation time. Only its hash is
  * stored, so a compromised database does not leak usable tokens.

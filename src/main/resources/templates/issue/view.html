@@ -1,105 +1,204 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:replace="~{fragments/common :: head('Issue #' + ${issue.number})}"></head>
+<head th:replace="~{fragments/common :: head(${issue.title} + ' - Issue #' + ${issue.number})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app max-w-xl">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}"></strong>
-      </div>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
+
+<main class="container-lg px-3 mt-4"
+      th:with="repoLabels=${@labelService.listLabels(repo.id)},
+               attachedIds=${@labelService.getIssueLabels(issue.id).![labelId]}">
+
+  <!-- Title and state, GitHub's gh-header -->
+  <div class="border-bottom pb-3 mb-4">
+    <h1 class="f1 text-normal lh-condensed mb-2">
+      <span th:text="${issue.title}">title</span>
+      <span class="color-fg-muted text-light">#<span th:text="${issue.number}">1</span></span>
+    </h1>
+    <div class="d-flex flex-items-center flex-wrap gap-2">
+      <span class="State" th:classappend="${issue.status == 'OPEN'} ? ' State--open' : ' State--merged'">
+        <svg class="octicon" width="16" height="16" aria-hidden="true">
+          <use th:href="${issue.status == 'OPEN'} ? '#octicon-issue-opened' : '#octicon-issue-closed'"></use>
+        </svg>
+        <span th:text="${issue.status == 'OPEN'} ? 'Open' : 'Closed'">Open</span>
+      </span>
+      <span class="color-fg-muted">
+        <strong th:text="${author?.displayName ?: author?.username ?: 'Unknown'}">author</strong>
+        opened this issue
+        <time th:if="${issue.createdAt != null}" th:datetime="${issue.createdAt}"
+              th:text="${issue.createdAt}">date</time>
+        <span class="mx-1">&middot;</span>
+        <span th:text="${#lists.size(comments)}">0</span>
+        <span th:text="${#lists.size(comments) == 1} ? 'comment' : 'comments'">comments</span>
+      </span>
     </div>
-
-    <div class="flex items-center justify-between mb-4">
-      <h1><span th:text="${issue.title}"></span> <span class="text-muted">#<span th:text="${issue.number}"></span></span></h1>
-      <span class="text-sm px-3 py-1 rounded-full" th:if="${issue.status == 'OPEN'}"
-            style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
-      <span class="text-sm px-3 py-1 rounded-full" th:if="${issue.status == 'CLOSED'}"
-            style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
-    </div>
-
-    <!-- Labels -->
-    <div class="card mb-4" th:with="repoLabels=${@labelService.listLabels(repo.id)},
-                                 attachedIds=${@labelService.getIssueLabels(issue.id).![labelId]}">
-      <div class="flex items-center gap-2 mb-2 flex-wrap">
-        <span class="text-sm text-muted">Labels:</span>
-        <span th:each="label : ${repoLabels}" th:if="${attachedIds.contains(label.id)}"
-              class="text-sm px-2 py-1 rounded-full"
-              th:style="'background:' + ${label.color} + ';color:#fff'">
-          <span th:text="${label.name}">label</span>
-          <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/remove'}"
-                method="post" class="inline-flex">
-            <input type="hidden" name="labelId" th:value="${label.id}">
-            <button type="submit" class="btn btn-sm btn-danger ml-1" aria-label="Remove label">&times;</button>
-          </form>
-        </span>
-        <span th:if="${repoLabels.?[attachedIds.contains(id)].isEmpty()}" class="text-sm text-muted">None yet</span>
-      </div>
-
-      <!-- Add a label (dropdown of the repo's labels not yet attached) -->
-      <form th:if="${!repoLabels.?[!attachedIds.contains(id)].isEmpty()}"
-            th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/add'}"
-            method="post" class="flex items-center gap-2 mb-2">
-        <select name="labelName" class="input" style="width:auto">
-          <option th:each="label : ${repoLabels}" th:if="${!attachedIds.contains(label.id)}"
-                  th:value="${label.name}" th:text="${label.name}">label</option>
-        </select>
-        <button type="submit" class="btn btn-sm btn-primary">Add label</button>
-      </form>
-
-      <!-- Create a new label for the repo -->
-      <details class="mt-2">
-        <summary class="text-sm text-muted cursor-pointer">Create a new label</summary>
-        <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/labels/new'}" method="post"
-              class="flex items-center gap-2 mt-2 flex-wrap">
-          <input type="hidden" name="returnNumber" th:value="${issue.number}">
-          <input type="text" name="name" class="input" placeholder="Label name" required>
-          <input type="color" name="color" value="#0969da" class="input" style="width:auto;padding:2px">
-          <input type="text" name="description" class="input" placeholder="Description (optional)" style="width:auto">
-          <button type="submit" class="btn btn-sm">Create label</button>
-        </form>
-      </details>
-    </div>
-
-    <!-- Issue body -->
-    <div class="card mb-4">
-      <div class="flex items-center gap-2 mb-2 text-sm text-muted">
-        <strong th:text="${author?.displayName ?: author?.username ?: 'Unknown'}"></strong> opened this issue
-      </div>
-      <div class="markdown-body" th:utext="${issueBodyHtml}"></div>
-    </div>
-
-    <!-- Comments -->
-    <div th:each="c,iter : ${comments}" class="card mb-3">
-      <div class="flex items-center gap-2 mb-2 text-sm text-muted">
-        <strong th:text="${commentAuthors[iter.index]?.displayName ?: commentAuthors[iter.index]?.username ?: 'Unknown'}"></strong>
-        commented
-      </div>
-      <div th:utext="${markdown.render(c.body)}"></div>
-    </div>
-
-    <!-- Add comment -->
-    <form th:if="${issue.status == 'OPEN'}"
-          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/comment'}"
-          method="post" class="card">
-      <div class="field">
-        <label for="body">Add a comment</label>
-        <textarea id="body" name="body" class="input" rows="4" placeholder="Leave a comment (Markdown supported)"></textarea>
-      </div>
-      <div class="flex gap-2">
-        <button type="submit" class="btn btn-primary">Comment</button>
-        <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/close'}"
-           th:onclick="|document.getElementById('closeForm').submit(); return false;|" class="btn btn-danger">Close issue</a>
-      </div>
-    </form>
-    <form th:if="${issue.status == 'OPEN'}" id="closeForm" method="post" style="display:none"
-          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/close'}"></form>
-    <form th:if="${issue.status == 'CLOSED'}" method="post"
-          th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/reopen'}">
-      <button type="submit" class="btn">Reopen issue</button>
-    </form>
   </div>
+
+  <div class="Layout Layout--sidebarPosition-end Layout--sidebar-wide">
+    <div class="Layout-main">
+
+      <!-- Opening post -->
+      <div class="TimelineItem">
+        <div class="TimelineItem-avatar">
+          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
+                style="width:40px;height:40px"
+                th:text="${#strings.toUpperCase(#strings.substring(author?.username ?: 'U', 0, 1))}">U</span>
+        </div>
+        <div class="TimelineItem-body">
+          <div class="Box">
+            <div class="Box-header d-flex flex-items-center flex-wrap gap-1 color-fg-muted">
+              <strong class="color-fg-default" th:text="${author?.displayName ?: author?.username ?: 'Unknown'}">author</strong>
+              <span>commented</span>
+              <time th:if="${issue.createdAt != null}" th:datetime="${issue.createdAt}"
+                    th:text="${issue.createdAt}">date</time>
+            </div>
+            <div class="Box-body markdown-body" th:utext="${issueBodyHtml}"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="TimelineItem" th:each="c,iter : ${comments}">
+        <div class="TimelineItem-avatar">
+          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
+                style="width:40px;height:40px"
+                th:text="${#strings.toUpperCase(#strings.substring(commentAuthors[iter.index]?.username ?: 'U', 0, 1))}">U</span>
+        </div>
+        <div class="TimelineItem-body">
+          <div class="Box">
+            <div class="Box-header d-flex flex-items-center flex-wrap gap-1 color-fg-muted">
+              <strong class="color-fg-default"
+                      th:text="${commentAuthors[iter.index]?.displayName ?: commentAuthors[iter.index]?.username ?: 'Unknown'}">author</strong>
+              <span>commented</span>
+              <time th:if="${c.createdAt != null}" th:datetime="${c.createdAt}" th:text="${c.createdAt}">date</time>
+            </div>
+            <div class="Box-body markdown-body" th:utext="${markdown.render(c.body)}"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Closed marker -->
+      <div class="TimelineItem" th:if="${issue.status == 'CLOSED'}">
+        <div class="TimelineItem-badge color-bg-done-emphasis color-fg-on-emphasis">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-closed"></use></svg>
+        </div>
+        <div class="TimelineItem-body color-fg-muted">
+          This issue was closed
+          <time th:if="${issue.closedAt != null}" th:datetime="${issue.closedAt}" th:text="${issue.closedAt}">date</time>
+        </div>
+      </div>
+
+      <!-- Comment form -->
+      <div class="TimelineItem" sec:authorize="isAuthenticated()">
+        <div class="TimelineItem-avatar">
+          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
+                style="width:40px;height:40px"
+                th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</span>
+        </div>
+        <div class="TimelineItem-body">
+          <form th:if="${issue.status == 'OPEN'}"
+                th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/comment'}"
+                method="post" class="Box">
+            <div class="Box-header">
+              <label class="text-bold" for="body">Add a comment</label>
+            </div>
+            <div class="Box-body">
+              <textarea id="body" name="body" class="form-control" rows="5"
+                        placeholder="Leave a comment (Markdown supported)"></textarea>
+            </div>
+            <div class="Box-footer d-flex flex-justify-end gap-2">
+              <!-- Close posts to its own route, so it sits outside this form. -->
+              <button type="submit" form="close-issue-form" class="btn">
+                <svg class="octicon color-fg-done" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-closed"></use></svg>
+                Close issue
+              </button>
+              <button type="submit" class="btn btn-primary">Comment</button>
+            </div>
+          </form>
+
+          <form th:if="${issue.status == 'OPEN'}" id="close-issue-form" method="post" hidden
+                th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/close'}"></form>
+
+          <form th:if="${issue.status == 'CLOSED'}" method="post"
+                th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/reopen'}">
+            <button type="submit" class="btn">
+              <svg class="octicon color-fg-success" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
+              Reopen issue
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: labels live here, not above the conversation -->
+    <div class="Layout-sidebar">
+      <div class="border-bottom pb-3 mb-3">
+        <details class="details-overlay details-reset position-relative">
+          <summary class="d-flex flex-justify-between flex-items-center color-fg-muted text-bold f6 mb-2" role="button">
+            Labels
+            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
+          </summary>
+          <div class="dropdown-menu dropdown-menu-sw p-3" role="menu" style="width:300px">
+            <form th:if="${!repoLabels.?[!attachedIds.contains(id)].isEmpty()}"
+                  th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/add'}"
+                  method="post" class="mb-3">
+              <label class="f6 text-bold" for="labelName">Apply a label</label>
+              <select id="labelName" name="labelName" class="form-select mt-1 mb-2">
+                <option th:each="label : ${repoLabels}" th:if="${!attachedIds.contains(label.id)}"
+                        th:value="${label.name}" th:text="${label.name}">label</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-block">Apply</button>
+            </form>
+
+            <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/labels/new'}" method="post">
+              <label class="f6 text-bold" for="newLabelName">Create a new label</label>
+              <input type="hidden" name="returnNumber" th:value="${issue.number}">
+              <input type="text" id="newLabelName" name="name" class="form-control input-sm mt-1 mb-2"
+                     placeholder="Label name" required>
+              <input type="text" name="description" class="form-control input-sm mb-2"
+                     placeholder="Description (optional)">
+              <div class="d-flex gap-2">
+                <input type="color" name="color" value="#0969da" class="form-control input-sm" style="width:44px;padding:2px">
+                <button type="submit" class="btn btn-sm flex-auto">Create</button>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <div class="d-flex flex-wrap gap-1">
+          <span th:each="label : ${repoLabels}" th:if="${attachedIds.contains(label.id)}"
+                class="d-inline-flex flex-items-center">
+            <!-- Label colour comes from the repo's own palette, so it is inlined. -->
+            <span class="Label" th:style="'background:' + ${label.color} + ';color:#fff'"
+                  th:text="${label.name}">label</span>
+            <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/remove'}"
+                  method="post" class="d-inline-flex">
+              <input type="hidden" name="labelId" th:value="${label.id}">
+              <button type="submit" class="btn-octicon btn-octicon-danger ml-1" aria-label="Remove label">
+                <svg class="octicon" width="12" height="12" aria-hidden="true"><use href="#octicon-x"></use></svg>
+              </button>
+            </form>
+          </span>
+          <span th:if="${repoLabels.?[attachedIds.contains(id)].isEmpty()}" class="color-fg-muted f6">
+            None yet
+          </span>
+        </div>
+      </div>
+
+      <div class="color-fg-muted f6">
+        <div class="d-flex flex-items-center gap-2 mb-1">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-person"></use></svg>
+          <span>Opened by <strong th:text="${author?.username ?: 'unknown'}">author</strong></span>
+        </div>
+        <div class="d-flex flex-items-center gap-2">
+          <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-comment"></use></svg>
+          <span><span th:text="${#lists.size(comments)}">0</span> comments</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

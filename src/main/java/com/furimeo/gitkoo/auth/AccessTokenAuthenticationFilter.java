@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Authenticates API requests carrying a Bearer personal access token (DESIGN.md §43).
+ * Authenticates API requests carrying a Bearer personal access token (see docs/).
  *
  * <p>Runs before the standard form-login filter for paths under {@code /api/}. When a valid
  * token is presented, the resolved user is placed in the security context so downstream

@@ -1,462 +1,280 @@
 /*
- * GitKoo stylesheet - GitHub Primer-inspired design system.
+ * GitKoo supplement to Primer CSS.
  *
- * Organized in 4 layers, each with a single responsibility:
- *   1. Design tokens - colors, spacing, radius, typography (light + dark).
- *   2. Base reset & element defaults.
- *   3. Utility classes - single-purpose, composable (Tailwind-like syntax, hand-written).
- *   4. Component classes - cohesive UI patterns (.btn, .card, .nav, .tree, .alert).
+ * primer.css (@primer/css 21.5.1, MIT) is the design system and is loaded first.
+ * It already provides Header, Layout, Box, btn, State, Label, Counter,
+ * UnderlineNav, TimelineItem, avatar, blankslate, Subhead, flash, SelectMenu,
+ * details-overlay dropdowns, markdown-body and the whole utility layer.
  *
- * No build step. Dark mode via [data-theme="dark"] on <html>.
- * Colors mirror GitHub Primer light/dark palettes so the UI reads as familiar.
+ * This file adds ONLY what Primer does not ship: the code-browser chrome
+ * (file tree, blob viewer with line numbers, unified diff) plus a few GitKoo
+ * specifics. Everything here is built on Primer's own custom properties so it
+ * follows all nine themes automatically - never hardcode a hex value.
+ *
+ * Primer token pattern:  var(--fgColor-muted, var(--color-fg-muted))
+ * The fallback keeps it working if a theme only defines the older name.
  */
 
-/* ── 1. Design tokens ─────────────────────────────────────────────────── */
+/* == File navigation strip ============================================== */
 
-:root {
-  /* Canvas (backgrounds) */
-  --canvas-default: #ffffff;
-  --canvas-subtle:  #f6f8fa;
-  --canvas-inset:   #eaeef2;
-
-  /* Borders */
-  --border-default: #d0d7de;
-  --border-muted:   #d8dee4;
-
-  /* Foreground (text) */
-  --fg-default:     #1f2328;
-  --fg-muted:       #656d76;
-  --fg-subtle:      #6e7781;
-
-  /* Accent (links, primary actions) */
-  --accent-fg:      #0969da;
-  --accent-emphasis: #0550ae;
-  --accent-subtle:  #ddf4ff;
-
-  /* Status */
-  --success-fg:     #1a7f37;
-  --success-subtle: #dafbe1;
-  --danger-fg:      #d1242f;
-  --danger-subtle:  #ffebe9;
-  --attention-fg:   #9a6700;
-  --attention-subtle: #fff8c5;
-
-  /* Neutral control surface */
-  --button-default-bg:     #f6f8fa;
-  --button-default-border: rgba(31,35,40,0.15);
-
-  /* Typography */
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.25rem;
-  --font-size-xl: 1.5rem;
-
-  /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 12px;
-
-  /* Spacing scale (px → rem): 0 4 8 16 24 32 40 48 */
-  --sp-0: 0; --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 1rem;
-  --sp-4: 1.5rem; --sp-5: 2rem; --sp-6: 2.5rem; --sp-7: 3rem;
-}
-
-[data-theme="dark"] {
-  --canvas-default: #0d1117;
-  --canvas-subtle:  #161b22;
-  --canvas-inset:   #010409;
-
-  --border-default: #30363d;
-  --border-muted:   #21262d;
-
-  --fg-default:     #e6edf3;
-  --fg-muted:       #7d8590;
-  --fg-subtle:      #6e7681;
-
-  --accent-fg:      #2f81f7;
-  --accent-emphasis: #1f6feb;
-  --accent-subtle:  rgba(56,139,253,0.15);
-
-  --success-fg:     #3fb950;
-  --success-subtle: rgba(46,160,67,0.15);
-  --danger-fg:      #f85149;
-  --danger-subtle:  rgba(248,81,73,0.15);
-  --attention-fg:   #d29922;
-  --attention-subtle: rgba(187,128,9,0.15);
-
-  --button-default-bg:     #21262d;
-  --button-default-border: rgba(240,246,252,0.1);
-}
-
-/* ── 2. Base reset & element defaults ─────────────────────────────────── */
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { color-scheme: light dark; }
-
-body {
-  font-family: var(--font-body);
-  font-size: var(--font-size-md);
-  line-height: 1.5;
-  color: var(--fg-default);
-  background: var(--canvas-default);
-  -webkit-font-smoothing: antialiased;
-}
-
-a { color: var(--accent-fg); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-code, pre, kbd, samp { font-family: var(--font-mono); }
-
-h1, h2, h3 { font-weight: 600; line-height: 1.25; }
-h1 { font-size: var(--font-size-xl); }
-h2 { font-size: var(--font-size-lg); }
-
-/* ── 3. Utility classes ───────────────────────────────────────────────── */
-/* Hand-written, Tailwind-like. Only classes actually used are included. */
-
-/* Display */
-.flex { display: flex; }
-.inline-flex { display: inline-flex; }
-.block { display: block; }
-.inline-block { display: inline-block; }
-.none { display: none; }
-
-/* Flex direction & wrap */
-.flex-col { flex-direction: column; }
-.flex-wrap { flex-wrap: wrap; }
-
-/* Align items / justify */
-.items-center { align-items: center; }
-.items-start { align-items: flex-start; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.justify-end { justify-content: flex-end; }
-
-/* Flex grow/shrink */
-.flex-1 { flex: 1 1 0%; }
-.flex-auto { flex: 1 1 auto; }
-.flex-none { flex: none; }
-
-/* Gap */
-.gap-1 { gap: var(--sp-1); }
-.gap-2 { gap: var(--sp-2); }
-.gap-3 { gap: var(--sp-3); }
-.gap-4 { gap: var(--sp-4); }
-
-/* Margin */
-.m-0 { margin: 0; }
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: var(--sp-1); }
-.mt-2 { margin-top: var(--sp-2); }
-.mt-3 { margin-top: var(--sp-3); }
-.mt-4 { margin-top: var(--sp-4); }
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: var(--sp-1); }
-.mb-2 { margin-bottom: var(--sp-2); }
-.mb-3 { margin-bottom: var(--sp-3); }
-.mb-4 { margin-bottom: var(--sp-4); }
-.mx-auto { margin-left: auto; margin-right: auto; }
-
-/* Padding */
-.p-0 { padding: 0; }
-.p-1 { padding: var(--sp-1); }
-.p-2 { padding: var(--sp-2); }
-.p-3 { padding: var(--sp-3); }
-.p-4 { padding: var(--sp-4); }
-.px-2 { padding-left: var(--sp-2); padding-right: var(--sp-2); }
-.px-3 { padding-left: var(--sp-3); padding-right: var(--sp-3); }
-.px-4 { padding-left: var(--sp-4); padding-right: var(--sp-4); }
-.py-1 { padding-top: var(--sp-1); padding-bottom: var(--sp-1); }
-.py-2 { padding-top: var(--sp-2); padding-bottom: var(--sp-2); }
-.py-3 { padding-top: var(--sp-3); padding-bottom: var(--sp-3); }
-.py-4 { padding-top: var(--sp-4); padding-bottom: var(--sp-4); }
-
-/* Width */
-.w-full { width: 100%; }
-.w-auto { width: auto; }
-.max-w-sm { max-width: 480px; }
-.max-w-md { max-width: 640px; }
-.max-w-lg { max-width: 768px; }
-.max-w-xl { max-width: 1024px; }
-
-/* Text */
-.text-sm { font-size: var(--font-size-sm); }
-.text-md { font-size: var(--font-size-md); }
-.text-lg { font-size: var(--font-size-lg); }
-.text-muted { color: var(--fg-muted); }
-.text-subtle { color: var(--fg-subtle); }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
-.no-underline { text-decoration: none; }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Border & radius */
-.rounded { border-radius: var(--radius-md); }
-.rounded-sm { border-radius: var(--radius-sm); }
-.rounded-lg { border-radius: var(--radius-lg); }
-.border { border: 1px solid var(--border-default); }
-.border-t { border-top: 1px solid var(--border-default); }
-.border-b { border-bottom: 1px solid var(--border-default); }
-
-/* Background */
-.bg-subtle { background: var(--canvas-subtle); }
-.bg-default { background: var(--canvas-default); }
-
-/* Misc */
-.cursor-pointer { cursor: pointer; }
-.relative { position: relative; }
-.sticky { position: sticky; }
-.top-0 { top: 0; }
-.z-10 { z-index: 10; }
-.overflow-auto { overflow: auto; }
-.overflow-hidden { overflow: hidden; }
-
-/* ── 4. Component classes ─────────────────────────────────────────────── */
-
-/* Layout container - centered, max width like GitHub content area */
-.container-app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: var(--sp-4) var(--sp-3);
-}
-
-/* App header (top nav) - sticky, full-width bar */
-.app-header {
-  background: var(--canvas-default);
-  border-bottom: 1px solid var(--border-default);
-  padding: var(--sp-2) var(--sp-4);
+.file-navigation {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-3);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-.app-header .brand {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--fg-default);
-}
-.app-header .brand:hover { text-decoration: none; }
-.app-header .nav-spacer { flex: 1; }
-
-/* Button - GitHub Primer button styles */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  line-height: 1.5;
-  border: 1px solid var(--button-default-border);
-  border-radius: var(--radius-md);
-  background: var(--button-default-bg);
-  color: var(--fg-default);
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
-}
-.btn:hover { background: var(--border-muted); text-decoration: none; }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.btn-primary {
-  background: var(--accent-fg);
-  color: #fff;
-  border-color: rgba(31,35,40,0.15);
-}
-[data-theme="dark"] .btn-primary { color: #fff; border-color: rgba(240,246,252,0.1); }
-.btn-primary:hover { background: var(--accent-emphasis); color: #fff; }
-
-.btn-danger {
-  color: var(--danger-fg);
-}
-.btn-danger:hover { background: var(--danger-subtle); }
-
-.btn-sm { padding: 0.1875rem 0.5rem; font-size: 0.75rem; }
-
-/* Form inputs - GitHub style */
-.input, .select, textarea.input {
-  width: 100%;
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--font-size-md);
-  line-height: 1.5;
-  color: var(--fg-default);
-  background: var(--canvas-default);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  transition: border-color 0.1s, box-shadow 0.1s;
-}
-.input:focus, .select:focus, textarea.input:focus {
-  outline: none;
-  border-color: var(--accent-fg);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
-}
-.input::placeholder { color: var(--fg-subtle); }
-
-/* Field wrapper - label + input + hint stack */
-.field { margin-bottom: var(--sp-3); }
-.field > label {
-  display: block;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  margin-bottom: var(--sp-1);
-  color: var(--fg-default);
-}
-.field .hint {
-  font-size: var(--font-size-sm);
-  color: var(--fg-muted);
-  margin-top: var(--sp-1);
+  gap: var(--base-size-8);
+  margin-bottom: var(--base-size-16);
 }
 
-/* Flash / alert - GitHub Primer flash component */
-.alert {
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--sp-3);
-}
-.alert-error   { color: var(--danger-fg);    background: var(--danger-subtle);    border-color: var(--danger-fg); }
-.alert-success { color: var(--success-fg);  background: var(--success-subtle);  border-color: var(--success-fg); }
-.alert-info    { color: var(--accent-fg);   background: var(--accent-subtle); }
+/* == Latest-commit strip above the file tree ============================ */
 
-/* Card - bordered surface */
-.card {
-  background: var(--canvas-default);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--sp-4);
-}
-
-/* Repo header - title + meta + clone box (DESIGN.md §12) */
-.repo-header { margin-bottom: var(--sp-3); }
-.repo-header .repo-title {
+.commit-tease {
   display: flex;
-  align-items: baseline;
-  gap: var(--sp-1);
-  font-size: var(--font-size-xl);
-}
-.repo-header .repo-title .owner { color: var(--accent-fg); }
-.repo-header .repo-title .sep { color: var(--fg-muted); }
-.repo-header .repo-desc { color: var(--fg-muted); margin-top: var(--sp-1); }
-
-/* Repo tabs - Code / Issues / PR / Actions / Settings */
-.repo-tabs {
-  display: flex;
-  gap: var(--sp-3);
-  border-bottom: 1px solid var(--border-default);
-  padding-bottom: 0;
-  margin-bottom: var(--sp-3);
-  overflow-x: auto;
-}
-.repo-tabs a {
-  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-1);
-  font-size: var(--font-size-sm);
-  color: var(--fg-default);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  white-space: nowrap;
-}
-.repo-tabs a:hover { text-decoration: none; color: var(--accent-fg); }
-.repo-tabs a.active {
-  border-bottom-color: var(--accent-fg);
-  font-weight: 600;
+  gap: var(--base-size-8);
+  padding: var(--base-size-8) var(--base-size-16);
+  font-size: 14px;
+  background: var(--bgColor-muted, var(--color-canvas-subtle));
+  border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));
+  border-radius: 6px 6px 0 0;
 }
 
-/* File tree - GitHub code browser list */
-.tree { border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden; }
+/* == File tree ========================================================== */
+
 .tree-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: var(--base-size-16);
+  padding: var(--base-size-4) var(--base-size-16);
+  font-size: 14px;
+  border-top: 1px solid var(--borderColor-muted, var(--color-border-muted));
+}
+.tree-row:first-of-type { border-top: 0; }
+.tree-row:hover { background: var(--bgColor-muted, var(--color-canvas-subtle)); }
+
+.tree-row-name {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--font-size-sm);
-  border-top: 1px solid var(--border-muted);
+  gap: var(--base-size-8);
+  min-width: 0;
 }
-.tree-row:first-child { border-top: 0; }
-.tree-row:hover { background: var(--canvas-subtle); }
-.tree-row .icon { width: 16px; text-align: center; color: var(--fg-muted); }
-.tree-row.is-dir .name { font-weight: 600; }
+.tree-row-name .octicon { flex-shrink: 0; margin-right: 0; }
+.tree-row-icon--dir  { color: var(--fgColor-accent, var(--color-accent-fg)); }
+.tree-row-icon--file { color: var(--fgColor-muted, var(--color-fg-muted)); }
 
-/* Clone box - HTTPS/SSH URL + copy */
-.clone-box {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  background: var(--canvas-subtle);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--sp-1) var(--sp-2);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  width: fit-content;
+.tree-row-commit,
+.tree-row-age {
+  font-size: 14px;
+  color: var(--fgColor-muted, var(--color-fg-muted));
 }
-.clone-box code { color: var(--fg-default); }
+.tree-row-age { text-align: right; white-space: nowrap; }
 
-/* Commit list item - for recent commits on repo overview */
-.commit-item {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2);
-  border-top: 1px solid var(--border-muted);
-  font-size: var(--font-size-sm);
-}
-.commit-item:first-child { border-top: 0; }
-.commit-item .sha {
-  font-family: var(--font-mono);
-  color: var(--fg-muted);
-}
-.commit-item .title { flex: 1; min-width: 0; }
-
-/* Empty state - when a repo has no commits */
-.empty-state {
-  text-align: center;
-  padding: var(--sp-6) var(--sp-3);
-  color: var(--fg-muted);
-}
-.empty-state h2 { color: var(--fg-default); margin-bottom: var(--sp-2); }
-
-/* Auth card - centered narrow form for login/setup */
-.auth-card {
-  max-width: 340px;
-  margin: var(--sp-6) auto;
-  padding: var(--sp-4);
-  background: var(--canvas-default);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+@media (max-width: 767px) {
+  .tree-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .tree-row-commit { display: none; }
 }
 
-/* Theme toggle - small button in header */
-.theme-toggle {
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-}
+/* == Blob viewer: code with line numbers ================================ */
 
-/* Code block - file viewer */
-.code-view {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  background: var(--canvas-default);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3);
+.blob-wrapper {
   overflow-x: auto;
+  border-radius: 0 0 6px 6px;
+}
+.blob-table {
+  width: 100%;
+  font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 20px;
+  tab-size: 4;
+  border-collapse: collapse;
+}
+.blob-table td { padding: 0; vertical-align: top; }
+.blob-table .blob-num {
+  width: 1%;
+  min-width: 50px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--fgColor-muted, var(--color-fg-subtle));
+  text-align: right;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border: 0;
+}
+.blob-table tr:hover .blob-num { color: var(--fgColor-default, var(--color-fg-default)); }
+.blob-code {
+  padding: 0 10px;
+  overflow: visible;
   white-space: pre;
+  word-wrap: normal;
+}
+
+/* == Unified diff ======================================================= */
+
+.diff-file { margin-bottom: var(--base-size-16); }
+
+.diff-file-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--base-size-8);
+  padding: var(--base-size-8) var(--base-size-16);
+  font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  background: var(--bgColor-muted, var(--color-canvas-subtle));
+  border: 1px solid var(--borderColor-default, var(--color-border-default));
+  border-radius: 6px 6px 0 0;
+}
+
+.diff-table {
+  width: 100%;
+  font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 20px;
+  tab-size: 4;
+  border-collapse: collapse;
+  border: 1px solid var(--borderColor-default, var(--color-border-default));
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+.diff-table td { padding: 0; vertical-align: top; }
+
+.diff-num {
+  width: 1%;
+  min-width: 44px;
+  padding: 0 10px;
+  color: var(--fgColor-muted, var(--color-fg-subtle));
+  text-align: right;
+  white-space: nowrap;
+  user-select: none;
+  border-right: 1px solid var(--borderColor-muted, var(--color-border-muted));
+}
+.diff-code {
+  padding: 0 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Colours come from Primer's diff primitives, so every theme is handled. */
+.diff-line--add .diff-code {
+  background: var(--diffBlob-addition-bgColor-line, var(--color-success-subtle));
+}
+.diff-line--add .diff-num {
+  color: var(--diffBlob-addition-fgColor-num, var(--color-fg-muted));
+  background: var(--diffBlob-addition-bgColor-num, var(--color-success-muted));
+}
+.diff-line--del .diff-code {
+  background: var(--diffBlob-deletion-bgColor-line, var(--color-danger-subtle));
+}
+.diff-line--del .diff-num {
+  color: var(--diffBlob-deletion-fgColor-num, var(--color-fg-muted));
+  background: var(--diffBlob-deletion-bgColor-num, var(--color-danger-muted));
+}
+.diff-line--hunk td {
+  padding: var(--base-size-4) 10px;
+  color: var(--fgColor-muted, var(--color-fg-muted));
+  background: var(--diffBlob-hunk-bgColor-num, var(--color-accent-subtle));
+}
+
+/* == Markdown task lists ================================================ */
+/* MarkdownService rewrites "[ ]" / "[x]" list items into real checkboxes. */
+
+.markdown-body .contains-task-list { padding-left: 2em; list-style: none; }
+.markdown-body .task-list-item { list-style: none; }
+.markdown-body .task-list-item + .task-list-item { margin-top: var(--base-size-4); }
+.markdown-body .task-list-item input[type="checkbox"] {
+  margin: 0 .2em .25em -1.4em;
+  vertical-align: middle;
+}
+
+/* == Header search: full width inside the dark bar ====================== */
+
+.Header-search { flex: 1 1 auto; max-width: 340px; }
+.Header-search .form-control {
+  width: 100%;
+  color: var(--header-fgColor-default, #fff);
+  background: transparent;
+  border-color: var(--header-borderColor-divider, rgba(255, 255, 255, .25));
+  box-shadow: none;
+}
+.Header-search .form-control::placeholder {
+  color: var(--header-fgColor-logo, rgba(255, 255, 255, .7));
+}
+.Header-search .form-control:focus {
+  color: var(--fgColor-default, var(--color-fg-default));
+  background: var(--bgColor-default, var(--color-canvas-default));
+  border-color: var(--borderColor-accent-emphasis, var(--color-accent-emphasis));
+}
+
+/* Unread dot on the notification bell. */
+.unread-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--bgColor-accent-emphasis, var(--color-accent-emphasis));
+  border: 2px solid var(--header-bgColor, #24292f);
+  border-radius: 50%;
+}
+
+/* gitkoo.js reveals whichever icon matches the theme you would switch to,
+   so neither flashes before the script runs. */
+.theme-icon-light,
+.theme-icon-dark { display: none; }
+
+/* == Repository header ================================================== */
+
+.repo-head {
+  padding-top: var(--base-size-16);
+  background: var(--bgColor-muted, var(--color-canvas-subtle));
+  border-bottom: 1px solid var(--borderColor-default, var(--color-border-default));
+}
+.repo-head .UnderlineNav { box-shadow: none; border-bottom: 0; }
+
+.repo-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--base-size-8);
+  font-size: 20px;
+  line-height: 1.25;
+  margin-bottom: var(--base-size-16);
+}
+.repo-title .octicon { margin-right: 0; }
+.repo-title .separator {
+  font-weight: 300;
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+
+/* == Gap utilities ====================================================== */
+/* Primer 21 spaces flex rows with margin utilities and ships no gap-*.
+   These fill that hole using Primer's own base-size scale. */
+
+.gap-1 { gap: var(--base-size-4); }
+.gap-2 { gap: var(--base-size-8); }
+.gap-3 { gap: var(--base-size-16); }
+.gap-4 { gap: var(--base-size-24); }
+
+/* == Breadcrumb ========================================================= */
+/* The primer.css bundle omits the breadcrumb component, so define it here. */
+
+.breadcrumb {
+  font-size: 16px;
+  font-weight: 400;
+  word-break: break-word;
+}
+.breadcrumb .separator {
+  padding: 0 var(--base-size-4);
+  color: var(--fgColor-muted, var(--color-fg-muted));
+}
+.breadcrumb .final-path { font-weight: 600; }
+
+/* == Notifications ====================================================== */
+/* Unread rows get the accent wash GitHub uses in its inbox. */
+
+.notification-row--unread {
+  background: var(--bgColor-accent-muted, var(--color-accent-subtle));
 }

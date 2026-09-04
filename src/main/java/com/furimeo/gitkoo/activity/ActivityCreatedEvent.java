@@ -4,7 +4,7 @@ import org.springframework.context.ApplicationEvent;
 
 /**
  * Published after an {@link Activity} is recorded, so other domains (e.g. notifications)
- * can react without being wired into every call site (DESIGN.md §23, §116).
+ * can react without being wired into every call site (, §116).
  */
 public class ActivityCreatedEvent extends ApplicationEvent {
 

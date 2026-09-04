@@ -1,42 +1,60 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/common :: head('Pull Requests')}"></head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('Pull requests - ' + ${owner} + '/' + ${repo.name})}"></head>
 <body>
-  <header th:replace="~{fragments/common :: header}"></header>
-  <div class="container-app">
-    <div class="repo-header">
-      <div class="repo-title">
-        <a th:href="'/@/' + ${owner}" class="owner" th:text="${owner}"></a>
-        <span class="sep">/</span>
-        <strong th:text="${repo.name}"></strong>
+<th:block th:replace="~{fragments/common :: header}"></th:block>
+<div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
+
+<main class="container-lg px-3 mt-4"
+      th:with="openCount=${#lists.size(pulls.?[status == 'OPEN'])},
+               closedCount=${#lists.size(pulls.?[status != 'OPEN'])}">
+
+  <div class="d-flex flex-justify-end mb-3">
+    <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
+  </div>
+
+  <div class="Box">
+    <div class="Box-header d-flex flex-items-center gap-3">
+      <span class="d-flex flex-items-center gap-1 text-bold">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+        <span th:text="${openCount}">0</span> Open
+      </span>
+      <span class="d-flex flex-items-center gap-1 color-fg-muted">
+        <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-check"></use></svg>
+        <span th:text="${closedCount}">0</span> Closed
+      </span>
+    </div>
+
+    <div class="Box-row d-flex flex-items-start" th:each="p : ${pulls}">
+      <svg class="octicon mt-1 mr-2 flex-shrink-0" width="16" height="16" aria-hidden="true"
+           th:classappend="${p.status == 'OPEN'} ? ' color-fg-success'
+                           : (${p.status == 'MERGED'} ? ' color-fg-done' : ' color-fg-danger')">
+        <use th:href="${p.status == 'MERGED'} ? '#octicon-git-merge' : '#octicon-git-pull-request'"></use>
+      </svg>
+      <div class="flex-auto">
+        <a class="f4 text-bold Link--primary"
+           th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${p.number}}"
+           th:text="${p.title}">title</a>
+        <div class="color-fg-muted f6 mt-1 d-flex flex-items-center flex-wrap gap-1">
+          <span>#<span th:text="${p.number}">1</span></span>
+          <time th:if="${p.createdAt != null}" th:datetime="${p.createdAt}" th:text="${p.createdAt}">date</time>
+          <span>&middot;</span>
+          <span class="branch-name" th:text="${p.sourceBranch}">feature</span>
+          <svg class="octicon" width="12" height="12" aria-hidden="true"><use href="#octicon-arrow-right"></use></svg>
+          <span class="branch-name" th:text="${p.targetBranch}">main</span>
+        </div>
       </div>
     </div>
-    <nav class="repo-tabs">
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name}}">Code</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}">Issues</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}" class="active">Pull Requests</a>
-      <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}">Actions</a>
-    </nav>
-    <div class="flex items-center justify-between mb-3">
-      <h2>Pull Requests</h2>
+
+    <div th:if="${pulls.isEmpty()}" class="blankslate">
+      <svg class="octicon blankslate-icon" width="24" height="24" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+      <h3 class="blankslate-heading">No pull requests</h3>
+      <p>Push a branch, then open a pull request to propose changes.</p>
       <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/new'}" class="btn btn-primary">New pull request</a>
     </div>
-    <div th:if="${pulls.isEmpty()}" class="empty-state">
-      <h2>No pull requests</h2>
-      <p>Create a branch, push, then open a pull request to propose changes.</p>
-    </div>
-    <div th:unless="${pulls.isEmpty()}" class="card p-0">
-      <div class="commit-item" th:each="p : ${pulls}">
-        <span class="sha">#<span th:text="${p.number}"></span></span>
-        <span class="title font-medium" th:text="${p.title}"></span>
-        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'OPEN'}"
-              style="background:var(--success-subtle);color:var(--success-fg)">Open</span>
-        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'MERGED'}"
-              style="background:var(--accent-subtle);color:var(--accent-fg)">Merged</span>
-        <span class="text-sm px-2 rounded-full" th:if="${p.status == 'CLOSED'}"
-              style="background:var(--canvas-subtle);color:var(--fg-muted)">Closed</span>
-      </div>
-    </div>
   </div>
+</main>
+
+<footer th:replace="~{fragments/common :: footer}"></footer>
 </body>
 </html>

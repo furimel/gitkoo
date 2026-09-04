@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Loads a {@link User} from the database and maps it to Spring Security's
- * {@link UserDetails} for session-based authentication (DESIGN.md §43).
+ * {@link UserDetails} for session-based authentication (see docs/).
  */
 @Component
 public class GitKooUserDetailsService implements UserDetailsService {
