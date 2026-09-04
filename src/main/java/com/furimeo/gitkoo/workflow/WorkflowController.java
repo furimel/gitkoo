@@ -87,8 +87,8 @@ public class WorkflowController {
 
     private Repository resolveRepo(String username, String name) {
         var owner = userService.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("User not found"));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
-                .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("Repository not found"));
     }
 }

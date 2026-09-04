@@ -53,8 +53,8 @@ public class ProtectedBranchController {
 
     private Repository resolveRepo(String username, String name) {
         User owner = userService.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("User not found: " + username));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
-                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + username + "/" + name));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("Repository not found: " + username + "/" + name));
     }
 }

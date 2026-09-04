@@ -174,9 +174,9 @@ public class PullRequestController {
 
     private Repository resolveRepo(String username, String name) {
         User owner = userService.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("User not found"));
         return repositoryService.findByOwnerAndName(Repository.OwnerType.USER.name(), owner.getId(), name)
-                .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+                .orElseThrow(() -> new com.furimeo.gitkoo.web.NotFoundException("Repository not found"));
     }
 
     /** Requires at least READ permission for the authenticated user, else 403. */
