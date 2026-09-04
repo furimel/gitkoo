@@ -5,9 +5,7 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
 
-<main class="container-xl px-3 px-md-4 px-lg-5 mt-4"
-      th:with="repoLabels=${@labelService.listLabels(repo.id)},
-               attachedIds=${@labelService.getIssueLabels(issue.id).![labelId]}">
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
 
   <!-- Title and state, GitHub's gh-header -->
   <div class="border-bottom pb-3 mb-4">
@@ -40,9 +38,7 @@
       <!-- Opening post -->
       <div class="TimelineItem">
         <div class="TimelineItem-avatar">
-          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                style="width:40px;height:40px"
-                th:text="${#strings.toUpperCase(#strings.substring(author?.username ?: 'U', 0, 1))}">U</span>
+          <span th:replace="~{fragments/common :: avatar(${author?.username ?: 'ghost'}, 40)}"></span>
         </div>
         <div class="TimelineItem-body">
           <div class="Box">
@@ -60,9 +56,7 @@
       <!-- Comments -->
       <div class="TimelineItem" th:each="c,iter : ${comments}">
         <div class="TimelineItem-avatar">
-          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                style="width:40px;height:40px"
-                th:text="${#strings.toUpperCase(#strings.substring(commentAuthors[iter.index]?.username ?: 'U', 0, 1))}">U</span>
+          <span th:replace="~{fragments/common :: avatar(${commentAuthors[iter.index]?.username ?: 'ghost'}, 40)}"></span>
         </div>
         <div class="TimelineItem-body">
           <div class="Box">
@@ -91,9 +85,7 @@
       <!-- Comment form -->
       <div class="TimelineItem" sec:authorize="isAuthenticated()">
         <div class="TimelineItem-avatar">
-          <span class="avatar circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                style="width:40px;height:40px"
-                th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">U</span>
+          <span th:replace="~{fragments/common :: avatar(${#authentication.name}, 40)}"></span>
         </div>
         <div class="TimelineItem-body">
           <form th:if="${issue.status == 'OPEN'}"
@@ -139,12 +131,12 @@
             <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
           </summary>
           <div class="dropdown-menu dropdown-menu-sw p-3" role="menu" style="width:300px">
-            <form th:if="${!repoLabels.?[!attachedIds.contains(id)].isEmpty()}"
+            <form th:unless="${availableLabels.isEmpty()}"
                   th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/' + ${issue.number} + '/labels/add'}"
                   method="post" class="mb-3">
               <label class="f6 text-bold" for="labelName">Apply a label</label>
               <select id="labelName" name="labelName" class="form-select mt-1 mb-2">
-                <option th:each="label : ${repoLabels}" th:if="${!attachedIds.contains(label.id)}"
+                <option th:each="label : ${availableLabels}"
                         th:value="${label.name}" th:text="${label.name}">label</option>
               </select>
               <button type="submit" class="btn btn-sm btn-block">Apply</button>
@@ -166,7 +158,7 @@
         </details>
 
         <div class="d-flex flex-wrap gap-1">
-          <span th:each="label : ${repoLabels}" th:if="${attachedIds.contains(label.id)}"
+          <span th:each="label : ${attachedLabels}"
                 class="d-inline-flex flex-items-center">
             <!-- Label colour comes from the repo's own palette, so it is inlined. -->
             <span class="Label" th:style="'background:' + ${label.color} + ';color:#fff'"
@@ -179,7 +171,7 @@
               </button>
             </form>
           </span>
-          <span th:if="${repoLabels.?[attachedIds.contains(id)].isEmpty()}" class="color-fg-muted f6">
+          <span th:if="${attachedLabels.isEmpty()}" class="color-fg-muted f6">
             None yet
           </span>
         </div>

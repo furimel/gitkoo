@@ -33,14 +33,18 @@ public class IssueController {
     private final MarkdownService markdownService;
     private final RepositoryPermissionService permissionService;
 
+    private final LabelService labelService;
+
     public IssueController(IssueService issueService, RepositoryService repositoryService,
                            UserService userService, MarkdownService markdownService,
-                           RepositoryPermissionService permissionService) {
+                           RepositoryPermissionService permissionService,
+                           LabelService labelService) {
         this.issueService = issueService;
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.markdownService = markdownService;
         this.permissionService = permissionService;
+        this.labelService = labelService;
     }
 
     /**
@@ -52,24 +56,30 @@ public class IssueController {
     @GetMapping("/issues")
     public String listIssues(@PathVariable String username, @PathVariable String name, Model model,
                              @RequestParam(required = false) String state,
+                             @RequestParam(required = false) Integer page,
                              @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
         requireRead(principal, repo);
 
         List<Issue> all = issueService.listByRepository(repo.getId());
         boolean showClosed = "closed".equalsIgnoreCase(state);
-        List<Issue> issues = all.stream()
+        List<Issue> matching = all.stream()
                 .filter(i -> showClosed != "OPEN".equals(i.getStatus()))
                 .toList();
+        var pageOfIssues = com.furimeo.gitkoo.web.Page.of(matching, page);
 
         model.addAttribute("title", "Issues \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
-        model.addAttribute("issues", issues);
+        model.addAttribute("issues", pageOfIssues.items());
+        model.addAttribute("page", pageOfIssues);
         model.addAttribute("filter", showClosed ? "closed" : "open");
         // Counts come from the unfiltered list so both tabs always show a total.
         model.addAttribute("openCount", all.stream().filter(i -> "OPEN".equals(i.getStatus())).count());
         model.addAttribute("closedCount", all.stream().filter(i -> !"OPEN".equals(i.getStatus())).count());
+        // Only the visible page is looked up, and in one batch rather than per row.
+        model.addAttribute("issueLabels", labelService.labelsByIssue(repo.getId(),
+                pageOfIssues.items().stream().map(Issue::getId).toList()));
         return "issue/list";
     }
 
@@ -119,6 +129,22 @@ public class IssueController {
                 .map(c -> userService.findById(c.getAuthorId()).orElse(null))
                 .toList());
         model.addAttribute("author", author.orElse(null));
+
+        /*
+         * Split the repository's labels here rather than in the view. The template
+         * used to do it with a SpEL selection, `repoLabels.?[!attachedIds.contains(id)]`,
+         * which cannot work: inside a selection the evaluation context is the element,
+         * so `attachedIds` resolved against a Label and threw. It only stayed hidden
+         * while every repository had zero labels and the predicate never ran.
+         */
+        var attachedIds = labelService.getIssueLabels(issue.getId()).stream()
+                .map(IssueLabel::getLabelId)
+                .collect(java.util.stream.Collectors.toSet());
+        var repoLabels = labelService.listLabels(repo.getId());
+        model.addAttribute("attachedLabels",
+                repoLabels.stream().filter(l -> attachedIds.contains(l.getId())).toList());
+        model.addAttribute("availableLabels",
+                repoLabels.stream().filter(l -> !attachedIds.contains(l.getId())).toList());
         model.addAttribute("markdown", markdownService);
         return "issue/view";
     }

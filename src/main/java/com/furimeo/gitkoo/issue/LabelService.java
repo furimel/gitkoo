@@ -55,4 +55,30 @@ public class LabelService {
     public List<IssueLabel> getIssueLabels(Long issueId) {
         return issueLabelRepository.findByIssueId(issueId);
     }
+
+    /**
+     * Labels attached to each of {@code issueIds}, for rendering a list of issues.
+     *
+     * <p>Two queries total regardless of how many issues there are, rather than one
+     * per row. Issues with no labels are absent from the map.
+     */
+    public java.util.Map<Long, List<Label>> labelsByIssue(Long repositoryId,
+                                                          java.util.Collection<Long> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Long, Label> byId = new java.util.HashMap<>();
+        for (Label label : labelRepository.findByRepositoryId(repositoryId)) {
+            byId.put(label.getId(), label);
+        }
+
+        java.util.Map<Long, List<Label>> result = new java.util.HashMap<>();
+        for (IssueLabel link : issueLabelRepository.findByIssueIdIn(issueIds)) {
+            Label label = byId.get(link.getLabelId());
+            if (label != null) {
+                result.computeIfAbsent(link.getIssueId(), k -> new java.util.ArrayList<>()).add(label);
+            }
+        }
+        return result;
+    }
 }
