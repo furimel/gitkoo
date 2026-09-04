@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Turns unified {@code git diff} output into per-file, per-line structures the
- * templates can render as a table (DESIGN.md §13, §15).
+ * templates can render as a table (docs/ui.md).
  *
  * <p>The raw patch was previously dumped into a {@code <pre>}, which gave no
  * line numbers, no add/remove colouring and no per-file headers. Parsing it here

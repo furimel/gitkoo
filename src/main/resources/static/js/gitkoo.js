@@ -1,6 +1,6 @@
 /* GitKoo client script - vanilla JS, no build step.
  *
- * Only handles what HTMX is a poor fit for (DESIGN.md 4):
+ * Only handles what HTMX is a poor fit for (docs/stack.md):
  *   - theme switching across Primer's colour modes
  *   - clipboard copy for clone URLs
  *   - relative timestamps ("3 hours ago")
