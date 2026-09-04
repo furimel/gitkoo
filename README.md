@@ -140,16 +140,16 @@ Checks Java, Git, database, data directory, and SSH configuration.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Read
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines. Read
 [AGENTS.md](AGENTS.md) for the locked stack and coding rules.
 
 ## Documentation
 
 - [DESIGN.md](DESIGN.md) - design decisions and architecture
-- [CHANGELOG.md](CHANGELOG.md) - version history
-- [SECURITY.md](SECURITY.md) - reporting vulnerabilities
-- [CONTRIBUTING.md](CONTRIBUTING.md) - how to contribute
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - community standards
+- [CHANGELOG.md](.github/CHANGELOG.md) - version history
+- [SECURITY.md](.github/SECURITY.md) - reporting vulnerabilities
+- [CONTRIBUTING.md](.github/CONTRIBUTING.md) - how to contribute
+- [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) - community standards
 
 ## License
 
