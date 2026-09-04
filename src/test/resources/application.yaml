@@ -1,0 +1,28 @@
+# Test overrides.
+#
+# Without this, @SpringBootTest inherits gitkoo.data from the main configuration
+# and runs against ./data/gitkoo.db - the developer's real database. Tests then
+# both depend on and corrupt local state: running the application once and
+# completing setup made UserServiceTest fail with "Setup already completed",
+# because the admin it expects to create already existed.
+#
+# build/test-data is disposable and wiped before every test run (see build.gradle).
+
+gitkoo:
+  data: build/test-data
+  git:
+    binary: git
+  ssh:
+    # No test needs the SSH daemon, and binding a port makes runs flaky in CI.
+    enabled: false
+  ci:
+    enabled: false
+    workers: 1
+
+spring:
+  datasource:
+    url: jdbc:sqlite:build/test-data/gitkoo.db
+
+logging:
+  level:
+    com.furimeo.gitkoo: WARN
