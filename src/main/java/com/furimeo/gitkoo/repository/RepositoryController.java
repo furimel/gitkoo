@@ -40,12 +40,17 @@ public class RepositoryController {
     private final RepositoryPermissionService permissionService;
     private final com.furimeo.gitkoo.web.MarkdownService markdownService;
     private final com.furimeo.gitkoo.config.GitKooProperties properties;
+    // Injected here rather than taken as a handler argument: Spring MVC treats an
+    // unannotated method parameter as a command object and builds a blank instance,
+    // which left every field null and 500'd the activity page.
+    private final com.furimeo.gitkoo.activity.ActivityService activityService;
 
     public RepositoryController(RepositoryService repositoryService, RepositoryRepository repositoryRepository,
                                 UserService userService, GitService gitService,
                                 RepositoryPermissionService permissionService,
                                 com.furimeo.gitkoo.web.MarkdownService markdownService,
-                                com.furimeo.gitkoo.config.GitKooProperties properties) {
+                                com.furimeo.gitkoo.config.GitKooProperties properties,
+                                com.furimeo.gitkoo.activity.ActivityService activityService) {
         this.repositoryService = repositoryService;
         this.repositoryRepository = repositoryRepository;
         this.userService = userService;
@@ -53,6 +58,7 @@ public class RepositoryController {
         this.permissionService = permissionService;
         this.markdownService = markdownService;
         this.properties = properties;
+        this.activityService = activityService;
     }
 
     // ── create ──────────────────────────────────────────────────────────
@@ -225,8 +231,7 @@ public class RepositoryController {
     @GetMapping("/{username}/{name}/activity")
     public String repositoryActivity(@PathVariable String username, @PathVariable String name,
                                      Model model,
-                                     @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal,
-                                     com.furimeo.gitkoo.activity.ActivityService activityService) {
+                                     @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
         model.addAttribute("title", "Activity \u00b7 " + username + "/" + name);
