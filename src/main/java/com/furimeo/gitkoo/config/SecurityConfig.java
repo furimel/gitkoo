@@ -52,15 +52,39 @@ public class SecurityConfig {
             // Runs last in the chain, so the CSRF token exists before any view renders.
             .addFilterAfter(eagerCsrfTokenFilter,
                     org.springframework.security.web.access.intercept.AuthorizationFilter.class)
+            /*
+             * Order matters. A repository lives at /{username}/{name}, which also
+             * matches two-segment application routes like /settings/keys, so every
+             * such route has to be claimed before the repository pattern is reached.
+             *
+             * Anonymous readers are allowed as far as the repository pages; the
+             * controllers then call requireRead, and RepositoryPermissionService
+             * grants READ to anonymous callers only for PUBLIC repositories. The
+             * pattern below is deliberately GET-only, so no anonymous writes.
+             */
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/health",
+                        "/healthz",
                         "/setup",
                         "/login",
                         "/register",
-                        "/assets/**"
+                        "/assets/**",
+                        "/avatars/**"
                 ).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers(
+                        "/",
+                        "/new",
+                        "/notifications/**",
+                        "/settings/**",
+                        "/teams/**"
+                ).authenticated()
+                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                        "/@/*",
+                        "/{username}/{name}",
+                        "/{username}/{name}/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
