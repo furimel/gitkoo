@@ -1,12 +1,16 @@
 package com.furimeo.gitkoo.git;
 
 import java.io.IOException;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,6 +211,110 @@ public class GitService {
             return List.of();
         }
         return result.stdout().lines().filter(s -> !s.isBlank()).toList();
+    }
+
+    // ── per-entry history ───────────────────────────────────────────────
+
+    /**
+     * The most recent commit touching each direct child of {@code dir}.
+     *
+     * <p>The obvious implementation is one {@code git log -1} per entry, which is a
+     * subprocess per row and turns a 100-file directory into 100 process spawns. This
+     * instead walks the history once, newest first, attributing each changed path to
+     * the first commit that touched it and stopping as soon as every entry is
+     * accounted for.
+     *
+     * @param names direct children of {@code dir} to resolve, as returned by listTree
+     * @param maxCommits how far back to walk before giving up; entries not seen within
+     *                   that window are simply absent from the result
+     * @return entry name to its latest commit; missing keys mean "not found in range"
+     */
+    public Map<String, CommitInfo> lastCommits(Path storagePath, String ref, String dir,
+                                               Collection<String> names, int maxCommits) {
+        if (names == null || names.isEmpty()) {
+            return Map.of();
+        }
+        Set<String> pending = new HashSet<>(names);
+        Map<String, CommitInfo> found = new HashMap<>();
+
+        List<String> args = new ArrayList<>(List.of(
+                // Keep non-ASCII paths literal so they match the tree entries verbatim.
+                "-c", "core.quotepath=false",
+                "log",
+                // %x01 marks a commit header, %x1f separates its fields. Both are
+                // control characters, so neither can occur in a path or a subject.
+                "--format=%x01%H%x1f%an%x1f%cI%x1f%s",
+                "--name-only",
+                // A rename would otherwise report only the new path and hide the entry.
+                "--no-renames",
+                "-n", String.valueOf(maxCommits),
+                ref));
+        if (!dir.isEmpty()) {
+            args.add("--");
+            args.add(dir);
+        }
+
+        GitResult result = run(storagePath, args.toArray(new String[0]));
+        if (!result.success()) {
+            return Map.of();
+        }
+
+        CommitInfo current = null;
+        for (String line : result.stdout().split("\n")) {
+            line = line.strip();
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (line.startsWith(RECORD)) {
+                current = parseLogRecord(line.substring(RECORD.length()));
+                continue;
+            }
+            if (current == null) {
+                continue;
+            }
+            String name = childOf(line, dir);
+            // First commit to mention it wins, because the walk is newest first.
+            if (name != null && pending.remove(name)) {
+                found.put(name, current);
+                if (pending.isEmpty()) {
+                    break;
+                }
+            }
+        }
+        return found;
+    }
+
+    /** Marker prefixed to each commit header so it is distinguishable from a path. */
+    private static final String RECORD = "\001";
+
+    /** Separates the fields within one commit header. */
+    private static final String FIELD = "\037";
+
+    private CommitInfo parseLogRecord(String record) {
+        String[] parts = record.split(FIELD, -1);
+        if (parts.length < 4) {
+            return null;
+        }
+        return new CommitInfo(parts[0], parts[1], "", parts[3], parts[2]);
+    }
+
+    /**
+     * The direct child of {@code dir} that {@code path} sits under.
+     *
+     * <p>{@code childOf("src/main/App.java", "src")} is {@code "main"}, so a commit deep
+     * inside a directory still dates the directory row.
+     */
+    private String childOf(String path, String dir) {
+        String rest = path;
+        if (!dir.isEmpty()) {
+            String prefix = dir.endsWith("/") ? dir : dir + "/";
+            if (!path.startsWith(prefix)) {
+                return null;
+            }
+            rest = path.substring(prefix.length());
+        }
+        int slash = rest.indexOf('/');
+        return slash < 0 ? rest : rest.substring(0, slash);
     }
 
     // ── merge checks ────────────────────────────────────────────────────

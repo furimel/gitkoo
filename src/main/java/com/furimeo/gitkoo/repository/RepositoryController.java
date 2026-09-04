@@ -45,6 +45,14 @@ public class RepositoryController {
     // which left every field null and 500'd the activity page.
     private final com.furimeo.gitkoo.activity.ActivityService activityService;
 
+    /**
+     * How far back to walk history when dating file-tree rows.
+     *
+     * <p>A file untouched for longer than this simply shows no date, which is a far
+     * better trade than an unbounded walk on a repository with deep history.
+     */
+    private static final int ENTRY_HISTORY_DEPTH = 500;
+
     public RepositoryController(RepositoryService repositoryService, RepositoryRepository repositoryRepository,
                                 UserService userService, GitService gitService,
                                 RepositoryPermissionService permissionService,
@@ -152,6 +160,9 @@ public class RepositoryController {
         model.addAttribute("branches", gitService.branches(storagePath));
         model.addAttribute("totalCommits", gitService.commitCount(storagePath, ref));
         model.addAttribute("latestCommit", commits.isEmpty() ? null : commits.get(0));
+        // One history walk for the whole listing, not one `git log` per row.
+        model.addAttribute("entryCommits", gitService.lastCommits(storagePath, ref, path,
+                entries.stream().map(TreeEntry::name).toList(), ENTRY_HISTORY_DEPTH));
 
         addReadme(model, storagePath, ref, path, entries);
         return "repository/code";
@@ -231,13 +242,17 @@ public class RepositoryController {
     @GetMapping("/{username}/{name}/activity")
     public String repositoryActivity(@PathVariable String username, @PathVariable String name,
                                      Model model,
+                                     @RequestParam(required = false) Integer page,
                                      @AuthenticationPrincipal org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
+        var pageOfActivity = com.furimeo.gitkoo.web.Page.of(
+                activityService.listByRepository(repo.getId()), page);
         model.addAttribute("title", "Activity \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
         model.addAttribute("repo", repo);
-        model.addAttribute("activities", activityService.listByRepository(repo.getId()));
+        model.addAttribute("activities", pageOfActivity.items());
+        model.addAttribute("page", pageOfActivity);
         return "repository/activity";
     }
 
@@ -276,6 +291,9 @@ public class RepositoryController {
         model.addAttribute("byteSize", content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
         model.addAttribute("branches", gitService.branches(storagePath));
         model.addAttribute("breadcrumbs", breadcrumbs(filePath));
+        // Resolved here rather than left to highlight.js auto-detection, which guesses
+        // differently for the same file depending on which lines it sees.
+        model.addAttribute("language", com.furimeo.gitkoo.web.Languages.forPath(filePath));
         if (isMarkdown(filePath)) {
             model.addAttribute("renderedHtml", markdownService.render(content));
         }

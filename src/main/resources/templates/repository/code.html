@@ -98,11 +98,9 @@
       <th:block th:unless="${empty}">
         <div class="Box mb-3">
           <div class="commit-tease" th:if="${latestCommit != null}">
-            <span class="avatar avatar-small circle color-bg-emphasis color-fg-on-emphasis d-flex flex-items-center flex-justify-center text-bold"
-                  style="width:20px;height:20px;font-size:11px"
-                  th:text="${#strings.toUpperCase(#strings.substring(latestCommit.authorName, 0, 1))}">A</span>
+            <span th:replace="~{fragments/common :: avatar(${latestCommit.authorName}, 20)}"></span>
             <strong th:text="${latestCommit.authorName}">author</strong>
-            <a class="Link--secondary css-truncate-target"
+            <a class="Link--secondary commit-tease-subject"
                th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${latestCommit.sha}}"
                th:text="${latestCommit.subject}">subject</a>
             <span class="ml-auto d-flex flex-items-center gap-2 color-fg-muted no-wrap">
@@ -124,18 +122,32 @@
               <a th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/tree/' + ${ref}
                           + (${parentPath.isEmpty()} ? '' : '/' + ${parentPath})}">..</a>
             </div>
+            <div class="tree-row-commit"></div>
+            <div class="tree-row-age"></div>
           </div>
 
-          <div class="tree-row" th:each="entry : ${entries}">
+          <!-- entryCommits comes from a single history walk, not a git log per row. -->
+          <div class="tree-row" th:each="entry : ${entries}"
+               th:with="entryCommit=${entryCommits.get(entry.name)}">
             <div class="tree-row-name">
               <svg class="octicon" width="16" height="16" aria-hidden="true"
                    th:classappend="${entry.directory} ? ' tree-row-icon--dir' : ' tree-row-icon--file'">
                 <use th:href="${entry.directory} ? '#octicon-file-directory-fill' : '#octicon-file'"></use>
               </svg>
-              <a class="Link--primary css-truncate-target" th:text="${entry.name}"
+              <a class="Link--primary" th:text="${entry.name}"
                  th:href="@{'/' + ${owner} + '/' + ${repo.name}
                            + (${entry.directory} ? '/tree/' : '/blob/') + ${ref} + '/'
                            + (${path != null and !path.isEmpty()} ? ${path} + '/' : '') + ${entry.name}}">name</a>
+            </div>
+            <div class="tree-row-commit">
+              <a th:if="${entryCommit != null}" class="Link--secondary"
+                 th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/commit/' + ${entryCommit.sha}}"
+                 th:title="${entryCommit.subject}" th:text="${entryCommit.subject}">subject</a>
+            </div>
+            <div class="tree-row-age">
+              <time th:if="${entryCommit != null}"
+                    th:datetime="${entryCommit.committerDateIso}"
+                    th:text="${entryCommit.committerDateIso}">date</time>
             </div>
           </div>
         </div>
