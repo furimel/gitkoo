@@ -25,6 +25,11 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'org.commonmark:commonmark:0.24.0'
+	// GitHub-flavoured Markdown: tables, task lists, strikethrough, bare URLs.
+	implementation 'org.commonmark:commonmark-ext-gfm-tables:0.24.0'
+	implementation 'org.commonmark:commonmark-ext-gfm-strikethrough:0.24.0'
+	implementation 'org.commonmark:commonmark-ext-task-list-items:0.24.0'
+	implementation 'org.commonmark:commonmark-ext-autolink:0.24.0'
 	implementation 'org.jsoup:jsoup:1.19.1'
 	implementation 'org.apache.sshd:sshd-core:2.15.0'
 	runtimeOnly 'org.xerial:sqlite-jdbc'

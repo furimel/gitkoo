@@ -5,7 +5,7 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
 
-<main class="container-lg px-3 mt-4"
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4"
       th:with="repoLabels=${@labelService.listLabels(repo.id)},
                attachedIds=${@labelService.getIssueLabels(issue.id).![labelId]}">
 
@@ -103,7 +103,7 @@
               <label class="text-bold" for="body">Add a comment</label>
             </div>
             <div class="Box-body">
-              <textarea id="body" name="body" class="form-control" rows="5"
+              <textarea id="body" name="body" class="form-control width-full" rows="5"
                         placeholder="Leave a comment (Markdown supported)"></textarea>
             </div>
             <div class="Box-footer d-flex flex-justify-end gap-2">

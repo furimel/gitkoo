@@ -5,7 +5,7 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'issues')}"></div>
 
-<main class="container-lg px-3 mt-4">
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
   <div class="Layout Layout--sidebarPosition-end Layout--sidebar-wide">
     <div class="Layout-main">
       <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/issues/new'}" method="post">
@@ -13,7 +13,7 @@
           <div class="Box-body">
             <input type="text" id="title" name="title" class="form-control input-lg width-full mb-3"
                    required placeholder="Title" aria-label="Issue title" autofocus>
-            <textarea id="body" name="body" class="form-control" rows="12"
+            <textarea id="body" name="body" class="form-control width-full" rows="12"
                       placeholder="Leave a comment (Markdown supported)"></textarea>
           </div>
           <div class="Box-footer d-flex flex-justify-end">

@@ -5,7 +5,7 @@
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 <div th:replace="~{fragments/common :: repoHead(${owner}, ${repo}, 'pulls')}"></div>
 
-<main class="container-lg px-3 mt-4">
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
 
   <!-- Title, state, and the branch pair -->
   <div class="border-bottom pb-3 mb-4">
@@ -133,7 +133,7 @@
         <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/review'}"
               method="post">
           <div class="Box-body">
-            <textarea id="body" name="body" class="form-control mb-3" rows="4"
+            <textarea id="body" name="body" class="form-control width-full mb-3" rows="4"
                       placeholder="Leave a comment (Markdown supported)"></textarea>
             <div class="form-checkbox mt-0">
               <label><input type="radio" name="state" value="COMMENT" checked> Comment</label>
@@ -222,11 +222,13 @@
       <div class="color-fg-muted f6">
         <div class="d-flex flex-items-center gap-2 mb-1">
           <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-commit"></use></svg>
-          <span><span th:text="${#lists.size(commits)}">0</span> commits</span>
+          <span><span th:text="${#lists.size(commits)}">0</span>
+            <span th:text="${#lists.size(commits) == 1} ? 'commit' : 'commits'">commits</span></span>
         </div>
         <div class="d-flex flex-items-center gap-2">
           <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-file"></use></svg>
-          <span><span th:text="${#lists.size(diffFiles)}">0</span> files changed</span>
+          <span><span th:text="${#lists.size(diffFiles)}">0</span>
+            <span th:text="${#lists.size(diffFiles) == 1} ? 'file changed' : 'files changed'">files changed</span></span>
         </div>
       </div>
     </div>

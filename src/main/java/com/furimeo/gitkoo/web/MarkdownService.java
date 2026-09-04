@@ -19,14 +19,30 @@ import org.springframework.stereotype.Service;
 @Service
 public class MarkdownService {
 
-    private final Parser parser = Parser.builder().build();
-    private final HtmlRenderer renderer = HtmlRenderer.builder().build();
+    /**
+     * GitHub-flavoured Markdown extensions. Without these, tables render as raw
+     * pipe characters and {@code - [ ]} renders as literal brackets rather than
+     * checkboxes, which is what readers of a Git forge actually expect.
+     */
+    private static final java.util.List<org.commonmark.Extension> EXTENSIONS = java.util.List.of(
+            org.commonmark.ext.gfm.tables.TablesExtension.create(),
+            org.commonmark.ext.gfm.strikethrough.StrikethroughExtension.create(),
+            org.commonmark.ext.task.list.items.TaskListItemsExtension.create(),
+            org.commonmark.ext.autolink.AutolinkExtension.create());
+
+    private final Parser parser = Parser.builder().extensions(EXTENSIONS).build();
+    private final HtmlRenderer renderer = HtmlRenderer.builder().extensions(EXTENSIONS).build();
 
     /** Safelist allowing common Markdown HTML but stripping scripts and event handlers. */
     private static final Safelist SAFELIST = Safelist.relaxed()
             .addTags("h1", "h2", "h3", "h4", "h5", "h6")
             .addTags("del", "ins", "sub", "sup", "kbd")
             .addTags("table", "thead", "tbody", "tr", "th", "td")
+            // Task-list checkboxes, always rendered disabled so they are display-only.
+            .addTags("input")
+            .addAttributes("input", "type", "checked", "disabled")
+            .addAttributes("li", "class")
+            .addAttributes("ul", "class")
             .addAttributes("a", "href", "title", "rel")
             .addAttributes("img", "src", "alt", "title", "width", "height")
             .addAttributes("th", "align")

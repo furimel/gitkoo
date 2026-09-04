@@ -42,12 +42,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AccessTokenAuthenticationFilter accessTokenFilter,
-                                                   SetupRedirectFilter setupRedirectFilter) throws Exception {
+                                                   SetupRedirectFilter setupRedirectFilter,
+                                                   EagerCsrfTokenFilter eagerCsrfTokenFilter) throws Exception {
         http
             // SetupRedirectFilter runs first so it redirects to /setup before
             // the authentication layer sends the user to /login (DESIGN.md §68).
             .addFilterBefore(setupRedirectFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
+            // Runs last in the chain, so the CSRF token exists before any view renders.
+            .addFilterAfter(eagerCsrfTokenFilter,
+                    org.springframework.security.web.access.intercept.AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/health",

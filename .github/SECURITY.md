@@ -23,7 +23,7 @@ GitKoo is pre-1.0; only the latest `main` is supported.
 
 ## Security measures
 
-GitKoo implements the following security baseline (DESIGN.md §78):
+GitKoo implements the following security baseline (docs/security.md):
 
 - **CSRF protection** on all form POSTs (Spring Security default)
 - **XSS protection** - Markdown rendered through CommonMark + Jsoup sanitization
@@ -35,11 +35,11 @@ GitKoo implements the following security baseline (DESIGN.md §78):
 - **Command injection** - `ProcessBuilder` with argument lists, never shell
   string concatenation (unless workflow DSL explicitly requests `run shell`)
 - **Workflow isolation** - environment whitelist, secret masking in logs,
-  TRUSTED/UNTRUSTED execution modes (DESIGN.md §33)
+  TRUSTED/UNTRUSTED execution modes (docs/security.md)
 - **Secret encryption** - workflow secrets encrypted at rest (AES-GCM)
 
 ## Known limitations (MVP)
 
-- CI runs on the host process (no container isolation yet, DESIGN.md §33)
+- CI runs on the host process (no container isolation yet, docs/security.md)
 - No rate limiting implemented (planned for Phase 2)
 - SSH host key is auto-generated on first boot (stored in `data/.ssh_host_key`)

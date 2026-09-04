@@ -35,8 +35,8 @@ Open http://localhost:3000 and create your administrator account.
 That's it. SQLite + filesystem storage + embedded web server. No PostgreSQL,
 Redis, Nginx, or Docker required.
 
-```text
-create repository → clone → push/pull → issue → pull request → review → CI → merge
+```
+create repository -> clone -> push/pull -> issue -> pull request -> review -> CI -> merge
 ```
 
 ## Configuration
@@ -59,7 +59,7 @@ gitkoo:
 ```
 
 Override any value in `application.yml` next to the JAR. Full reference in
-[DESIGN.md](DESIGN.md) §37.
+[docs/storage.md](docs/storage.md).
 
 ## Creating a repository
 
@@ -75,7 +75,7 @@ git clone http://localhost:3000/{username}/{name}.git
 
 ## SSH access
 
-Register an SSH key under **Settings → SSH keys**, then:
+Register an SSH key under **Settings -> SSH keys**, then:
 
 ```bash
 git clone git@localhost:{username}/{name}.git
@@ -97,7 +97,7 @@ SSH runs on port 2222 by default.
 GitKoo uses a custom, human-readable DSL - not YAML. Create
 `.gitkoo/workflows/build.koo` in your repository:
 
-```text
+```
 workflow build
     on push main
 
@@ -113,7 +113,7 @@ workflow build
 Workflows trigger on push. Logs are viewable under **Actions**. Secrets are
 masked in log output. Runs execute asynchronously via a worker pool.
 
-See [DESIGN.md](DESIGN.md) §117 for the full grammar.
+See [docs/workflow-dsl.md](docs/workflow-dsl.md) for the full grammar.
 
 ## Diagnostics
 
@@ -140,16 +140,19 @@ Checks Java, Git, database, data directory, and SSH configuration.
 
 ## Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines. Read
+See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines. Read
 [AGENTS.md](AGENTS.md) for the locked stack and coding rules.
 
 ## Documentation
 
-- [DESIGN.md](DESIGN.md) - design decisions and architecture
-- [CHANGELOG.md](.github/CHANGELOG.md) - version history
-- [SECURITY.md](.github/SECURITY.md) - reporting vulnerabilities
-- [CONTRIBUTING.md](.github/CONTRIBUTING.md) - how to contribute
-- [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) - community standards
+| File | Content |
+|------|---------|
+| [docs/](docs/README.md) | Architecture, stack, storage, auth, permissions, Git transport, workflow DSL, database schema, security, UI, testing |
+| [.github/CHANGELOG.md](.github/CHANGELOG.md) | Version history |
+| [.github/SECURITY.md](.github/SECURITY.md) | Reporting vulnerabilities |
+| [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) | How to contribute |
+| [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) | Community standards |
+| [AGENTS.md](AGENTS.md) | Locked stack and coding rules |
 
 ## License
 

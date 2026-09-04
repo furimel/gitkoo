@@ -4,7 +4,7 @@
 <body>
 <th:block th:replace="~{fragments/common :: header}"></th:block>
 
-<main class="container-lg px-3 mt-4">
+<main class="container-xl px-3 px-md-4 px-lg-5 mt-4">
   <div class="Subhead">
     <h1 class="Subhead-heading">SSH keys</h1>
     <p class="Subhead-description">Public keys that may push and pull over SSH.</p>
@@ -53,7 +53,7 @@
         </div>
         <div class="form-group mb-0">
           <label for="publicKey">Key</label>
-          <textarea id="publicKey" name="publicKey" class="form-control text-mono" rows="6"
+          <textarea id="publicKey" name="publicKey" class="form-control width-full text-mono" rows="6"
                     placeholder="ssh-ed25519 AAAA..." autocomplete="off"
                     th:text="${publicKey}"></textarea>
           <p class="note">Paste the contents of your <code>~/.ssh/id_*.pub</code> file.</p>

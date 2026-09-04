@@ -179,14 +179,20 @@
 }
 
 /* == Markdown task lists ================================================ */
-/* MarkdownService rewrites "[ ]" / "[x]" list items into real checkboxes. */
+/*
+ * commonmark's task-list extension emits a bare <li><input type="checkbox">
+ * with no class of its own, so these match on the checkbox itself rather than
+ * on GitHub's .task-list-item hook.
+ */
 
-.markdown-body .contains-task-list { padding-left: 2em; list-style: none; }
-.markdown-body .task-list-item { list-style: none; }
-.markdown-body .task-list-item + .task-list-item { margin-top: var(--base-size-4); }
-.markdown-body .task-list-item input[type="checkbox"] {
-  margin: 0 .2em .25em -1.4em;
+.markdown-body li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.4em;
+}
+.markdown-body li > input[type="checkbox"] {
+  margin: 0 .4em .25em 0;
   vertical-align: middle;
+  accent-color: var(--bgColor-accent-emphasis, var(--color-accent-emphasis));
 }
 
 /* == Header search: full width inside the dark bar ====================== */

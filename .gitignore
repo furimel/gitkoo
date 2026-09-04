@@ -41,3 +41,6 @@ out/
 # Local design doc is private \u2014 never commit
 design (DO NOT COMMIT) .txt
 .zcode/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/node_modules/

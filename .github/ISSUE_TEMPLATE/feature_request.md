@@ -13,4 +13,4 @@ What problem does this feature solve?
 Describe what you'd like.
 
 **Fits the project?**
-GitKoo is intentionally minimal (DESIGN.md §2.1). Explain the concrete use case.
+GitKoo is intentionally minimal (the project README). Explain the concrete use case.

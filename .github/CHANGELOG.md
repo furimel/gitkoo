@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Repositories & Git
 - Create repository → `git init --bare` at `data/git/repositories/{id}.git`
-- ID-based storage path (rename-safe, DESIGN.md §70-71)
+- ID-based storage path (rename-safe, )
 - Code browser: file tree (`git ls-tree`), file viewer (`git cat-file`)
 - Smart HTTP protocol: `git-upload-pack` / `git-receive-pack` (stateless-RPC, streaming)
 - SSH Git endpoint: Apache MINA SSHD, public key auth, `git@host:owner/repo.git`
@@ -94,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Documentation
 - `README.md` - quick start, configuration, workflow DSL, doctor CLI
-- `DESIGN.md` - public design reference
+- `docs/security.md` - public design reference
 - `AGENTS.md` - locked stack and coding rules
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`
 

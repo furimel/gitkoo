@@ -44,8 +44,6 @@
 
 <!-- ══ Top bar ═════════════════════════════════════════════════════════ -->
 <th:block th:fragment="header">
-  <div th:replace="~{fragments/icons :: sprite}"></div>
-
   <header class="Header">
     <div class="Header-item">
       <a th:href="@{/}" class="Header-link d-flex flex-items-center" aria-label="GitKoo home">
@@ -141,7 +139,7 @@
 
 <!-- ══ Repository title + tab bar ══════════════════════════════════════ -->
 <div th:fragment="repoHead(owner, repo, tab)" class="repo-head">
-  <div class="container-lg px-3">
+  <div class="container-xl px-3 px-md-4 px-lg-5">
     <div class="repo-title">
       <svg class="octicon color-fg-muted" width="16" height="16" aria-hidden="true">
         <use th:href="${repo.visibility == 'PRIVATE'} ? '#octicon-lock' : '#octicon-repo'"></use>
@@ -158,7 +156,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'code'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name}}"
              th:aria-current="${tab == 'code'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-code"></use></svg>
             <span>Code</span>
           </a>
         </li>
@@ -166,7 +164,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'issues'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/issues'}"
              th:aria-current="${tab == 'issues'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-issue-opened"></use></svg>
             <span>Issues</span>
             <span class="Counter" th:if="${openIssueCount != null and openIssueCount > 0}"
                   th:text="${openIssueCount}">0</span>
@@ -176,7 +174,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'pulls'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls'}"
              th:aria-current="${tab == 'pulls'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-pull-request"></use></svg>
             <span>Pull requests</span>
             <span class="Counter" th:if="${openPrCount != null and openPrCount > 0}"
                   th:text="${openPrCount}">0</span>
@@ -186,7 +184,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'actions'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/actions'}"
              th:aria-current="${tab == 'actions'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-play"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-play"></use></svg>
             <span>Actions</span>
           </a>
         </li>
@@ -194,7 +192,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'activity'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/activity'}"
              th:aria-current="${tab == 'activity'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-history"></use></svg>
             <span>Activity</span>
           </a>
         </li>
@@ -202,7 +200,7 @@
           <a class="UnderlineNav-item" th:classappend="${tab == 'settings'} ? ' selected'"
              th:href="@{'/' + ${owner} + '/' + ${repo.name} + '/settings'}"
              th:aria-current="${tab == 'settings'} ? 'page' : null">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
+            <svg class="octicon UnderlineNav-octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-gear"></use></svg>
             <span>Settings</span>
           </a>
         </li>
@@ -212,7 +210,16 @@
 </div>
 
 <!-- ══ Footer ══════════════════════════════════════════════════════════ -->
-<footer th:fragment="footer" class="container-lg px-3 mt-6 pt-4 pb-4 border-top color-fg-muted f6">
+<!--
+  The icon sprite lives here, at the end of the body, rather than at the top.
+  It is around 20 KB, and emitting it first pushed page content past the
+  response buffer before the first <form> was reached. SVG <use> resolves by id
+  after parsing, so referencing symbols defined further down works fine.
+-->
+<th:block th:fragment="footer">
+<div th:replace="~{fragments/icons :: sprite}"></div>
+
+<footer class="container-xl px-3 px-md-4 px-lg-5 mt-6 pt-4 pb-4 border-top color-fg-muted f6">
   <div class="d-flex flex-wrap flex-items-center gap-3">
     <svg class="octicon color-fg-subtle" width="20" height="20" aria-hidden="true"><use href="#gitkoo-logo"></use></svg>
     <span>GitKoo &mdash; self-hosted Git forge</span>
@@ -222,6 +229,7 @@
     </span>
   </div>
 </footer>
+</th:block>
 
 </body>
 </html>
