@@ -105,5 +105,11 @@ tools/check-css-classes.sh
 ## Static assets
 
 Served under `/assets/**` (via `WebMvcConfig`), which avoids route conflicts with
-the `/{username}/{name}` repository URL pattern. No Node, no npm, no build step;
-all CSS and JS are committed directly.
+the `/{username}/{name}` repository URL pattern. No Node and no npm; the sources
+are committed plain and readable.
+
+`gitkoo.css` and `gitkoo.js` are minified into the jar by the `minifyAssets`
+Gradle task, so no comment is ever served to a browser. `primer.css` is left
+alone: response compression already takes it from 745 KB to 65 KB on the wire,
+and running a 2013-era minifier over a modern design system to save a few more
+KB is a bad trade.

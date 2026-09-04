@@ -1,3 +1,15 @@
+buildscript {
+	repositories { mavenCentral() }
+	dependencies {
+		// Build-time only, never shipped. Used by the minifyAssets task below.
+		// Closure for JS: YUI's Rhino dates from 2013 and rejects `promise.catch(...)`
+		// because `catch` is a reserved word, which would force the source to be
+		// written around the minifier rather than the other way round.
+		classpath 'com.google.javascript:closure-compiler:v20250402'
+		classpath 'com.yahoo.platform.yui:yuicompressor:2.4.8'
+	}
+}
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
@@ -40,6 +52,76 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
+
+/*
+ * Minifies GitKoo's own CSS and JS into the packaged output.
+ *
+ * The sources under src/ stay readable and commented; only the copies inside the
+ * jar are stripped, so nothing is lost for anyone working on them and no comment
+ * is served to a browser.
+ *
+ * Deliberately narrow:
+ *   - htmx.min.js and highlight.min.js arrive minified already.
+ *   - primer.css is vendored and uses modern syntax this 2013-era compressor does
+ *     not understand. Response compression already takes it from 745 KB to 65 KB
+ *     on the wire; minifying it would save a few more KB and risk mangling the
+ *     whole design system. Not worth the trade.
+ *
+ * This is a Gradle task, not an npm toolchain: the "no build step" rule in
+ * docs/stack.md is about not needing Node to work on the frontend, and that holds.
+ */
+tasks.register('minifyAssets') {
+	description = 'Minifies gitkoo.css and gitkoo.js into the packaged resources.'
+	def sourceDir = file('src/main/resources/static')
+	def outputDir = layout.buildDirectory.dir('resources/main/static')
+
+	inputs.files(fileTree(sourceDir) {
+		include 'css/gitkoo.css', 'js/gitkoo.js'
+	}).withPropertyName('assets')
+	outputs.dir(outputDir).withPropertyName('minified')
+
+	doLast {
+		def out = outputDir.get().asFile
+
+		def js = new File(sourceDir, 'js/gitkoo.js')
+		def jsTarget = new File(out, 'js/gitkoo.js')
+		jsTarget.parentFile.mkdirs()
+
+		def options = new com.google.javascript.jscomp.CompilerOptions()
+		com.google.javascript.jscomp.CompilationLevel.SIMPLE_OPTIMIZATIONS
+			.setOptionsForCompilationLevel(options)
+		// SIMPLE renames locals but never globals, so hljs, htmx and the DOM stay intact.
+		options.setLanguageIn(com.google.javascript.jscomp.CompilerOptions.LanguageMode.ECMASCRIPT_NEXT)
+		options.setLanguageOut(com.google.javascript.jscomp.CompilerOptions.LanguageMode.ECMASCRIPT5)
+
+		def compiler = new com.google.javascript.jscomp.Compiler()
+		def result = compiler.compile(
+			Collections.<com.google.javascript.jscomp.SourceFile> emptyList(),
+			[com.google.javascript.jscomp.SourceFile.fromFile(js.absolutePath, java.nio.charset.StandardCharsets.UTF_8)],
+			options)
+		if (!result.success) {
+			throw new GradleException("minifyAssets: ${js.name} failed to compile: ${result.errors}")
+		}
+		result.warnings.each { logger.warn('minifyAssets: {}', it) }
+		jsTarget.setText(compiler.toSource(), 'UTF-8')
+
+		def css = new File(sourceDir, 'css/gitkoo.css')
+		def cssTarget = new File(out, 'css/gitkoo.css')
+		cssTarget.parentFile.mkdirs()
+		css.withReader('UTF-8') { reader ->
+			cssTarget.withWriter('UTF-8') { writer ->
+				new com.yahoo.platform.yui.compressor.CssCompressor(reader).compress(writer, -1)
+			}
+		}
+
+		logger.lifecycle('minifyAssets: gitkoo.js {} -> {} bytes, gitkoo.css {} -> {} bytes',
+			js.length(), jsTarget.length(), css.length(), cssTarget.length())
+	}
+}
+
+// Runs after resources are copied, before anything packages them.
+tasks.named('minifyAssets') { dependsOn 'processResources' }
+tasks.named('classes') { dependsOn 'minifyAssets' }
 
 tasks.named('test') {
 	useJUnitPlatform()

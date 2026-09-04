@@ -29,7 +29,9 @@ webpack, Node.js, Flyway, Liquibase.
 - **Git CLI over JGit**: Git is the source of truth. Calling the real binary
   avoids reimplementing Git internals. JGit can be added per-operation if
   performance needs it.
-- **Thymeleaf + HTMX over React**: server-side rendering, no build step, no
-  npm dependencies. HTMX adds interactivity without a frontend framework.
+- **Thymeleaf + HTMX over React**: server-side rendering, no npm and no Node
+  toolchain. HTMX adds interactivity without a frontend framework. Gradle minifies
+  GitKoo's own CSS and JS into the jar (see `minifyAssets`), but the sources are
+  committed plain and editing them needs nothing but a text editor.
 - **Custom DSL over YAML for workflows**: human-readable, small grammar,
   good error messages. YAML is fine for configuration but not for logic.
