@@ -31,19 +31,44 @@ public class CommitController {
     private final GitService gitService;
     private final com.furimeo.gitkoo.git.DiffParser diffParser;
 
+    private final RepositoryPermissionService permissionService;
+
     public CommitController(RepositoryService repositoryService, UserService userService,
-                            GitService gitService, com.furimeo.gitkoo.git.DiffParser diffParser) {
+                            GitService gitService, com.furimeo.gitkoo.git.DiffParser diffParser,
+                            RepositoryPermissionService permissionService) {
         this.repositoryService = repositoryService;
         this.userService = userService;
         this.gitService = gitService;
         this.diffParser = diffParser;
+        this.permissionService = permissionService;
+    }
+
+    /**
+     * Requires at least READ for the caller, else 403.
+     *
+     * <p>This controller previously checked nothing, so every commit and diff in a
+     * private repository was readable by any signed-in user. Opening public
+     * repositories to anonymous readers would have widened that to the whole
+     * internet, so the check has to exist before the security config is relaxed.
+     */
+    private void requireRead(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        User actor = principal == null || "anonymousUser".equals(principal.getUsername())
+                ? null
+                : userService.findByUsername(principal.getUsername()).orElse(null);
+        if (!permissionService.hasPermission(actor, repo, RepositoryPermissionService.Permission.READ)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have read access to " + repo.getName());
+        }
     }
 
     /** Renders the commit detail page (DESIGN.md §13). */
     @GetMapping("/{username}/{name}/commit/{sha}")
     public String commitDetail(@PathVariable String username, @PathVariable String name,
-                               @PathVariable String sha, Model model) {
+                               @PathVariable String sha, Model model,
+                               @org.springframework.security.core.annotation.AuthenticationPrincipal
+                               org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
+        requireRead(principal, repo);
         Path storagePath = Path.of(repo.getStoragePath());
 
         CommitDetail commit = gitService.showCommit(storagePath, sha);
@@ -71,8 +96,11 @@ public class CommitController {
     @GetMapping("/{username}/{name}/diff")
     public String diffFragment(@PathVariable String username, @PathVariable String name,
                                @RequestParam String base, @RequestParam String head,
-                               Model model) {
+                               Model model,
+                               @org.springframework.security.core.annotation.AuthenticationPrincipal
+                               org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
+        requireRead(principal, repo);
         Path storagePath = Path.of(repo.getStoragePath());
         var files = diffParser.parse(gitService.diff(storagePath, base, head));
         int[] totals = diffParser.totals(files);

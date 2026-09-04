@@ -22,16 +22,41 @@ public class WorkflowController {
     private final RepositoryService repositoryService;
     private final UserService userService;
 
+    private final com.furimeo.gitkoo.repository.RepositoryPermissionService permissionService;
+
     public WorkflowController(WorkflowService workflowService, RepositoryService repositoryService,
-                             UserService userService) {
+                             UserService userService,
+                             com.furimeo.gitkoo.repository.RepositoryPermissionService permissionService) {
         this.workflowService = workflowService;
         this.repositoryService = repositoryService;
         this.userService = userService;
+        this.permissionService = permissionService;
+    }
+
+    /**
+     * Requires at least READ for the caller, else 403.
+     *
+     * <p>Build logs routinely contain paths, environment details and occasionally
+     * secrets echoed by a step. This controller checked nothing, so those were
+     * readable by any signed-in user for any repository, private ones included.
+     */
+    private void requireRead(org.springframework.security.core.userdetails.User principal, Repository repo) {
+        var actor = principal == null || "anonymousUser".equals(principal.getUsername())
+                ? null
+                : userService.findByUsername(principal.getUsername()).orElse(null);
+        if (!permissionService.hasPermission(actor, repo,
+                com.furimeo.gitkoo.repository.RepositoryPermissionService.Permission.READ)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You do not have read access to " + repo.getName());
+        }
     }
 
     @GetMapping("/{username}/{name}/actions")
-    public String actions(@PathVariable String username, @PathVariable String name, Model model) {
+    public String actions(@PathVariable String username, @PathVariable String name, Model model,
+                          @org.springframework.security.core.annotation.AuthenticationPrincipal
+                          org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         List<WorkflowRun> runs = workflowService.listRuns(repo.getId());
         model.addAttribute("title", "Actions \u00b7 " + username + "/" + name);
         model.addAttribute("owner", username);
@@ -48,8 +73,11 @@ public class WorkflowController {
     @GetMapping(value = "/{username}/{name}/actions/{runId}/logs", produces = MediaType.TEXT_PLAIN_VALUE)
     @ResponseBody
     public ResponseEntity<String> logs(@PathVariable String username, @PathVariable String name,
-                                       @PathVariable Long runId) {
+                                       @PathVariable Long runId,
+                                       @org.springframework.security.core.annotation.AuthenticationPrincipal
+                                       org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolveRepo(username, name);
+        requireRead(principal, repo);
         return workflowService.findRun(runId)
                 .filter(run -> run.getRepositoryId().equals(repo.getId()))
                 .map(run -> ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN)
