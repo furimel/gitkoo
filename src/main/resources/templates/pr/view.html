@@ -83,20 +83,29 @@
 
       <!-- Merge box -->
       <div class="Box mt-4" th:if="${pr.status == 'OPEN'}" sec:authorize="isAuthenticated()">
+        <!-- Status reflects a real `git merge-tree` check, not an assumption. -->
         <div class="Box-row d-flex flex-items-center gap-3">
-          <span class="d-flex flex-items-center flex-justify-center circle color-bg-success-emphasis color-fg-on-emphasis flex-shrink-0"
+          <span class="d-flex flex-items-center flex-justify-center circle color-fg-on-emphasis flex-shrink-0"
+                th:classappend="${mergesCleanly} ? ' color-bg-success-emphasis' : ' color-bg-danger-emphasis'"
                 style="width:32px;height:32px">
-            <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
+            <svg class="octicon" width="16" height="16" aria-hidden="true">
+              <use th:href="${mergesCleanly} ? '#octicon-git-merge' : '#octicon-alert'"></use>
+            </svg>
           </span>
           <div class="flex-auto">
-            <h3 class="f4 mb-1">This branch has no conflicts with the base branch</h3>
-            <p class="color-fg-muted mb-0 f6">Merging can be performed automatically.</p>
+            <h3 class="f4 mb-1" th:if="${mergesCleanly}">This branch has no conflicts with the base branch</h3>
+            <p class="color-fg-muted mb-0 f6" th:if="${mergesCleanly}">Merging can be performed automatically.</p>
+            <h3 class="f4 mb-1" th:unless="${mergesCleanly}">This branch has conflicts that must be resolved</h3>
+            <p class="color-fg-muted mb-0 f6" th:unless="${mergesCleanly}">
+              Merge <span class="branch-name" th:text="${pr.targetBranch}">main</span> into
+              <span class="branch-name" th:text="${pr.sourceBranch}">feature</span> and push again.
+            </p>
           </div>
         </div>
         <div class="Box-footer d-flex gap-2">
           <form th:action="@{'/' + ${owner} + '/' + ${repo.name} + '/pulls/' + ${pr.number} + '/merge'}"
                 method="post">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" th:disabled="${!mergesCleanly}">
               <svg class="octicon" width="16" height="16" aria-hidden="true"><use href="#octicon-git-merge"></use></svg>
               Merge pull request
             </button>

@@ -118,6 +118,8 @@ public class PullRequestController {
         model.addAttribute("deletions", totals[1]);
         model.addAttribute("commits",
                 gitService.log(storagePath, pr.getTargetBranch() + ".." + pr.getSourceBranch(), 50));
+        model.addAttribute("mergesCleanly",
+                gitService.mergesCleanly(storagePath, pr.getTargetBranch(), pr.getSourceBranch()));
         return "pr/view";
     }
 

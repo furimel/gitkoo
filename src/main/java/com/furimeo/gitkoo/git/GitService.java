@@ -209,6 +209,25 @@ public class GitService {
         return result.stdout().lines().filter(s -> !s.isBlank()).toList();
     }
 
+    // ── merge checks ────────────────────────────────────────────────────
+
+    /**
+     * Whether {@code head} merges into {@code base} without conflicts.
+     *
+     * <p>Uses {@code git merge-tree --write-tree}, which computes the merge in the
+     * object database and exits non-zero on conflict, so nothing touches a work tree
+     * and no branch is modified.
+     *
+     * @return true only when Git reports a clean merge; false on conflict, and also
+     *         when either ref does not resolve
+     */
+    public boolean mergesCleanly(Path storagePath, String base, String head) {
+        if (resolveRef(storagePath, base).isBlank() || resolveRef(storagePath, head).isBlank()) {
+            return false;
+        }
+        return run(storagePath, "merge-tree", "--write-tree", base, head).success();
+    }
+
     // ── counting ────────────────────────────────────────────────────────
 
     /** Number of commits reachable from {@code ref}, or 0 when the ref does not resolve. */
