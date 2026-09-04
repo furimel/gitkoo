@@ -11,16 +11,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.furimeo.gitkoo.auth.AccessTokenAuthenticationFilter;
 import com.furimeo.gitkoo.auth.AccessTokenService;
+import com.furimeo.gitkoo.auth.SetupRedirectFilter;
 import com.furimeo.gitkoo.auth.UserService;
 
 /**
- * Spring Security wiring: session-based authentication with a custom login page, plus a
- * Bearer token filter for the API (DESIGN.md §43, §78).
- *
- * <p>Permits the first-run setup page, login, static assets, and the health endpoint
- * anonymously. Everything else requires authentication. CSRF is enabled (default) to
- * protect form POSTs; it is disabled for {@code /api/**} and git transport paths since
- * those use tokens, not browser sessions.
+ * Spring Security wiring: session-based authentication with a custom login page,
+ * plus a Bearer token filter for the API and a setup redirect for first-run
+ * (DESIGN.md §43, §68, §78).
  */
 @Configuration
 @EnableWebSecurity
@@ -38,15 +35,25 @@ public class SecurityConfig {
     }
 
     @Bean
+    public SetupRedirectFilter setupRedirectFilter(UserService userService) {
+        return new SetupRedirectFilter(userService);
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   AccessTokenAuthenticationFilter accessTokenFilter) throws Exception {
+                                                   AccessTokenAuthenticationFilter accessTokenFilter,
+                                                   SetupRedirectFilter setupRedirectFilter) throws Exception {
         http
+            // SetupRedirectFilter runs first so it redirects to /setup before
+            // the authentication layer sends the user to /login (DESIGN.md §68).
+            .addFilterBefore(setupRedirectFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(accessTokenFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/health",
                         "/setup",
                         "/login",
+                        "/register",
                         "/assets/**"
                 ).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
