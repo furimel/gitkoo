@@ -24,12 +24,14 @@ public class InertiaViewResolver implements ViewResolver, Ordered {
 
     private final ObjectMapper objectMapper;
     private final ViteManifest manifest;
+    private final ViteDevServer devServer;
     private final SharedProps sharedProps;
 
     public InertiaViewResolver(ObjectMapper objectMapper, ViteManifest manifest,
-                               SharedProps sharedProps) {
+                               ViteDevServer devServer, SharedProps sharedProps) {
         this.objectMapper = objectMapper;
         this.manifest = manifest;
+        this.devServer = devServer;
         this.sharedProps = sharedProps;
     }
 
@@ -40,7 +42,7 @@ public class InertiaViewResolver implements ViewResolver, Ordered {
         if (viewName == null || viewName.startsWith("redirect:") || viewName.startsWith("forward:")) {
             return null;
         }
-        return new InertiaView(viewName, objectMapper, manifest, sharedProps);
+        return new InertiaView(viewName, objectMapper, manifest, devServer, sharedProps);
     }
 
     /**

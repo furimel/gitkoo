@@ -38,13 +38,15 @@ class InertiaView implements View {
     private final String component;
     private final ObjectMapper objectMapper;
     private final ViteManifest manifest;
+    private final ViteDevServer devServer;
     private final SharedProps sharedProps;
 
     InertiaView(String component, ObjectMapper objectMapper, ViteManifest manifest,
-                SharedProps sharedProps) {
+                ViteDevServer devServer, SharedProps sharedProps) {
         this.component = component;
         this.objectMapper = objectMapper;
         this.manifest = manifest;
+        this.devServer = devServer;
         this.sharedProps = sharedProps;
     }
 
@@ -125,12 +127,29 @@ class InertiaView implements View {
             .append(THEME_BOOTSTRAP)
             .append("</script>\n");
 
-        for (String href : manifest.stylesheetUrls()) {
-            html.append("<link rel=\"stylesheet\" href=\"").append(href).append("\">\n");
-        }
-        if (manifest.isBuilt()) {
-            html.append("<script type=\"module\" src=\"").append(manifest.scriptUrl())
-                .append("\" defer></script>\n");
+        if (devServer.isRunning()) {
+            /*
+             * Development. The URLs stay same-origin and ViteDevProxyFilter forwards
+             * them, so the browser never learns the dev server exists. No stylesheet
+             * links: in this mode Vite injects CSS through the module graph, which is
+             * what makes an edit to a stylesheet apply without a reload.
+             *
+             * The preamble has to come first. Vite normally injects it while
+             * transforming an HTML entry, and this application has no HTML entry to
+             * transform - so without it every component fails to load with
+             * "@vitejs/plugin-react can't detect preamble" and the page stays blank.
+             */
+            html.append(REACT_REFRESH_PREAMBLE)
+                .append("<script type=\"module\" src=\"/assets/app/@vite/client\"></script>\n")
+                .append("<script type=\"module\" src=\"/assets/app/src/main.tsx\"></script>\n");
+        } else {
+            for (String href : manifest.stylesheetUrls()) {
+                html.append("<link rel=\"stylesheet\" href=\"").append(href).append("\">\n");
+            }
+            if (manifest.isBuilt()) {
+                html.append("<script type=\"module\" src=\"").append(manifest.scriptUrl())
+                    .append("\" defer></script>\n");
+            }
         }
 
         /*
@@ -145,8 +164,8 @@ class InertiaView implements View {
             .append("</script>\n")
             .append("<div id=\"app\"></div>\n");
 
-        if (!manifest.isBuilt()) {
-            html.append("<noscript>The client bundle is missing. Run `npm run build` in "
+        if (!manifest.isBuilt() && !devServer.isRunning()) {
+            html.append("<noscript>The client bundle is missing. Run `npm run dev` in "
                     + "frontend/, or build with `./gradlew bootJar`.</noscript>\n");
         }
         html.append("</body>\n</html>\n");
@@ -170,6 +189,20 @@ class InertiaView implements View {
     private static String escapeForScript(String json) {
         return json.replace("<", "\\u003c");
     }
+
+    /**
+     * React Fast Refresh's bootstrap, copied from what @vitejs/plugin-react injects
+     * into an HTML entry. Only meaningful while the dev server is running.
+     */
+    private static final String REACT_REFRESH_PREAMBLE = """
+            <script type="module">
+            import RefreshRuntime from "/assets/app/@react-refresh"
+            RefreshRuntime.injectIntoGlobalHook(window)
+            window.$RefreshReg$ = () => {}
+            window.$RefreshSig$ = () => (type) => type
+            window.__vite_plugin_react_preamble_installed__ = true
+            </script>
+            """;
 
     private static final String THEME_BOOTSTRAP = """
             (function(){var e=document.documentElement,p="auto";\

@@ -6,9 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+# A second push to the same branch makes the first run's answer irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,9 +25,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # The client is compiled into the jar, so CI needs Node to build at all.
+      # The React client is compiled into the jar, so the build needs Node at all.
       # The cache key is frontend/package-lock.json, which is why that file is
-      # committed and why the Gradle task runs `npm ci` rather than `npm install`.
+      # committed and why Gradle runs `npm ci` rather than `npm install`.
       - name: Set up Node 24
         uses: actions/setup-node@v4
         with:
@@ -31,11 +38,37 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # Fails the build on a type error before anything slower runs, and gives a
+      # clearer message than the same failure surfacing inside a Gradle Exec task.
+      - name: Type-check the client
+        run: npm ci --no-audit --no-fund && npm run typecheck
+        working-directory: frontend
+
       - name: Run tests
         run: ./gradlew test --console=plain
 
       - name: Build JAR
         run: ./gradlew bootJar --console=plain
+
+      # The client living inside the jar is the whole packaging claim; a jar that
+      # builds but ships no bundle would serve a blank page and pass every test.
+      - name: Check the client is inside the JAR
+        run: |
+          jar=$(ls build/libs/gitkoo-*.jar)
+          if ! unzip -l "$jar" | grep -q 'static/app/.vite/manifest.json'; then
+            echo "::error::$jar has no client bundle - the frontend task did not run"
+            unzip -l "$jar" | grep 'static/' || echo '(no static resources at all)'
+            exit 1
+          fi
+          echo "client bundle present in $jar"
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          retention-days: 7
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4

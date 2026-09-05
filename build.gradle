@@ -51,19 +51,45 @@ dependencies {
  */
 def npmCommand = org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'npm.cmd' : 'npm'
 
+/*
+ * The dev server writes build/frontend-dev/hot while it is alive. When it is, the
+ * Spring side proxies to it and never reads the packaged bundle, so building that
+ * bundle would be a minute of work whose output nothing looks at - and `npm ci`
+ * would delete node_modules out from under the running server. Skipping all three
+ * tasks is what makes `./gradlew bootRun` a fast, Java-only restart during frontend
+ * work.
+ */
+def viteIsHot = { -> layout.buildDirectory.file('frontend-dev/hot').get().asFile.exists() }
+
 tasks.register('npmInstall', Exec) {
 	description = 'Installs frontend dependencies.'
 	workingDir = file('frontend')
-	// package-lock.json is the input, not package.json: `npm ci` reads the lock file
-	// and reinstalling on every unrelated build is minutes of nothing.
+	// The lock file is the real input; `npm ci` reads it, and reinstalling on every
+	// unrelated build is minutes of nothing.
 	inputs.file('frontend/package.json')
 	inputs.file('frontend/package-lock.json')
-	outputs.dir('frontend/node_modules')
+	/*
+	 * A stamp, not node_modules itself. Vite writes its dependency cache into
+	 * node_modules/.vite, so declaring that directory as an output makes Gradle see
+	 * it change every time the client runs - and re-run `npm ci`, which wipes
+	 * node_modules while the dev server has files open in it. On Windows that fails
+	 * outright with an access violation.
+	 */
+	def stamp = layout.buildDirectory.file('npm-install.stamp')
+	outputs.file(stamp)
+	// The stamp is not proof on its own: node_modules can be deleted by hand.
+	outputs.upToDateWhen { file('frontend/node_modules').isDirectory() }
+	onlyIf { !viteIsHot() }
 	commandLine npmCommand, 'ci', '--no-audit', '--no-fund'
+	doLast {
+		def file = stamp.get().asFile
+		file.parentFile.mkdirs()
+		file.text = "installed from package-lock.json at ${new Date()}\n"
+	}
 }
 
 tasks.register('npmBuild', Exec) {
-	description = 'Compiles the React client with Vite.'
+	description = 'Type-checks and compiles the React client with Vite.'
 	dependsOn 'npmInstall'
 	workingDir = file('frontend')
 	inputs.dir('frontend/src')
@@ -71,6 +97,7 @@ tasks.register('npmBuild', Exec) {
 	inputs.file('frontend/vite.config.ts')
 	inputs.file('frontend/tsconfig.json')
 	outputs.dir(layout.buildDirectory.dir('frontend'))
+	onlyIf { !viteIsHot() }
 	commandLine npmCommand, 'run', 'build'
 }
 
@@ -79,6 +106,7 @@ tasks.register('frontend', Copy) {
 	dependsOn 'npmBuild'
 	from layout.buildDirectory.dir('frontend')
 	into layout.buildDirectory.dir('resources/main/static/app')
+	onlyIf { !viteIsHot() }
 }
 
 // The client is part of the application, so it is built for anything that packages

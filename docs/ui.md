@@ -30,19 +30,36 @@ duplicating the rules is how a fourth arrives.
 
 ## Working on it
 
+Two terminals, in this order:
+
 ```
-cd frontend
-npm install
-npm run dev        # rebuilds on change into build/frontend
+cd frontend && npm install && npm run dev     # 1. Vite, with hot module replacement
+./gradlew bootRun                             # 2. GitKoo on http://localhost:3000
 ```
 
-Run the server in another terminal with `./gradlew bootRun`, and reload the browser.
-There is no dev server and no hot reload: the Java side serves the compiled bundle,
-and `npm run dev` is Vite in watch mode writing into the place the jar reads from.
+Open **http://localhost:3000**. There is no second address: while the dev server is
+running, Spring proxies `/assets/app/**` straight to it, so the whole application is
+one origin on one port. Editing a component swaps it in the running page without a
+reload and without losing form state; editing `app.css` applies without a repaint of
+anything else.
 
-`./gradlew bootJar` runs the whole thing - `npm ci`, `vite build`, then copies the
-output into the jar. Node is needed to *build*; the jar that comes out needs only a
-JVM and `git`.
+Vite's own middleware mode embeds it in a Node host, which a JVM cannot do -
+`ViteDevProxyFilter` is the equivalent, and `ViteDevServer` decides when to use it.
+
+**How the two halves find each other.** The dev server writes
+`build/frontend-dev/hot` while it is alive and deletes it on exit. Spring checks for
+that file, so nothing has to be configured, and nothing has to be un-configured
+afterwards. Gradle checks for it too and skips `npm ci` and `vite build` entirely,
+which is what makes a Java restart fast while working on the client.
+
+If a dev server is killed hard enough to skip its own cleanup, the stale file makes
+every asset request answer 502 with a message naming the file to delete. That is the
+one failure mode, and it says what to do about it.
+
+`./gradlew bootJar` builds everything - `npm ci`, `tsc`, `vite build` - and copies
+the output into the jar. Node is needed to *build*; the jar that comes out needs only
+a JVM and `git`, and never looks for a dev server at all: the check is skipped
+outright when the code is running from a jar.
 
 ## Structure
 

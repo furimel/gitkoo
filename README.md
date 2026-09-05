@@ -33,11 +33,35 @@ java -jar gitkoo.jar
 Open http://localhost:3000 and create your administrator account.
 
 That's it. SQLite + filesystem storage + embedded web server. No PostgreSQL,
-Redis, Nginx, or Docker required.
+Redis, Nginx, or Docker required - and no Node: the React client is compiled into
+the jar.
 
 ```
 create repository -> clone -> push/pull -> issue -> pull request -> review -> CI -> merge
 ```
+
+### Building from source
+
+Needs a JDK 21 and Node 24. One command builds both halves:
+
+```bash
+./gradlew bootJar          # runs npm ci, tsc and vite build, then packages the jar
+java -jar build/libs/gitkoo-*.jar
+```
+
+### Working on the interface
+
+Two terminals. Vite gets hot module replacement, and Spring proxies to it, so
+everything stays on one port:
+
+```bash
+cd frontend && npm install && npm run dev   # 1. the client, with hot reload
+./gradlew bootRun                           # 2. GitKoo on http://localhost:3000
+```
+
+Open http://localhost:3000, not the Vite port. Editing a component updates the
+running page without a reload. See [docs/ui.md](docs/ui.md) for how the two halves
+find each other.
 
 ## Configuration
 
