@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.View;
@@ -94,9 +95,36 @@ class InertiaView implements View {
             return;
         }
 
+        warnIfTheShellIsAnsweringAFetch(request);
+
         response.setContentType(MediaType.TEXT_HTML_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.getWriter().write(shell(objectMapper.writeValueAsString(page)));
+    }
+
+    /**
+     * Says so when the HTML shell is about to answer a request that came from script.
+     *
+     * <p>The Inertia client only understands a page object. Hand it HTML and it drops
+     * that HTML into a sandboxed iframe to show as an error - and the first thing the
+     * browser reports from inside that iframe is a CORS failure on the shell's own
+     * script tag, because a sandboxed frame has a null origin. The real problem is
+     * never CORS, and the message never says what the request was.
+     *
+     * <p>So this names it. A fetch that lost the X-Inertia header on the way here is
+     * the only way to reach this branch from the client, and it should be impossible;
+     * a browser address bar sends no Sec-Fetch-Mode of "cors" and is not affected.
+     */
+    private static void warnIfTheShellIsAnsweringAFetch(HttpServletRequest request) {
+        boolean fromScript = "cors".equals(request.getHeader("Sec-Fetch-Mode"))
+                || "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
+        if (fromScript) {
+            LoggerFactory.getLogger(InertiaView.class).warn(
+                    "Returning the HTML shell to a scripted request for {} - it carried no "
+                    + "X-Inertia header, so the client will show it in an error dialog and "
+                    + "report a CORS failure that is not the real problem.",
+                    fullPath(request));
+        }
     }
 
     /** The path the client should consider itself on, query string included. */
