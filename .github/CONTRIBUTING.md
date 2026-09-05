@@ -28,8 +28,12 @@ Open http://localhost:3000 and create an admin account.
 
 ## Stack (locked)
 
-Java 21 · Spring Boot 4.1.x · Spring Data JDBC (no JPA) · SQLite · Thymeleaf ·
-HTMX · Git CLI · Apache MINA SSHD · Gradle Groovy DSL
+Java 21 · Spring Boot 4.1.x · Spring Data JDBC (no JPA) · SQLite · React 19 ·
+TypeScript · Primer React · Inertia · Vite · Git CLI · Apache MINA SSHD ·
+Gradle Groovy DSL
+
+Building needs Node 24 as well as a JDK; `./gradlew bootJar` runs the client
+build itself. The jar it produces needs only a JVM and `git`.
 
 **No** React/Vue/Next, **no** Node/npm/build step, **no** Lombok, **no**
 unnecessary abstractions. See AGENTS.md for the full rules.

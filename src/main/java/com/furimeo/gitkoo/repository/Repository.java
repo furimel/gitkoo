@@ -40,6 +40,7 @@ public class Repository {
     private String description;
     private String visibility;
     private String defaultBranch;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String storagePath;
     private boolean archived;
     /** The repository this one was forked from, or null for an original. */
@@ -123,6 +124,7 @@ public class Repository {
         this.defaultBranch = defaultBranch;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getStoragePath() {
         return storagePath;
     }

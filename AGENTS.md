@@ -10,7 +10,7 @@ for the design. (The design doc is private and intentionally not committed.)
 - Spring Security
 - Spring Data JDBC (no JPA / Hibernate)
 - SQLite (default), PostgreSQL optional
-- Thymeleaf + HTML + CSS + HTMX + Vanilla JS (no React/Vue/npm/build)
+- React 19 + TypeScript + Primer React, over Inertia; built by Vite into the jar
 - Git CLI via ProcessBuilder (JGit only when justified)
 - Apache MINA SSHD (SSH git endpoint)
 - Custom GitKoo workflow DSL (`.koo`, not YAML)
@@ -20,7 +20,7 @@ for the design. (The design doc is private and intentionally not committed.)
 ## Rules
 
 - **No JPA / Hibernate.** Use Spring Data JDBC (`RowMapper`, repository interfaces).
-- **No React / Vue / Next / Vite / npm / webpack.** Frontend = Thymeleaf + HTMX + vanilla JS.
+- **No Vue / Next / Redux / React Router, and no separate REST API.** A Spring controller returns a view name and a model; Inertia turns that into a React page, so authorization stays in one place. Node is a build-time dependency only - the jar needs a JVM and git, nothing else.
 - **No Node.** No frontend build step. Static assets are committed.
 - **No unnecessary abstractions.** No `BaseRepository<T>`, `CrudService<T>`,
   `AbstractGitProvider`, `GitProviderFactory` when there is only one implementation.

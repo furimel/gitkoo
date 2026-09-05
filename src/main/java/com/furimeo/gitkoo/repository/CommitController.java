@@ -93,21 +93,27 @@ public class CommitController {
     }
 
     /**
-     * Returns a diff fragment between two refs (DESIGN.md §15), for HTMX callers that
-     * want the changes between two branches on their own. Branch names may contain
-     * slashes, so refs are passed as query parameters rather than path segments.
+     * Compares two refs (DESIGN.md §15), at /{owner}/{repo}/diff?base=&head=.
+     *
+     * <p>Branch names may contain slashes, so the refs are query parameters rather
+     * than path segments.
      */
     @GetMapping("/{username}/{name}/diff")
-    public String diffFragment(@PathVariable String username, @PathVariable String name,
+    public String compare(@PathVariable String username, @PathVariable String name,
                                @RequestParam String base, @RequestParam String head,
                                Model model,
                                @org.springframework.security.core.annotation.AuthenticationPrincipal
                                org.springframework.security.core.userdetails.User principal) {
         Repository repo = resolve(username, name);
         requireRead(principal, repo);
+        // Now a page in its own right. It was an HTMX fragment, and HTMX went with the
+        // templates - a route that renders nothing is worse than no route.
+        addRepoHeader(model, username, repo, principal);
         Path storagePath = Path.of(repo.getStoragePath());
         var files = diffParser.parse(gitService.diff(storagePath, base, head));
         int[] totals = diffParser.totals(files);
+        model.addAttribute("base", base);
+        model.addAttribute("head", head);
         model.addAttribute("diffFiles", files);
         model.addAttribute("additions", totals[0]);
         model.addAttribute("deletions", totals[1]);

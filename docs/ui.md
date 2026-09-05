@@ -1,213 +1,129 @@
-# UI Design
+# UI
 
-GitKoo's interface is built on [Primer](https://primer.style), GitHub's own
-design system, so the forge reads as familiar to anyone who has used GitHub.
+The client is React 19 with [Primer React](https://primer.style/react), GitHub's own
+design system, rendered through [Inertia](https://inertiajs.com). It lives in
+`frontend/` and is compiled into the jar by Gradle.
 
-## Stylesheets
+## How a page reaches the screen
 
-Two files, loaded in this order, both committed as static assets:
+A Spring controller returns a view name and a model, exactly as it always did:
 
-| File | What it is |
-| --- | --- |
-| `static/css/primer.css` | `@primer/css` 21.5.1, vendored verbatim (MIT). The design system. |
-| `static/css/gitkoo.css` | A small supplement for what Primer does not ship. |
-
-Primer 21.5.1 is deliberate: it is the last release that still carries the full
-component set GitHub's own UI uses. Version 22 dropped `Box-row`, `State`,
-`UnderlineNav`, `TimelineItem`, `blankslate` and `Truncate` in favour of
-Primer React, which is not an option here.
-
-Never edit `primer.css`. To upgrade, re-download the same path from the CDN:
-
-```bash
-curl -sSL -o src/main/resources/static/css/primer.css \
-  https://cdn.jsdelivr.net/npm/@primer/css@21.5.1/dist/primer.css
+```java
+model.addAttribute("repos", repos);
+return "dashboard";
 ```
 
-### What Primer provides
+`InertiaViewResolver` turns that into a page object - `{component, props, url,
+version}` - and `main.tsx` loads `src/pages/dashboard.tsx` to render it. The view
+name *is* the component path, so there is no routing table on the client to fall out
+of step with the server.
 
-`Header`, `Layout` / `Layout-main` / `Layout-sidebar`, `Box` and its rows,
-`btn` and variants, `State`, `Label`, `Counter`, `UnderlineNav`, `TimelineItem`,
-`avatar`, `blankslate`, `Subhead`, `flash`, `SelectMenu`, `Popover`,
-`details-overlay` dropdowns, `branch-name`, `markdown-body`, and the whole
-utility layer (`d-flex`, `color-fg-muted`, `f4`, `mt-3`, `width-full`, ...).
+A first visit gets an HTML shell with the page object in a JSON script tag. Every
+navigation after that is the same page object as JSON, and the client swaps the
+component in place.
 
-### What `gitkoo.css` adds
+**Why not a REST API.** Every authorization decision in this product lives in a
+controller: `requireRead`, `requireWrite`, the visibility filter in search, the
+anonymous-read rule for public repositories. An API would have needed a second copy
+of all of it in the browser. Three authorization holes have already shipped here;
+duplicating the rules is how a fourth arrives.
 
-Only the code-browser chrome Primer has no component for:
+## Working on it
 
-- `.file-navigation`, `.commit-tease`, `.tree-row*` - the repository file list
-- `.blob-table`, `.blob-num`, `.blob-code` - file viewer with a line-number gutter
-- `.diff-table`, `.diff-num`, `.diff-code`, `.diff-line--add|del|hunk` - unified diffs
-- `.breadcrumb`, `.repo-head`, `.repo-title` - page chrome
-- `.gap-1` .. `.gap-4` - Primer 21 spaces flex rows with margins and ships no gap utilities
-
-Everything there is written against Primer's own custom properties
-(`var(--fgColor-muted, ...)`, `var(--diffBlob-addition-bgColor-line, ...)`), so
-it follows every theme automatically. **Never hardcode a hex value.**
-
-## Icons
-
-[Octicons](https://primer.style/octicons) v19 (MIT), inlined as an SVG sprite in
-`templates/fragments/icons.html` and referenced with:
-
-```html
-<svg class="octicon" width="16" height="16" aria-hidden="true">
-  <use href="#octicon-repo"></use>
-</svg>
+```
+cd frontend
+npm install
+npm run dev        # rebuilds on change into build/frontend
 ```
 
-The sprite is emitted at the **end** of `<body>` by the `footer` fragment, not
-the top. It is around 20 KB, and emitting it first pushed page content past the
-response buffer before the first `<form>`, which made session creation fail with
-*"Cannot create a session after the response has been committed"*.
-`EagerCsrfTokenFilter` now resolves the CSRF token before rendering as well, so
-page length can never break form rendering again.
+Run the server in another terminal with `./gradlew bootRun`, and reload the browser.
+There is no dev server and no hot reload: the Java side serves the compiled bundle,
+and `npm run dev` is Vite in watch mode writing into the place the jar reads from.
 
-## Theming
+`./gradlew bootJar` runs the whole thing - `npm ci`, `vite build`, then copies the
+output into the jar. Node is needed to *build*; the jar that comes out needs only a
+JVM and `git`.
 
-Primer's own mechanism, on the `<html>` element:
+## Structure
 
-```html
-<html data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+```
+frontend/src
+  main.tsx              entry: resolves a component name to a page
+  pages/                one file per controller view name
+  layouts/              Shell (header + footer), BareShell (auth pages)
+  components/           shared pieces
+  lib/                  types mirroring the server records, theme, formatting
+  styles/app.css        the app's own layer on top of Primer
 ```
 
-`gitkoo.js` cycles the stored preference through `auto -> light -> dark ->
-dark_dimmed`, persisted to `localStorage` under `gitkoo-theme`. An inline script
-in `<head>` applies it before first paint, so a dark-mode reader never sees a
-white flash.
+Imports use the `@/` alias, never `../..`. It is configured in both `vite.config.ts`
+and `tsconfig.json`, so a file reads the same wherever it sits.
 
-**The trap.** Primer only ships selectors that pair a mode with a theme of the
-same family - `[data-color-mode=light][data-light-theme=light*]` and
-`[data-color-mode=dark][data-dark-theme=dark*]`. Naming a dark theme under light
-mode matches *no rule at all*, so every design token falls back to nothing: a
-transparent body, black text on whatever the browser paints, and a page that
-looks broken rather than differently themed. The bootstrap script therefore picks
-the mode from the theme family, not from a light/dark toggle. Verified by reading
-the computed `background-color` in a real browser in all four settings.
+## Conventions
 
-## Layout fragments
+**Page widths belong to `<Page>`.** A page picks `wide`, `form`, `narrow` or `auth`
+and never writes a container class. The previous markup repeated one container chain
+across twenty-four files, and they drifted apart.
 
-A template never names its own container. It hands its body to a shell, which
-decides the width and the top gap - so the `container-xl px-3 px-md-4 px-lg-5
-mt-4` chain that used to be copied into two dozen files cannot come back and
-drift apart. `TemplateConventionsTest` fails the build if a page names a
-container.
+**A card is a card.** `.card` is for a group that needs a header bar, a footer bar,
+or a background different from the page. Everything else is `<Rows>`: rows separated
+by hairlines, no outer border. A page never opens with a card - it opens with a
+`<Subhead>`.
 
-```html
-<main th:replace="~{fragments/layout :: page('wide', ~{::content})}">
-  <th:block th:fragment="content"> ... </th:block>
-</main>
-```
+**An empty list is not rendered.** `<Empty>` is the whole empty case, never nested
+inside a card, and never shown beside a list that has rows.
 
-| Fragment file | What it owns |
-| --- | --- |
-| `layout.html` | `page(width, content)`, `withSidebar(position, main, aside)`, `repoHead`, `adminNav` |
-| `ui.html` | `icon`, `subhead`, `emptyState`, `stateBadge`, `timeAgo`, `repoRow` |
-| `form.html` | `field`, `password`, `textarea`, `radioOption`, `card`, `authCard` |
-| `conversation.html` | `header`, `comment`, `event`, `commentForm`, `sidebarSection` |
-| `diff.html` | `summary`, `files` |
-| `repo.html` | `branchPicker`, `cloneMenu`, `repoActions`, `languageBar`, `contributors` |
-| `common.html` | `head`, `header`, `footer`, `avatar`, `avatarProfile`, `pagination` |
+**Primer 38 has no `sx` prop.** It moved to CSS Modules. Layout goes through
+`<Stack>` and anything else through a class. The utility layer in `app.css` is nine
+rules with a `u-` prefix, and it is meant to stay that size.
 
-Widths: `wide` (1280, app pages), `form` (768, settings and creation),
-`narrow` (768), `auth` (544).
+## Two traps worth knowing
 
-### Naming a fragment
+**Themes.** Primer only defines tokens for a light mode paired with a light theme, or
+a dark mode paired with a dark one. Naming a dark theme under light mode matches no
+rule at all, so every token falls back to nothing: transparent background, black
+text, a page that looks broken rather than differently themed. `useTheme` derives the
+mode from the theme's family for exactly this reason, and the server's shell script
+does the same before first paint.
 
-**Never name a fragment after an HTML tag.** `~{::body}` selects by fragment
-name *or* by tag name, so a fragment called `body` passed into another template
-resolves to that template's own `<body>` - and Thymeleaf recurses until it hits
-its 100-deep inclusion limit. The same applies to `nav`, `meta`, `header`,
-`main`, `summary`. Use `adminBody`, `adminRail`, `metaRail`.
-
-### `th:if` never guards `th:replace`
-
-On one element, `th:replace` has precedence 100 and `th:if` has 300, so the
-fragment is resolved before the condition is ever evaluated. An optional
-fragment parameter needs the empty fragment instead:
-
-```html
-<th:block th:replace="${action} ?: ~{}"></th:block>
-```
-
-Likewise `th:each` (200) runs *after* `th:replace`, so a loop that renders a
-fragment per item needs a `th:block` wrapper around the element that replaces.
-
-## De-boxing
-
-`.Box` is a card. Use it when a group needs a header bar, a footer bar, or a
-background different from the page. Everything else is `.list`: rows separated by
-hairlines, no outer border, no rounded corners.
-
-- A page never *opens* with a `Box`; it opens with a `Subhead`.
-- A `blankslate` is never inside a `Box` - an empty list is not rendered at all.
-- Three sibling cards is a bug, and the build fails on it. Two is allowed,
-  because two is what GitHub itself draws in the two places that survive here:
-  the sign-in form above its "create an account" callout, and the file tree above
-  the README.
+**The whitelabel error view.** Spring registers its fallback error page as a `View`
+bean named, literally, `error` - and `BeanNameViewResolver` runs ahead of the Inertia
+resolver, so it wins the view name our own error page uses. It is switched off with
+`spring.web.error.whitelabel.enabled: false`. That key moved in Boot 4; setting the
+old `server.error.whitelabel` path does nothing, and looks exactly like the setting
+being ignored.
 
 ## Guard rails
 
-Four test classes hold the UI to its conventions. All run under `./gradlew
-test`, which matters: CI runs only `test` and `bootJar`, so a shell script would
-never have executed anywhere but a developer machine.
+**`PageRenderTest`** requests every route with the `X-Inertia` header and asserts
+three things about the page object, each of which has caught a real bug:
 
-**`PageRenderTest`** renders every route and asserts the body closes with the
-html end tag. Status alone is not enough - a Thymeleaf error thrown after the
-response buffer flushes leaves the request at 200 with truncated HTML, so a sweep
-over status codes reports success on a visibly broken page. It covers signed-in,
-anonymous and empty-repository variants, because the empty branch of a list is
-where a null model attribute hides.
+1. the named component exists as a file under `frontend/src/pages` - a controller
+   renamed without its counterpart is otherwise a blank screen at runtime;
+2. every prop serialises - one unserialisable object fails the whole response;
+3. no password hash, token hash or filesystem path appears in the JSON.
 
-**`TemplateConventionsTest`** enforces the structural rules, and all of them are
-now absolute rather than ratchets:
+The third matters more than it used to. A template chose its fields one at a time;
+props are the *whole model*, so a getter that was merely unused is now shipped to the
+browser. `User.passwordHash`, `AccessToken.tokenHash` and `Repository.storagePath`
+carry `@JsonIgnore` on both the field and the getter - Jackson merges the two into
+one logical property, so annotating only one still suppresses it and makes the test
+look like it is guarding something it is not. Verified by removing both annotations:
+seven routes failed.
 
-1. every class used in a template is defined in a stylesheet
-2. every decorative octicon carries `aria-hidden`
-3. no literal `style="..."` (a `th:style` carrying `${...}` is fine - a label
-   colour or a progress width genuinely comes from data)
-4. no page names its own container
-5. no three sibling `.Box` elements
-
-The ratchets reached zero during the redesign. A ratchet budget must equal the
-true count, never a round number above it: set loosely it silently permits new
-debt, which is exactly what happened the first time these were written.
-
-**`MinifiedAssetsTest`** compares the packaged stylesheet against the source and
-fails if a selector went missing or the braces stopped balancing. The YUI
-compressor is a regular expression, not a parser; if it ever meets syntax it
-cannot follow, the source is right, the development server is right, and only the
-jar is wrong. Probing it with CSS nesting, `@layer`, `color-mix()` and `calc()`
-found none of them mangled by 2.4.8, so this guards against a regression rather
-than working around a known break.
-
-**`MarkdownServiceTest`** covers the GFM extensions.
+**`tsc --noEmit`** runs as part of `npm run build`, so a type error fails
+`./gradlew bootJar`. This is the replacement for the class of bug the rewrite was
+done to kill: a fragment given the wrong arguments used to render half a page at
+runtime, and is now a compile error.
 
 ### What tests cannot check
 
-Spacing rhythm, optical alignment and overflow need a browser. Measured in
-headless Chrome over CDP at 390/768/1024/1440 px across eleven pages:
+Whether React actually mounted, and whether the result has any visible text. A blank
+page returns 200 with correct props.
 
-- icon-to-text distance takes exactly three values - 4, 8 and 16 px - and all
-  three are tokens on the scale, not accidents
-- no element is vertically mis-centred against its label, apart from the list-row
-  icons that are deliberately top-aligned against a two-line block, as GitHub's are
-- `scrollWidth == clientWidth` at every width
-- the footer sits flush to the bottom of a short page
-
-Two bugs came out of that pass that no unit test would have found: a one-pixel
-overflow from a button row that could not wrap, and the `State` pill's icon
-sitting 1.5 px high because Primer renders the pill `inline-block`.
-
-## Static assets
-
-Served under `/assets/**` (via `WebMvcConfig`), which avoids route conflicts with
-the `/{username}/{name}` repository URL pattern. No Node and no npm; the sources
-are committed plain and readable.
-
-`gitkoo.css` and `gitkoo.js` are minified into the jar by the `minifyAssets`
-Gradle task, so no comment is ever served to a browser. `primer.css` is left
-alone: response compression already takes it from 745 KB to 65 KB on the wire,
-and running a 2013-era minifier over a modern design system to save a few more
-KB is a bad trade.
+Checked by hand in headless Chrome across all thirty routes at 390px and 1440px,
+watching for an empty root element, console errors, horizontal overflow, and a footer
+floating above the bottom of a short page. That pass found the two worst bugs in this
+rewrite: the page object written as a data attribute, which Inertia 3 does not read,
+so nothing mounted anywhere; and a `.blob-table td` padding reset that outranked
+`.blob-num` and left every line number touching its line of code.

@@ -133,7 +133,7 @@ Checks Java, Git, database, data directory, and SSH configuration.
 | Database | SQLite (default), PostgreSQL (optional) |
 | Git | Native Git CLI via ProcessBuilder |
 | SSH | Apache MINA SSHD |
-| Frontend | Thymeleaf + HTML + CSS + HTMX (no React, no build step) |
+| Frontend | React 19 + TypeScript + Primer React, over Inertia |
 | CI | Custom GitKoo DSL, Java ProcessBuilder |
 | Build | Gradle Groovy DSL |
 | Packaging | Executable JAR |

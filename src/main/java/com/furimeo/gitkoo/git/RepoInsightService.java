@@ -81,13 +81,15 @@ public class RepoInsightService {
                 gitService.tags(storagePath, 10));
     }
 
-    /** One language's slice of the repository. */
+    /**
+     * One language's slice of the repository.
+     *
+     * <p>Only the numbers. Jackson serialises a record's components and nothing else,
+     * so a formatting helper here would simply be absent from the props and render as
+     * "undefined"; the client formats, which also gets the reader's locale rather
+     * than the server's.
+     */
     public record LanguageShare(String name, String color, long bytes, double percent) {
-
-        /** Rounded for display: "62.4%". */
-        public String percentLabel() {
-            return String.format(java.util.Locale.ROOT, "%.1f%%", percent);
-        }
     }
 
     /** Everything the overview sidebar needs that costs a tree or history walk. */
@@ -98,16 +100,5 @@ public class RepoInsightService {
                           List<GitService.TagInfo> tags) {
 
         static final Insight EMPTY = new Insight(List.of(), List.of(), 0L, null, List.of());
-
-        /** "1.2 MB", the way a person reads a repository size. */
-        public String sizeLabel() {
-            if (sizeBytes < 1024) {
-                return sizeBytes + " B";
-            }
-            if (sizeBytes < 1024 * 1024) {
-                return String.format(java.util.Locale.ROOT, "%.0f KB", sizeBytes / 1024.0);
-            }
-            return String.format(java.util.Locale.ROOT, "%.1f MB", sizeBytes / (1024.0 * 1024.0));
-        }
     }
 }

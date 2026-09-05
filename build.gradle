@@ -1,15 +1,3 @@
-buildscript {
-	repositories { mavenCentral() }
-	dependencies {
-		// Build-time only, never shipped. Used by the minifyAssets task below.
-		// Closure for JS: YUI's Rhino dates from 2013 and rejects `promise.catch(...)`
-		// because `catch` is a reserved word, which would force the source to be
-		// written around the minifier rather than the other way round.
-		classpath 'com.google.javascript:closure-compiler:v20250402'
-		classpath 'com.yahoo.platform.yui:yuicompressor:2.4.8'
-	}
-}
-
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
@@ -32,10 +20,8 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'org.commonmark:commonmark:0.24.0'
 	// GitHub-flavoured Markdown: tables, task lists, strikethrough, bare URLs.
 	implementation 'org.commonmark:commonmark-ext-gfm-tables:0.24.0'
@@ -47,81 +33,58 @@ dependencies {
 	runtimeOnly 'org.xerial:sqlite-jdbc'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jdbc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 /*
- * Minifies GitKoo's own CSS and JS into the packaged output.
+ * Builds the React client and packages it into the jar.
  *
- * The sources under src/ stay readable and commented; only the copies inside the
- * jar are stripped, so nothing is lost for anyone working on them and no comment
- * is served to a browser.
+ * Vite writes to build/frontend; this copies that into the jar's static resources
+ * under app/, which WebMvcConfig serves at /assets/app/. Nothing generated is ever
+ * written under src/, so a clean checkout has no build output in it.
  *
- * Deliberately narrow:
- *   - htmx.min.js and highlight.min.js arrive minified already.
- *   - primer.css is vendored and uses modern syntax this 2013-era compressor does
- *     not understand. Response compression already takes it from 745 KB to 65 KB
- *     on the wire; minifying it would save a few more KB and risk mangling the
- *     whole design system. Not worth the trade.
- *
- * This is a Gradle task, not an npm toolchain: the "no build step" rule in
- * docs/stack.md is about not needing Node to work on the frontend, and that holds.
+ * Node is required to build, and only to build. The jar that comes out is a single
+ * self-contained file with the compiled bundle inside it - deploying GitKoo still
+ * means copying one jar and running it.
  */
-tasks.register('minifyAssets') {
-	description = 'Minifies gitkoo.css and gitkoo.js into the packaged resources.'
-	def sourceDir = file('src/main/resources/static')
-	def outputDir = layout.buildDirectory.dir('resources/main/static')
+def npmCommand = org.gradle.internal.os.OperatingSystem.current().isWindows() ? 'npm.cmd' : 'npm'
 
-	inputs.files(fileTree(sourceDir) {
-		include 'css/gitkoo.css', 'js/gitkoo.js'
-	}).withPropertyName('assets')
-	outputs.dir(outputDir).withPropertyName('minified')
-
-	doLast {
-		def out = outputDir.get().asFile
-
-		def js = new File(sourceDir, 'js/gitkoo.js')
-		def jsTarget = new File(out, 'js/gitkoo.js')
-		jsTarget.parentFile.mkdirs()
-
-		def options = new com.google.javascript.jscomp.CompilerOptions()
-		com.google.javascript.jscomp.CompilationLevel.SIMPLE_OPTIMIZATIONS
-			.setOptionsForCompilationLevel(options)
-		// SIMPLE renames locals but never globals, so hljs, htmx and the DOM stay intact.
-		options.setLanguageIn(com.google.javascript.jscomp.CompilerOptions.LanguageMode.ECMASCRIPT_NEXT)
-		options.setLanguageOut(com.google.javascript.jscomp.CompilerOptions.LanguageMode.ECMASCRIPT5)
-
-		def compiler = new com.google.javascript.jscomp.Compiler()
-		def result = compiler.compile(
-			Collections.<com.google.javascript.jscomp.SourceFile> emptyList(),
-			[com.google.javascript.jscomp.SourceFile.fromFile(js.absolutePath, java.nio.charset.StandardCharsets.UTF_8)],
-			options)
-		if (!result.success) {
-			throw new GradleException("minifyAssets: ${js.name} failed to compile: ${result.errors}")
-		}
-		result.warnings.each { logger.warn('minifyAssets: {}', it) }
-		jsTarget.setText(compiler.toSource(), 'UTF-8')
-
-		def css = new File(sourceDir, 'css/gitkoo.css')
-		def cssTarget = new File(out, 'css/gitkoo.css')
-		cssTarget.parentFile.mkdirs()
-		css.withReader('UTF-8') { reader ->
-			cssTarget.withWriter('UTF-8') { writer ->
-				new com.yahoo.platform.yui.compressor.CssCompressor(reader).compress(writer, -1)
-			}
-		}
-
-		logger.lifecycle('minifyAssets: gitkoo.js {} -> {} bytes, gitkoo.css {} -> {} bytes',
-			js.length(), jsTarget.length(), css.length(), cssTarget.length())
-	}
+tasks.register('npmInstall', Exec) {
+	description = 'Installs frontend dependencies.'
+	workingDir = file('frontend')
+	// package-lock.json is the input, not package.json: `npm ci` reads the lock file
+	// and reinstalling on every unrelated build is minutes of nothing.
+	inputs.file('frontend/package.json')
+	inputs.file('frontend/package-lock.json')
+	outputs.dir('frontend/node_modules')
+	commandLine npmCommand, 'ci', '--no-audit', '--no-fund'
 }
 
-// Runs after resources are copied, before anything packages them.
-tasks.named('minifyAssets') { dependsOn 'processResources' }
-tasks.named('classes') { dependsOn 'minifyAssets' }
+tasks.register('npmBuild', Exec) {
+	description = 'Compiles the React client with Vite.'
+	dependsOn 'npmInstall'
+	workingDir = file('frontend')
+	inputs.dir('frontend/src')
+	inputs.file('frontend/package.json')
+	inputs.file('frontend/vite.config.ts')
+	inputs.file('frontend/tsconfig.json')
+	outputs.dir(layout.buildDirectory.dir('frontend'))
+	commandLine npmCommand, 'run', 'build'
+}
+
+tasks.register('frontend', Copy) {
+	description = 'Packages the compiled client into the jar resources.'
+	dependsOn 'npmBuild'
+	from layout.buildDirectory.dir('frontend')
+	into layout.buildDirectory.dir('resources/main/static/app')
+}
+
+// The client is part of the application, so it is built for anything that packages
+// or runs one - and for tests, which assert the manifest is present and readable.
+tasks.named('frontend') { mustRunAfter 'processResources' }
+tasks.named('classes') { dependsOn 'frontend' }
 
 tasks.named('test') {
 	useJUnitPlatform()

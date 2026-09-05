@@ -1,6 +1,15 @@
 spring:
   application:
     name: gitkoo
+  web:
+    error:
+      whitelabel:
+        # Spring registers the whitelabel page as a View bean named, literally,
+        # "error" - and BeanNameViewResolver runs ahead of the Inertia resolver, so
+        # leaving it enabled means it wins the view name our own error page uses.
+        # The key moved here in Boot 4; the old server.error.whitelabel path is
+        # silently ignored, which looks exactly like the setting not working.
+        enabled: false
   datasource:
     url: jdbc:sqlite:${gitkoo.data:./data}/gitkoo.db
     driver-class-name: org.sqlite.JDBC
@@ -13,9 +22,9 @@ spring:
 server:
   port: 3000
   compression:
-    # primer.css is ~745 KB uncompressed and ~90 KB gzipped. Worth the CPU.
+    # The client bundle and its stylesheets are the bulk of a first load.
     enabled: true
-    mime-types: text/html,text/css,text/plain,application/javascript,image/svg+xml
+    mime-types: text/html,text/css,text/plain,application/javascript,application/json,image/svg+xml
     min-response-size: 2KB
 
 gitkoo:

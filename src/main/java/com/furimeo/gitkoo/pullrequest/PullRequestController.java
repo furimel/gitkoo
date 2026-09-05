@@ -123,7 +123,12 @@ public class PullRequestController {
         model.addAttribute("reviewers", reviews.stream()
                 .map(r -> userService.findById(r.getReviewerId()).orElse(null))
                 .toList());
-        model.addAttribute("markdown", markdownService);
+        // Rendered here, not in the view: the client gets HTML and never the service.
+        model.addAttribute("reviewBodies", reviews.stream()
+                .map(r -> r.getBody() == null || r.getBody().isBlank()
+                        ? null
+                        : markdownService.render(r.getBody()))
+                .toList());
 
         // The changes the PR proposes, so the page can actually be reviewed.
         var storagePath = java.nio.file.Path.of(repo.getStoragePath());

@@ -133,6 +133,18 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
+                /*
+                 * A cookie, not a hidden form field. There are no server-rendered
+                 * forms any more: the Inertia client reads the XSRF-TOKEN cookie and
+                 * echoes it in a header, which is the same double-submit check the
+                 * hidden field performed. withHttpOnlyFalse is required - JavaScript
+                 * has to be able to read the cookie to echo it - and is safe because
+                 * the token is not a credential on its own.
+                 */
+                .csrfTokenRepository(
+                        org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(
+                        new org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler())
                 // Git smart-HTTP and API endpoints use tokens, not browser forms.
                 // The service paths are listed explicitly: "/**.git/**" misses the
                 // suffix-less form, so a push to /owner/repo/git-receive-pack was

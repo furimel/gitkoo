@@ -25,5 +25,5 @@ features:
   - title: Lightweight CI
     details: ProcessBuilder execution, async job queue, log streaming, secret masking, artifacts.
   - title: No build step
-    details: Thymeleaf + HTMX + vanilla JS. No React, no Node, no npm for the app frontend.
+    details: React + TypeScript on Primer, GitHub's own design system, served through Inertia so the Spring controllers keep owning routing and permissions.
 ---

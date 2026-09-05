@@ -129,6 +129,12 @@ public class IssueController {
         model.addAttribute("commentAuthors", comments.stream()
                 .map(c -> userService.findById(c.getAuthorId()).orElse(null))
                 .toList());
+        // Rendered here rather than in the view. The template used to call the
+        // Markdown service itself, which meant handing the whole service to the view
+        // layer; the client gets HTML, and only HTML.
+        model.addAttribute("commentBodies", comments.stream()
+                .map(c -> markdownService.render(c.getBody()))
+                .toList());
         model.addAttribute("author", author.orElse(null));
 
         /*
@@ -146,7 +152,6 @@ public class IssueController {
                 repoLabels.stream().filter(l -> attachedIds.contains(l.getId())).toList());
         model.addAttribute("availableLabels",
                 repoLabels.stream().filter(l -> !attachedIds.contains(l.getId())).toList());
-        model.addAttribute("markdown", markdownService);
         return "issue/view";
     }
 

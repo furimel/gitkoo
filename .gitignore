@@ -44,3 +44,7 @@ design (DO NOT COMMIT) .txt
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 docs/node_modules/
+# The client's dependencies; package-lock.json is committed, node_modules is not.
+frontend/node_modules/
+# Screenshots dropped in the repo root while reviewing the interface.
+/*.png

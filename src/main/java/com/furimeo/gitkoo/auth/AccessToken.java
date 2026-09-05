@@ -20,6 +20,7 @@ public class AccessToken {
 
     private Long userId;
     private String name;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String tokenHash;
     private String scopes;
     private OffsetDateTime lastUsedAt;
@@ -53,6 +54,7 @@ public class AccessToken {
         this.name = name;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getTokenHash() {
         return tokenHash;
     }

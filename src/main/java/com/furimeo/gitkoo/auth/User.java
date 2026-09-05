@@ -20,6 +20,7 @@ public class User {
     private String username;
     private String displayName;
     private String email;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String passwordHash;
     private String avatar;
     private String bio;
@@ -66,6 +67,7 @@ public class User {
         this.email = email;
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getPasswordHash() {
         return passwordHash;
     }

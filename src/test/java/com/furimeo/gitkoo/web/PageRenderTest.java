@@ -29,19 +29,23 @@ import com.furimeo.gitkoo.pullrequest.PullRequestService;
 import com.furimeo.gitkoo.repository.Repository;
 import com.furimeo.gitkoo.repository.RepositoryService;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
 /**
- * Renders every page and asserts it came out whole.
+ * Requests every page as the Inertia client would, and checks what comes back.
  *
- * <p>Nothing in this project rendered a template before this test existed, which is
- * how a run of display bugs reached the browser unseen: literal escape sequences in
- * page titles, a link expression that threw, a dead filter, and pages that stopped
- * mid-element.
+ * <p>Three things are asserted for each route, and each one has caught a real bug:
  *
- * <p>That last one is why this checks the body and not just the status. A Thymeleaf
- * error thrown after the response buffer has been flushed leaves the request at
- * <strong>200</strong> with truncated HTML, so a sweep over status codes reports
- * success on a page that is visibly broken. Asserting the body closes with the
- * html end tag is what actually catches it.
+ * <ul>
+ *   <li>the page object names a component that exists as a React page - a controller
+ *       renamed without its counterpart is otherwise a blank screen at runtime;
+ *   <li>every prop serialises - one unserialisable object in the model fails the
+ *       whole response, and the browser shows nothing;
+ *   <li>no password hash, token hash or filesystem path is in the JSON. The old
+ *       templates chose their fields one at a time; props are the whole model, so
+ *       what used to be merely unused is now shipped to the browser.
+ * </ul>
  *
  * <p>Seeded once for the class rather than per test: each seeding creates a real bare
  * repository and pushes a real commit, and repeating that for every route would
@@ -57,6 +61,9 @@ class PageRenderTest {
 
     /** A repository with no commits, so the empty states are covered too. */
     private static final String EMPTY_REPO = "render-empty";
+
+    /** Where a component name has to resolve to a file. */
+    private static final Path PAGES = Path.of("frontend/src/pages");
 
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
@@ -171,16 +178,29 @@ class PageRenderTest {
     }
 
     private void assertRendersWhole(String path) throws Exception {
-        MvcResult result = mvc.perform(get(path)).andReturn();
+        // The X-Inertia header is what a client navigation sends, and it makes the
+        // server answer with the page object itself rather than the HTML shell.
+        MvcResult result = mvc.perform(get(path).header("X-Inertia", "true")).andReturn();
         String body = result.getResponse().getContentAsString();
 
         assertThat(result.getResponse().getStatus()).as("status of %s", path).isEqualTo(200);
         assertThat(result.getResponse().getContentType())
-                .as("content type of %s", path).startsWith("text/html");
-        // A template that throws mid-render still returns 200, with a truncated body.
-        assertThat(body.stripTrailing())
-                .as("%s must render to completion", path).endsWith("</html>");
-        assertThat(body).as("%s must not fall back to the error page", path)
-                .doesNotContain("Whitelabel");
+                .as("content type of %s", path).startsWith("application/json");
+
+        JsonNode page = new ObjectMapper().readTree(body);
+        String component = page.path("component").asText();
+
+        assertThat(component).as("%s must name a component", path).isNotEmpty();
+        assertThat(PAGES.resolve(component + ".tsx"))
+                .as("%s renders component '%s', which has no page in frontend/src/pages",
+                        path, component)
+                .exists();
+
+        assertThat(page.has("props")).as("%s must carry props", path).isTrue();
+
+        // The whole model is serialised now, so a secret is only ever one careless
+        // getter away from the browser. $2a$ is the bcrypt prefix.
+        assertThat(body).as("%s must not leak a password hash", path).doesNotContain("$2a$");
+        assertThat(body).as("%s must not leak a storage path", path).doesNotContain("storagePath");
     }
 }
