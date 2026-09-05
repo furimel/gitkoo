@@ -26,6 +26,26 @@ const pages = import.meta.glob<PageModule>('./pages/**/*.tsx')
 createInertiaApp({
   progress: {color: 'var(--fgColor-accent)'},
 
+  /*
+   * Send every request body as form data, not JSON.
+   *
+   * The Spring controllers read their input with @RequestParam, which the servlet
+   * container fills from a parsed form body - it does not parse JSON. Inertia
+   * defaults to JSON, so without this every form in the application answers 400
+   * with "Required request parameter 'username' is not present", and the page has
+   * no way to explain itself.
+   *
+   * It goes in `defaults` rather than a `config.set` call before this one:
+   * createInertiaApp starts with `config.replace(defaults)`, which discards
+   * anything configured beforehand. That failure is silent - the setting is
+   * present in the bundle, and simply gone by the time the first request is made.
+   *
+   * And here rather than at each call site, because there are more than thirty of
+   * those and one forgotten is one broken form that nobody finds until a person
+   * tries to use it.
+   */
+  defaults: {visitOptions: () => ({forceFormData: true})},
+
   resolve: async name => {
     const loader = pages[`./pages/${name}.tsx`]
     if (!loader) {

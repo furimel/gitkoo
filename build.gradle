@@ -117,6 +117,9 @@ tasks.named('classes') { dependsOn 'frontend' }
 tasks.named('test') {
 	useJUnitPlatform()
 	jvmArgs('-Xmx512m')
+	// Overlays src/test/resources/application-test.yaml on the real configuration,
+	// rather than replacing it - see the comment at the top of that file.
+	systemProperty 'spring.profiles.active', 'test' 
 	// src/test/resources/application.yaml points the tests at build/test-data.
 	// Start from an empty one so a leftover database cannot decide the outcome:
 	// a committed admin row made the setup tests fail with "Setup already completed".

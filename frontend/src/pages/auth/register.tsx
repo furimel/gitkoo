@@ -1,8 +1,8 @@
 import {useForm} from '@inertiajs/react'
 import {Button, Flash, FormControl, Heading, Link, Stack, TextInput} from '@primer/react'
-import {MarkGithubIcon} from '@primer/octicons-react'
 import type {FormEvent} from 'react'
 
+import {Logo} from '@/components/Logo'
 import {Page} from '@/components/Page'
 import {BareShell} from '@/layouts/Shell'
 import type {PageComponent} from '@/lib/types'
@@ -25,7 +25,7 @@ const Register: PageComponent = function Register({error, username, email}: Prop
   return (
     <Page width="auth">
       <div className="auth-masthead">
-        <MarkGithubIcon size={48} />
+        <Logo size={48} />
         <Heading as="h1" variant="medium">
           Create your account
         </Heading>

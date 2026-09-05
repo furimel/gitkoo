@@ -1,15 +1,9 @@
 import {Link, router, usePage} from '@inertiajs/react'
 import {ActionList, ActionMenu, Avatar, IconButton, Text, TextInput} from '@primer/react'
-import {
-  BellIcon,
-  MarkGithubIcon,
-  MoonIcon,
-  PlusIcon,
-  SearchIcon,
-  SunIcon,
-} from '@primer/octicons-react'
+import {BellIcon, MoonIcon, PlusIcon, SearchIcon, SunIcon} from '@primer/octicons-react'
 import type {FormEvent} from 'react'
 
+import {Logo} from '@/components/Logo'
 import type {SharedPageProps} from '@/lib/types'
 import {useTheme} from '@/lib/useTheme'
 
@@ -34,7 +28,7 @@ export function AppHeader() {
     <header className="app-header">
       <div className="app-header-inner page page--wide">
         <Link href="/" className="app-header-brand" aria-label="GitKoo home">
-          <MarkGithubIcon size={32} />
+          <Logo size={32} />
           <Text weight="semibold" size="large">
             GitKoo
           </Text>

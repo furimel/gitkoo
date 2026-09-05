@@ -1,4 +1,11 @@
-# Test overrides.
+# Test overrides, as a profile.
+#
+# A profile, not a second application.yaml: a file of the same name on the test
+# classpath *replaces* the main one rather than merging with it, so every setting
+# the application relies on - the whitelabel error page being off, compression,
+# the server port - silently stopped applying under test. Tests were checking a
+# configuration nobody runs. `spring.profiles.active=test` is set for the test task
+# in build.gradle, so this overlays the real configuration instead.
 #
 # Without this, @SpringBootTest inherits gitkoo.data from the main configuration
 # and runs against ./data/gitkoo.db - the developer's real database. Tests then

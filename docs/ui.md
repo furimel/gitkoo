@@ -128,6 +128,24 @@ one logical property, so annotating only one still suppresses it and makes the t
 look like it is guarding something it is not. Verified by removing both annotations:
 seven routes failed.
 
+**`FormSubmissionTest`** runs a real server and writes real request bodies,
+because the encoding is the thing being checked. Every form in the application once
+shipped broken: the controllers read `@RequestParam`, which the servlet container
+fills from a parsed form body, and the Inertia client sends JSON by default - so
+each submission answered 400. MockMvc cannot express that bug, since its multipart
+builder takes parts and parameters separately and never parses a body.
+
+The client is therefore configured with `forceFormData`, and it lives inside
+`createInertiaApp`'s `defaults`. That placement matters: the call begins with
+`config.replace(defaults)`, so a `config.set` before it is silently discarded - the
+setting is present in the bundle and simply gone by the first request.
+
+**`SchemaMatchesEntitiesTest`** compares every `@Table` entity's fields against the
+columns the migrations create. It was written after the form test found that
+`team_members` had no `created_at`, which means creating a team had never once
+worked in any version of this application. Nothing compared the two halves, and no
+test exercised the route.
+
 **`tsc --noEmit`** runs as part of `npm run build`, so a type error fails
 `./gradlew bootJar`. This is the replacement for the class of bug the rewrite was
 done to kill: a fragment given the wrong arguments used to render half a page at
@@ -144,3 +162,8 @@ floating above the bottom of a short page. That pass found the two worst bugs in
 rewrite: the page object written as a data attribute, which Inertia 3 does not read,
 so nothing mounted anywhere; and a `.blob-table td` padding reset that outranked
 `.blob-num` and left every line number touching its line of code.
+
+Forms were then driven the same way - filling the first-run form, signing in, and
+creating a repository by clicking the buttons - which is how the encoding mismatch
+was finally pinned down, and how the `config.replace` that silently discarded the
+first attempt at fixing it was found.
